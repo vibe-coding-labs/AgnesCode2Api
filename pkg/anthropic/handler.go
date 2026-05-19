@@ -150,6 +150,16 @@ func (h *Handler) handleNonStream(w http.ResponseWriter, r *http.Request, req *M
 		return
 	}
 	resp := TranslateResponse(jcResp, req.Model)
+	// Check for content_filter in non-stream response
+	if choices, ok := jcResp["choices"].([]interface{}); ok && len(choices) > 0 {
+		if choice, ok := choices[0].(map[string]interface{}); ok {
+			if fr, ok := choice["finish_reason"].(string); ok && fr == "content_filter" {
+				reqLog(r).Warn("content_filter in non-stream response")
+				writeAnthropicError(w, 400, "上游模型的内容安全审查触发了过滤，请尝试修改提问方式或简化输入内容后重试。")
+				return
+			}
+		}
+	}
 	if usage, ok := jcResp["usage"].(map[string]interface{}); ok {
 		inTk, _ := usage["prompt_tokens"].(float64)
 		outTk, _ := usage["completion_tokens"].(float64)
@@ -226,6 +236,11 @@ func (h *Handler) handleStream(w http.ResponseWriter, r *http.Request, req *Mess
 		if isTimeoutError(err) {
 			reqLog(r).Error("upstream timeout (stream) after retries", "error", err)
 			writeAnthropicError(w, 504, "上游服务响应超时，请稍后重试。如果问题持续，请尝试减少上下文长度或开启新对话。")
+			return
+		}
+		if strings.Contains(errMsg, "content_filter") {
+			reqLog(r).Warn("upstream content_filter (stream) after retries, returning friendly error")
+			writeAnthropicError(w, 400, "上游模型的内容安全审查触发了过滤，请尝试修改提问方式或简化输入内容后重试。")
 			return
 		}
 		reqLog(r).Error("stream failed after retries", "error", errMsg)
@@ -570,10 +585,39 @@ func (h *Handler) connectStreamWithRetry(r *http.Request, jcBody map[string]inte
 			continue
 		}
 
-		// Wrap body to replay first line for the scanner
+		// Check first line for content_filter (content + finish_reason in same chunk)
+		if isContentFilterChunk(dataContent) {
+			resp.Body.Close()
+			lastErr = fmt.Errorf("upstream content_filter triggered")
+			reqLog(r).Warn("content_filter detected in first chunk, retrying", "attempt", attempt, "max", maxRetries)
+			if attempt < maxRetries {
+				time.Sleep(time.Duration(attempt) * 500 * time.Millisecond)
+			}
+			continue
+		}
+
+		// Peek second line to detect content_filter with separate finish_reason
+		replayLines := firstLine
+		secondLine, sErr := br.ReadString('\n')
+		if sErr == nil {
+			replayLines += secondLine
+			trimmedSecond := strings.TrimSpace(secondLine)
+			dataSecond := strings.TrimPrefix(trimmedSecond, "data: ")
+			if isContentFilterChunk(dataSecond) {
+				resp.Body.Close()
+				lastErr = fmt.Errorf("upstream content_filter triggered")
+				reqLog(r).Warn("content_filter detected in second chunk, retrying", "attempt", attempt, "max", maxRetries)
+				if attempt < maxRetries {
+					time.Sleep(time.Duration(attempt) * 500 * time.Millisecond)
+				}
+				continue
+			}
+		}
+
+		// Wrap body to replay buffered lines for the scanner
 		originalBody := resp.Body
 		resp.Body = &prependReader{
-			first:  []byte(firstLine),
+			first:  []byte(replayLines),
 			source: br,
 			body:   originalBody,
 		}
@@ -606,6 +650,27 @@ func isContextLimitError(body string) bool {
 		strings.Contains(lower, "model_context_window_exceeded") ||
 		strings.Contains(lower, "prompt length") ||
 		strings.Contains(lower, "max_input_tokens")
+}
+
+// isContentFilterChunk checks if a SSE data line contains content_filter finish_reason.
+func isContentFilterChunk(line string) bool {
+	if line == "" || line == "[DONE]" {
+		return false
+	}
+	var parsed struct {
+		Choices []struct {
+			FinishReason *string `json:"finish_reason"`
+		} `json:"choices"`
+	}
+	if err := json.Unmarshal([]byte(line), &parsed); err != nil {
+		return false
+	}
+	for _, c := range parsed.Choices {
+		if c.FinishReason != nil && *c.FinishReason == "content_filter" {
+			return true
+		}
+	}
+	return false
 }
 
 func isUpstreamError(line string) bool {

@@ -130,7 +130,7 @@ var serveCmd = &cobra.Command{
 						apiKey = strings.TrimPrefix(auth, "Bearer ")
 					}
 				}
-				timeout := s.GetIntSetting("request_timeout", 120)
+				timeout := s.GetIntSetting("request_timeout", 1800)
 				if timeout < 60 {
 					timeout = 60
 				}
