@@ -8,6 +8,7 @@ import (
 	"strings"
 
 	"github.com/vibe-coding-labs/JoyCodeProxy/pkg/joycode"
+	"github.com/vibe-coding-labs/JoyCodeProxy/pkg/store"
 )
 
 // TranslateRequest converts an Anthropic MessageRequest to a JoyCode API body.
@@ -77,6 +78,16 @@ func normalizeAnthropicSystem(raw json.RawMessage) interface{} {
 		return blocks
 	}
 	return raw
+}
+
+// ClaudeNativeEnabled reports whether the native Anthropic code path is active.
+// Guarded by the "enable_claude" store setting — defaults to false until the
+// upstream JoyCode platform makes Claude models generally available.
+func ClaudeNativeEnabled(s *store.Store) bool {
+	if s == nil {
+		return false
+	}
+	return s.GetSetting("enable_claude") == "true"
 }
 
 func IsNativeAnthropicModel(model string) bool {

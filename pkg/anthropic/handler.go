@@ -97,7 +97,7 @@ func (h *Handler) handleNonStream(w http.ResponseWriter, r *http.Request, req *M
 	if h.store != nil {
 		systemDefault = h.store.GetSetting("default_model")
 	}
-	if IsNativeAnthropicModel(req.Model) || IsNativeAnthropicModel(resolveModel(req.Model, store.GetAccountDefaultModel(r), systemDefault)) {
+	if ClaudeNativeEnabled(h.store) && (IsNativeAnthropicModel(req.Model) || IsNativeAnthropicModel(resolveModel(req.Model, store.GetAccountDefaultModel(r), systemDefault))) {
 		h.handleNativeAnthropicNonStream(w, r, req, client, systemDefault)
 		return
 	}
@@ -204,7 +204,7 @@ func (h *Handler) handleStream(w http.ResponseWriter, r *http.Request, req *Mess
 		writeAnthropicError(w, 500, "streaming not supported")
 		return
 	}
-	if IsNativeAnthropicModel(req.Model) || IsNativeAnthropicModel(resolveModel(req.Model, store.GetAccountDefaultModel(r), systemDefault)) {
+	if ClaudeNativeEnabled(h.store) && (IsNativeAnthropicModel(req.Model) || IsNativeAnthropicModel(resolveModel(req.Model, store.GetAccountDefaultModel(r), systemDefault))) {
 		h.handleNativeAnthropicStream(w, r, req, client, flusher, systemDefault)
 		return
 	}
