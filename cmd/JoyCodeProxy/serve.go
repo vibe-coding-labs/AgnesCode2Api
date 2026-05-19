@@ -123,6 +123,12 @@ var serveCmd = &cobra.Command{
 			}()
 
 			resolver := func(r *http.Request) *joycode.Client {
+				systemClient := client
+				if systemClient != nil && systemClient.PtKey == "placeholder" {
+					if creds, err := auth.LoadFromSystem(); err == nil {
+						systemClient = joycode.NewClient(creds.PtKey, creds.UserID)
+					}
+				}
 				apiKey := r.Header.Get("x-api-key")
 				if apiKey == "" {
 					auth := r.Header.Get("Authorization")
@@ -137,22 +143,31 @@ var serveCmd = &cobra.Command{
 				if apiKey != "" {
 					if account, _ := s.GetAccountByToken(apiKey); account != nil {
 						cl := joycode.NewClient(account.PtKey, account.UserID)
+						if systemClient != nil && systemClient.PtKey != "" && systemClient.PtKey != "placeholder" && systemClient.UserID == account.UserID {
+							cl.SetAnthropicPtKey(systemClient.PtKey)
+						}
 						cl.SetTimeout(time.Duration(timeout) * time.Second)
 						return cl
 					}
 					if account, _ := s.GetAccount(apiKey); account != nil {
 						cl := joycode.NewClient(account.PtKey, account.UserID)
+						if systemClient != nil && systemClient.PtKey != "" && systemClient.PtKey != "placeholder" && systemClient.UserID == account.UserID {
+							cl.SetAnthropicPtKey(systemClient.PtKey)
+						}
 						cl.SetTimeout(time.Duration(timeout) * time.Second)
 						return cl
 					}
 				}
 				if account, _ := s.GetDefaultAccount(); account != nil {
 					cl := joycode.NewClient(account.PtKey, account.UserID)
+					if systemClient != nil && systemClient.PtKey != "" && systemClient.PtKey != "placeholder" && systemClient.UserID == account.UserID {
+						cl.SetAnthropicPtKey(systemClient.PtKey)
+					}
 					cl.SetTimeout(time.Duration(timeout) * time.Second)
 					cl.SetTransport(sharedTransport)
 					return cl
 				}
-				return client
+				return systemClient
 			}
 			srv.Resolver = resolver
 			anth.Resolver = resolver
@@ -360,7 +375,7 @@ func requestLogMiddleware(next http.Handler, s *store.Store) http.Handler {
 			proxy.RecordSession(resolvedAccount.UserID, sessionID)
 		}
 
-		rw := &responseWriter{ResponseWriter: w, statusCode: 200}
+		rw := &responseWriter{ResponseWriter: w, statusCode: 200, bodyLimit: 64 << 10}
 		next.ServeHTTP(rw, r)
 
 		// Log /v1/ requests
@@ -391,6 +406,9 @@ func requestLogMiddleware(next http.Handler, s *store.Store) http.Handler {
 			if rw.statusCode >= 400 {
 				reqID := atomic.AddUint64(&requestCounter, 1)
 				errMsg = fmt.Sprintf("HTTP %d on %s %s", rw.statusCode, r.Method, path)
+				if body := strings.TrimSpace(rw.body.String()); body != "" {
+					errMsg = fmt.Sprintf("%s\n%s", errMsg, body)
+				}
 				slog.Error("proxy error response",
 					"request_id", reqID,
 					"status", rw.statusCode,
@@ -419,11 +437,25 @@ func requestLogMiddleware(next http.Handler, s *store.Store) http.Handler {
 type responseWriter struct {
 	http.ResponseWriter
 	statusCode int
+	body       bytes.Buffer
+	bodyLimit  int
 }
 
 func (rw *responseWriter) WriteHeader(code int) {
 	rw.statusCode = code
 	rw.ResponseWriter.WriteHeader(code)
+}
+
+func (rw *responseWriter) Write(p []byte) (int, error) {
+	if rw.bodyLimit > 0 && rw.body.Len() < rw.bodyLimit {
+		remaining := rw.bodyLimit - rw.body.Len()
+		if len(p) > remaining {
+			rw.body.Write(p[:remaining])
+		} else {
+			rw.body.Write(p)
+		}
+	}
+	return rw.ResponseWriter.Write(p)
 }
 
 func (rw *responseWriter) Flush() {
