@@ -154,7 +154,7 @@ func (h *Handler) handleNonStream(w http.ResponseWriter, r *http.Request, req *M
 		}
 		if strings.Contains(errMsg, "content_filter") || strings.Contains(errMsg, "SENSITIVE_CONTENT") {
 			reqLog(r).Warn("upstream content_filter (non-stream), returning detailed error")
-			writeAnthropicError(w, 400, extractSensitiveDetail(errMsg))
+				writeContentFilterError(w, errMsg)
 			return
 		}
 		writeAnthropicError(w, 500, errMsg)
@@ -166,7 +166,7 @@ func (h *Handler) handleNonStream(w http.ResponseWriter, r *http.Request, req *M
 		if choice, ok := choices[0].(map[string]interface{}); ok {
 			if fr, ok := choice["finish_reason"].(string); ok && fr == "content_filter" {
 				reqLog(r).Warn("content_filter in non-stream response")
-				writeAnthropicError(w, 400, "上游模型的内容安全审查触发了过滤，请尝试修改提问方式或简化输入内容后重试。")
+					writeContentFilterError(w)
 				return
 			}
 		}
@@ -255,7 +255,7 @@ func (h *Handler) handleStream(w http.ResponseWriter, r *http.Request, req *Mess
 		}
 		if strings.Contains(errMsg, "content_filter") || strings.Contains(errMsg, "SENSITIVE_CONTENT") {
 			reqLog(r).Warn("upstream content_filter (stream), returning detailed error")
-			writeAnthropicError(w, 400, extractSensitiveDetail(errMsg))
+				writeContentFilterError(w, errMsg)
 			return
 		}
 		reqLog(r).Error("stream failed after retries", "error", errMsg)
@@ -1008,21 +1008,6 @@ func truncate(s string, maxLen int) string {
 	return s[:maxLen] + "..."
 }
 
-// extractSensitiveDetail parses the upstream error to extract the specific sensitive words.
-func extractSensitiveDetail(errMsg string) string {
-	if idx := strings.Index(errMsg, "sensitive contain:"); idx != -1 {
-		detail := errMsg[idx+len("sensitive contain:"):]
-		if end := strings.IndexByte(detail, '"'); end > 0 {
-			detail = detail[:end]
-		}
-		if end := strings.IndexByte(detail, '}'); end > 0 {
-			detail = detail[:end]
-		}
-		return "上游模型的内容安全审查触发了过滤，检测到敏感内容: " + detail + "。请尝试移除或替换相关内容后重试。"
-	}
-	return "上游模型的内容安全审查触发了过滤，请尝试修改提问方式或简化输入内容后重试。"
-}
-
 func writeAnthropicJSON(w http.ResponseWriter, code int, v interface{}) {
 	b, _ := json.Marshal(v)
 	w.Header().Set("Content-Type", "application/json")
@@ -1035,6 +1020,19 @@ func writeAnthropicError(w http.ResponseWriter, code int, msg string) {
 	writeAnthropicJSON(w, code, map[string]interface{}{
 		"type":  "error",
 		"error": map[string]string{"type": "api_error", "message": msg},
+	})
+}
+
+// writeContentFilterError forwards the upstream content_filter error as-is.
+// Uses invalid_request_error type so Claude Code knows this is a request-level error.
+func writeContentFilterError(w http.ResponseWriter, msgs ...string) {
+	msg := "upstream content_filter triggered"
+	if len(msgs) > 0 && msgs[0] != "" {
+		msg = msgs[0]
+	}
+	writeAnthropicJSON(w, 400, map[string]interface{}{
+		"type":  "error",
+		"error": map[string]string{"type": "invalid_request_error", "message": msg},
 	})
 }
 

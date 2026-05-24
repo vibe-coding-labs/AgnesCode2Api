@@ -494,6 +494,8 @@ func (s *Store) decrypt(ciphertext string) (string, error) {
 
 // --- Account CRUD ---
 
+const MaxAccounts = 10
+
 func (s *Store) AddAccount(userID, ptKey, nickname string, isDefault bool, defaultModel string) error {
 	if userID == "" {
 		return fmt.Errorf("user_id cannot be empty")
@@ -505,19 +507,15 @@ func (s *Store) AddAccount(userID, ptKey, nickname string, isDefault bool, defau
 	s.mu.Lock()
 	defer s.mu.Unlock()
 
-	encPtKey, err := s.encrypt(ptKey)
-	if err != nil {
-		slog.Error("store: encrypt pt_key failed", "user_id", userID, "error", err)
-		return fmt.Errorf("encrypt pt_key: %w", err)
-	}
-
-	// Check if account already exists by user_id
+	// Check if account already exists — updates bypass the limit
 	var existingToken string
-	err = s.db.QueryRow(
-		"SELECT api_token FROM accounts WHERE user_id = ?", userID,
-	).Scan(&existingToken)
+	err := s.db.QueryRow("SELECT api_token FROM accounts WHERE user_id = ?", userID).Scan(&existingToken)
 	if err == nil {
-		// Account exists: only update pt_key; preserve nickname, remark, display_order, etc.
+		encPtKey, err := s.encrypt(ptKey)
+		if err != nil {
+			slog.Error("store: encrypt pt_key failed", "user_id", userID, "error", err)
+			return fmt.Errorf("encrypt pt_key: %w", err)
+		}
 		_, err = s.db.Exec(
 			"UPDATE accounts SET pt_key = ?, nickname = CASE WHEN nickname = '' OR nickname IS NULL THEN ? ELSE nickname END, updated_at = datetime('now', 'localtime') WHERE user_id = ?",
 			encPtKey, nickname, userID,
@@ -528,6 +526,19 @@ func (s *Store) AddAccount(userID, ptKey, nickname string, isDefault bool, defau
 		}
 		slog.Info("store: updated existing account credentials", "user_id", userID)
 		return nil
+	}
+
+	// New account — enforce limit
+	var count int
+	s.db.QueryRow("SELECT COUNT(*) FROM accounts").Scan(&count)
+	if count >= MaxAccounts {
+		return fmt.Errorf("账号数量已达上限（%d 个）。本工具仅供个人学习和研究使用，禁止用于商业转售、API 中转服务或任何违法违规用途", MaxAccounts)
+	}
+
+	encPtKey, err := s.encrypt(ptKey)
+	if err != nil {
+		slog.Error("store: encrypt pt_key failed", "user_id", userID, "error", err)
+		return fmt.Errorf("encrypt pt_key: %w", err)
 	}
 
 	// New account

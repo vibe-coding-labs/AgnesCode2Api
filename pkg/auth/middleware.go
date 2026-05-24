@@ -34,6 +34,7 @@ func JWTMiddleware(getter SettingsGetter, next http.Handler) http.Handler {
 			"/api/auth/setup":      true,
 			"/api/auth/login":      true,
 			"/api/health":          true,
+			"/api/github-stars":    true,
 			"/api/browser-login":   true,
 			"/api/oauth-callback":  true,
 		}
