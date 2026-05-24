@@ -20,6 +20,8 @@ joycode_proxy_bin.bak
 cmd/JoyCodeProxy/JoyCodeProxy
 joycode_proxy_darwin_*
 joycode_proxy_linux_*
+joycode-proxy
+joycode-proxy-new
 
 # Dependency directories
 vendor/

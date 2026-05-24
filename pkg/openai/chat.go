@@ -44,7 +44,7 @@ func (s *Server) handleNonStreamChat(w http.ResponseWriter, r *http.Request, cli
 		code := 500
 		if isTimeoutError(msg) {
 			code = 504
-			msg = "上游服务响应超时，请稍后重试。"
+			msg = "上游服务响应超时，请稍后重试。原始错误: " + msg
 		}
 		writeError(w, code, msg)
 		return
@@ -74,7 +74,7 @@ func (s *Server) handleStreamChat(w http.ResponseWriter, r *http.Request, client
 		slog.Error("chat stream upstream error", "model", model, "error", err)
 		msg := err.Error()
 		if isTimeoutError(msg) {
-			msg = "上游服务响应超时，请稍后重试。"
+			msg = "上游服务响应超时，请稍后重试。原始错误: " + msg
 		}
 		fmt.Fprintf(w, "data: {\"error\":{\"message\":\"%s\"}}\n\n", msg)
 		flusher.Flush()

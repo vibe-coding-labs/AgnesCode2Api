@@ -129,7 +129,7 @@ func (h *Handler) handleNonStream(w http.ResponseWriter, r *http.Request, req *M
 					continue
 				}
 				reqLog(r).Warn("context limit exceeded, cannot truncate further")
-				writeAnthropicRequestError(w, "上下文长度超出模型限制，且无法进一步截断。请压缩对话历史或开启新对话。")
+				writeAnthropicRequestError(w, "上下文长度超出模型限制，且无法进一步截断。请压缩对话历史或开启新对话。原始错误: "+lastErr.Error())
 				return
 			}
 			reqLog(r).Error("non-stream retry error", "attempt", attempt, "max", maxRetries, "error", lastErr)
@@ -149,7 +149,7 @@ func (h *Handler) handleNonStream(w http.ResponseWriter, r *http.Request, req *M
 		}
 		if isTimeoutError(lastErr) {
 			reqLog(r).Error("upstream timeout after retries", "error", lastErr)
-			writeAnthropicError(w, 504, "上游服务响应超时，请稍后重试。如果问题持续，请尝试减少上下文长度或开启新对话。")
+			writeAnthropicError(w, 504, "上游服务响应超时，请稍后重试。如果问题持续，请尝试减少上下文长度或开启新对话。原始错误: "+errMsg)
 			return
 		}
 		if strings.Contains(errMsg, "content_filter") || strings.Contains(errMsg, "SENSITIVE_CONTENT") {
@@ -166,7 +166,8 @@ func (h *Handler) handleNonStream(w http.ResponseWriter, r *http.Request, req *M
 		if choice, ok := choices[0].(map[string]interface{}); ok {
 			if fr, ok := choice["finish_reason"].(string); ok && fr == "content_filter" {
 				reqLog(r).Warn("content_filter in non-stream response")
-					writeContentFilterError(w)
+				raw, _ := json.Marshal(choice)
+				writeContentFilterError(w, string(raw))
 				return
 			}
 		}
@@ -250,7 +251,7 @@ func (h *Handler) handleStream(w http.ResponseWriter, r *http.Request, req *Mess
 		}
 		if isTimeoutError(err) {
 			reqLog(r).Error("upstream timeout (stream) after retries", "error", err)
-			writeAnthropicError(w, 504, "上游服务响应超时，请稍后重试。如果问题持续，请尝试减少上下文长度或开启新对话。")
+			writeAnthropicError(w, 504, "上游服务响应超时，请稍后重试。如果问题持续，请尝试减少上下文长度或开启新对话。原始错误: "+errMsg)
 			return
 		}
 		if strings.Contains(errMsg, "content_filter") || strings.Contains(errMsg, "SENSITIVE_CONTENT") {
@@ -900,10 +901,10 @@ func (h *Handler) connectStreamWithRetry(r *http.Request, jcBody map[string]inte
 		}
 
 		// Check first line for content_filter (content + finish_reason in same chunk)
-		if isContentFilterChunk(dataContent) {
+		if filtered, chunkData := extractContentFilterInfo(dataContent); filtered {
 			resp.Body.Close()
-			lastErr = fmt.Errorf("upstream content_filter triggered")
-			reqLog(r).Warn("content_filter detected in first chunk, not retrying")
+			lastErr = fmt.Errorf("%s", truncate(chunkData, 500))
+			reqLog(r).Warn("content_filter detected in first chunk, not retrying", "chunk", truncate(chunkData, 300))
 			return nil, lastErr
 		}
 
@@ -914,10 +915,10 @@ func (h *Handler) connectStreamWithRetry(r *http.Request, jcBody map[string]inte
 			replayLines += secondLine
 			trimmedSecond := strings.TrimSpace(secondLine)
 			dataSecond := strings.TrimPrefix(trimmedSecond, "data: ")
-			if isContentFilterChunk(dataSecond) {
+			if filtered, chunkData := extractContentFilterInfo(dataSecond); filtered {
 				resp.Body.Close()
-				lastErr = fmt.Errorf("upstream content_filter triggered")
-				reqLog(r).Warn("content_filter detected in second chunk, not retrying")
+				lastErr = fmt.Errorf("%s", truncate(chunkData, 500))
+				reqLog(r).Warn("content_filter detected in second chunk, not retrying", "chunk", truncate(chunkData, 300))
 				return nil, lastErr
 			}
 		}
@@ -960,25 +961,27 @@ func isContextLimitError(body string) bool {
 		strings.Contains(lower, "max_input_tokens")
 }
 
-// isContentFilterChunk checks if a SSE data line contains content_filter finish_reason.
-func isContentFilterChunk(line string) bool {
+// extractContentFilterInfo checks if a SSE data line contains content_filter finish_reason.
+// Returns whether content_filter was detected and the raw data line for error reporting.
+func extractContentFilterInfo(line string) (bool, string) {
 	if line == "" || line == "[DONE]" {
-		return false
+		return false, ""
 	}
 	var parsed struct {
 		Choices []struct {
-			FinishReason *string `json:"finish_reason"`
+			FinishReason *string         `json:"finish_reason"`
+			Message      json.RawMessage `json:"message"`
 		} `json:"choices"`
 	}
 	if err := json.Unmarshal([]byte(line), &parsed); err != nil {
-		return false
+		return false, ""
 	}
 	for _, c := range parsed.Choices {
 		if c.FinishReason != nil && *c.FinishReason == "content_filter" {
-			return true
+			return true, line
 		}
 	}
-	return false
+	return false, ""
 }
 
 func isUpstreamError(line string) bool {
@@ -1023,10 +1026,10 @@ func writeAnthropicError(w http.ResponseWriter, code int, msg string) {
 	})
 }
 
-// writeContentFilterError forwards the upstream content_filter error as-is.
-// Uses invalid_request_error type so Claude Code knows this is a request-level error.
+// writeContentFilterError forwards the upstream content_filter response verbatim.
+// Uses invalid_request_error type so Claude Code treats it as non-retryable.
 func writeContentFilterError(w http.ResponseWriter, msgs ...string) {
-	msg := "upstream content_filter triggered"
+	msg := "content_filter"
 	if len(msgs) > 0 && msgs[0] != "" {
 		msg = msgs[0]
 	}

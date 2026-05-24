@@ -228,7 +228,7 @@ func (c *Client) Post(endpoint string, body map[string]interface{}) (map[string]
 	var result map[string]interface{}
 	if err := json.Unmarshal(data, &result); err != nil {
 		slog.Error("unmarshal upstream response", "endpoint", endpoint, "error", err)
-		return nil, fmt.Errorf("invalid JSON response: %w", err)
+		return nil, fmt.Errorf("invalid JSON response (parse error: %s): %s", err.Error(), truncate(string(data), 500))
 	}
 	return result, nil
 }
