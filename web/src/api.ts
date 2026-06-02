@@ -209,6 +209,8 @@ export const api = {
     request<{ status: string; ok?: boolean; user_id?: string; nickname?: string; real_name?: string; message?: string; verify_url?: string; risk_code?: number }>(`/api/qr-login/status?session=${encodeURIComponent(sessionId)}`),
   browserLogin: () =>
     request<{ ok: boolean; url: string; token: string }>('/api/browser-login', { method: 'POST' }),
+  oauthSubmit: (ptKey: string) =>
+    request<{ ok: boolean; user_id: string; nickname: string }>('/api/oauth-submit', { method: 'POST', body: JSON.stringify({ pt_key: ptKey }) }),
   getRecentErrors: (limit = 50) =>
     request<{ errors: RequestLog[]; total: number }>(`/api/errors?limit=${limit}`),
   getGitHubStars: () =>

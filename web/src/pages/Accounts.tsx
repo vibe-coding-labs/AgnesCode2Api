@@ -8,7 +8,7 @@ import {
   SafetyCertificateOutlined, ReloadOutlined,
   QuestionCircleOutlined, ClearOutlined, EditOutlined,
   CheckCircleOutlined, CloseCircleOutlined, ClockCircleOutlined,
-  HolderOutlined, ExportOutlined, UploadOutlined,
+  HolderOutlined, ExportOutlined, UploadOutlined, ImportOutlined,
 } from '@ant-design/icons';
 import {
   DndContext,
@@ -157,6 +157,8 @@ const Accounts: React.FC = () => {
   const [renameForm] = Form.useForm();
   const fileInputRef = React.useRef<HTMLInputElement>(null);
   const [importing, setImporting] = useState(false);
+  const [manualOauthModalOpen, setManualOauthModalOpen] = useState(false);
+  const [manualOauthInput, setManualOauthInput] = useState('');
   const selectedModel = Form.useWatch('default_model', form);
 
   const sensors = useSensors(
@@ -490,6 +492,12 @@ const Accounts: React.FC = () => {
             OAuth授权登录
           </Button>
           <Button
+            onClick={() => setManualOauthModalOpen(true)}
+            icon={<ImportOutlined />}
+          >
+            手动提交授权
+          </Button>
+          <Button
             type="primary"
             onClick={handleAutoLogin}
             loading={autoLogging}
@@ -731,6 +739,57 @@ const Accounts: React.FC = () => {
         onSuccess={fetchAccounts}
         onAutoLogin={handleAutoLogin}
       />
+
+      <Modal
+        title="手动提交 OAuth 授权"
+        open={manualOauthModalOpen}
+        onCancel={() => setManualOauthModalOpen(false)}
+        onOk={async () => {
+          const raw = manualOauthInput.trim();
+          if (!raw) {
+            message.error('请输入 pt_key 或回调 URL');
+            return;
+          }
+          // Extract pt_key: try URL parsing first, then treat as raw pt_key
+          let ptKey = '';
+          try {
+            const urlObj = new URL(raw);
+            ptKey = urlObj.searchParams.get('pt_key') || '';
+          } catch {
+            ptKey = raw;
+          }
+          if (!ptKey) {
+            message.error('无法从输入中提取 pt_key，请粘贴完整的回调 URL 或纯 pt_key');
+            return;
+          }
+          try {
+            const result = await api.oauthSubmit(ptKey);
+            message.success(`授权成功！账号「${result.nickname || result.user_id}」已添加`);
+            setManualOauthModalOpen(false);
+            setManualOauthInput('');
+            fetchAccounts();
+          } catch (e: unknown) {
+            message.error(e instanceof Error ? e.message : '提交失败');
+          }
+        }}
+        okText="提交授权"
+        cancelText="取消"
+      >
+        <div style={{ marginBottom: 12 }}>
+          <Alert
+            type="info"
+            showIcon
+            message="远程部署使用说明"
+            description="点击「OAuth授权登录」后在新标签页完成授权，浏览器会跳转到一个无法访问的页面。请复制浏览器地址栏中的完整 URL 粘贴到下方输入框，或直接粘贴 pt_key。"
+          />
+        </div>
+        <Input.TextArea
+          rows={3}
+          placeholder="粘贴回调 URL（如 http://127.0.0.1:34891/?pt_key=xxx&...）或直接粘贴 pt_key"
+          value={manualOauthInput}
+          onChange={(e) => setManualOauthInput(e.target.value)}
+        />
+      </Modal>
     </div>
   );
 };
