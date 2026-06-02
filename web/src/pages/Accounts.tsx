@@ -1,14 +1,14 @@
 import React, { useEffect, useState } from 'react';
 import {
   Table, Button, Space, Modal, Form, Input, Switch, Select,
-  message, Popconfirm, Tag, Typography, Alert, Tooltip,
+  message, Popconfirm, Tag, Typography, Alert, Tooltip, Spin,
 } from 'antd';
 import {
   PlusOutlined, DeleteOutlined, StarOutlined,
   SafetyCertificateOutlined, ReloadOutlined,
   QuestionCircleOutlined, ClearOutlined, EditOutlined,
   CheckCircleOutlined, CloseCircleOutlined, ClockCircleOutlined,
-  HolderOutlined, ExportOutlined, UploadOutlined, ImportOutlined,
+  HolderOutlined, ExportOutlined, UploadOutlined,
 } from '@ant-design/icons';
 import {
   DndContext,
@@ -157,8 +157,14 @@ const Accounts: React.FC = () => {
   const [renameForm] = Form.useForm();
   const fileInputRef = React.useRef<HTMLInputElement>(null);
   const [importing, setImporting] = useState(false);
-  const [manualOauthModalOpen, setManualOauthModalOpen] = useState(false);
-  const [manualOauthInput, setManualOauthInput] = useState('');
+  const [oauthModalOpen, setOauthModalOpen] = useState(false);
+  const [oauthWaiting, setOauthWaiting] = useState(false);
+  const [oauthFallback, setOauthFallback] = useState(false);
+  const [oauthInput, setOauthInput] = useState('');
+  const [oauthSubmitting, setOauthSubmitting] = useState(false);
+  const oauthCountRef = React.useRef(0);
+  const oauthPollRef = React.useRef<ReturnType<typeof setInterval> | null>(null);
+  const oauthFallbackRef = React.useRef<ReturnType<typeof setTimeout> | null>(null);
   const selectedModel = Form.useWatch('default_model', form);
 
   const sensors = useSensors(
@@ -481,8 +487,35 @@ const Accounts: React.FC = () => {
               try {
                 const result = await api.browserLogin();
                 window.open(result.url, '_blank');
-                message.info('请在打开的页面中完成 OAuth 授权，授权成功后会自动同步到此处');
-                setTimeout(() => fetchAccounts(), 10000);
+                // Open smart OAuth dialog with polling + fallback
+                const currentCount = accounts.length;
+                oauthCountRef.current = currentCount;
+                setOauthModalOpen(true);
+                setOauthWaiting(true);
+                setOauthFallback(false);
+                setOauthInput('');
+                // Poll accounts to detect callback completion (local deployment)
+                if (oauthPollRef.current) clearInterval(oauthPollRef.current);
+                oauthPollRef.current = setInterval(async () => {
+                  try {
+                    const data = await api.listAccounts();
+                    if (data.length > oauthCountRef.current) {
+                      // New account detected — callback succeeded
+                      if (oauthPollRef.current) clearInterval(oauthPollRef.current);
+                      if (oauthFallbackRef.current) clearTimeout(oauthFallbackRef.current);
+                      setOauthModalOpen(false);
+                      setOauthWaiting(false);
+                      setAccounts(data);
+                      message.success('OAuth 授权成功！账号已自动添加');
+                    }
+                  } catch { /* ignore poll errors */ }
+                }, 3000);
+                // After 15s without callback, show paste fallback (remote deployment)
+                oauthFallbackRef.current = setTimeout(() => {
+                  if (oauthPollRef.current) clearInterval(oauthPollRef.current);
+                  setOauthWaiting(false);
+                  setOauthFallback(true);
+                }, 15000);
               } catch (e: unknown) {
                 message.error(e instanceof Error ? e.message : '获取登录链接失败');
               }
@@ -490,12 +523,6 @@ const Accounts: React.FC = () => {
             icon={<SafetyCertificateOutlined />}
           >
             OAuth授权登录
-          </Button>
-          <Button
-            onClick={() => setManualOauthModalOpen(true)}
-            icon={<ImportOutlined />}
-          >
-            手动提交授权
           </Button>
           <Button
             type="primary"
@@ -741,16 +768,22 @@ const Accounts: React.FC = () => {
       />
 
       <Modal
-        title="手动提交 OAuth 授权"
-        open={manualOauthModalOpen}
-        onCancel={() => setManualOauthModalOpen(false)}
+        title="OAuth 授权登录"
+        open={oauthModalOpen}
+        onCancel={() => {
+          if (oauthPollRef.current) clearInterval(oauthPollRef.current);
+          if (oauthFallbackRef.current) clearTimeout(oauthFallbackRef.current);
+          setOauthModalOpen(false);
+          setOauthWaiting(false);
+          setOauthFallback(false);
+        }}
+        footer={oauthFallback ? undefined : null}
         onOk={async () => {
-          const raw = manualOauthInput.trim();
+          const raw = oauthInput.trim();
           if (!raw) {
-            message.error('请输入 pt_key 或回调 URL');
+            message.error('请输入回调 URL 或 pt_key');
             return;
           }
-          // Extract pt_key: try URL parsing first, then treat as raw pt_key
           let ptKey = '';
           try {
             const urlObj = new URL(raw);
@@ -762,33 +795,52 @@ const Accounts: React.FC = () => {
             message.error('无法从输入中提取 pt_key，请粘贴完整的回调 URL 或纯 pt_key');
             return;
           }
+          setOauthSubmitting(true);
           try {
             const result = await api.oauthSubmit(ptKey);
             message.success(`授权成功！账号「${result.nickname || result.user_id}」已添加`);
-            setManualOauthModalOpen(false);
-            setManualOauthInput('');
+            setOauthModalOpen(false);
+            setOauthInput('');
+            setOauthFallback(false);
             fetchAccounts();
           } catch (e: unknown) {
             message.error(e instanceof Error ? e.message : '提交失败');
+          } finally {
+            setOauthSubmitting(false);
           }
         }}
-        okText="提交授权"
+        okText={oauthSubmitting ? '提交中...' : '提交授权'}
         cancelText="取消"
+        okButtonProps={{ loading: oauthSubmitting }}
       >
-        <div style={{ marginBottom: 12 }}>
-          <Alert
-            type="info"
-            showIcon
-            message="远程部署使用说明"
-            description="点击「OAuth授权登录」后在新标签页完成授权，浏览器会跳转到一个无法访问的页面。请复制浏览器地址栏中的完整 URL 粘贴到下方输入框，或直接粘贴 pt_key。"
-          />
-        </div>
-        <Input.TextArea
-          rows={3}
-          placeholder="粘贴回调 URL（如 http://127.0.0.1:34891/?pt_key=xxx&...）或直接粘贴 pt_key"
-          value={manualOauthInput}
-          onChange={(e) => setManualOauthInput(e.target.value)}
-        />
+        {oauthWaiting && (
+          <div style={{ textAlign: 'center', padding: '24px 0' }}>
+            <Spin size="large" />
+            <div style={{ marginTop: 16, fontSize: 15, color: '#666' }}>
+              等待授权完成...
+            </div>
+            <div style={{ marginTop: 8, fontSize: 13, color: '#999' }}>
+              请在新打开的 JoyCode 页面中完成登录授权
+            </div>
+          </div>
+        )}
+        {oauthFallback && (
+          <>
+            <Alert
+              type="warning"
+              showIcon
+              message="未检测到自动回调"
+              description="如果您已完成授权，浏览器会跳转到一个无法访问的页面。请复制该页面地址栏中的完整 URL 粘贴到下方，或直接粘贴 pt_key。"
+              style={{ marginBottom: 12 }}
+            />
+            <Input.TextArea
+              rows={3}
+              placeholder="粘贴回调 URL（如 http://127.0.0.1:34891/?pt_key=xxx&...）或直接粘贴 pt_key"
+              value={oauthInput}
+              onChange={(e) => setOauthInput(e.target.value)}
+            />
+          </>
+        )}
       </Modal>
     </div>
   );
