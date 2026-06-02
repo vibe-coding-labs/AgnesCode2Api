@@ -59,6 +59,7 @@ func (h *Handler) RegisterRoutes(mux *http.ServeMux) {
 	mux.HandleFunc("/api/clear-joycode-session", h.handleClearJoyCodeSession)
 	mux.HandleFunc("/api/browser-login", h.handleBrowserLogin)
 	mux.HandleFunc("/api/oauth-callback", h.handleOAuthCallback)
+	mux.HandleFunc("/api/oauth-submit", h.handleOAuthSubmit)
 	mux.HandleFunc("/api/qr-login/init", h.handleQRLoginInit)
 	mux.HandleFunc("/api/qr-login/status", h.handleQRLoginStatus)
 	mux.HandleFunc("/api/models", h.handleModels)
@@ -767,47 +768,31 @@ func (h *Handler) handleBrowserLogin(w http.ResponseWriter, r *http.Request) {
 	})
 }
 
-func (h *Handler) handleOAuthCallback(w http.ResponseWriter, r *http.Request) {
-	setCors(w)
-
-	ptKey := r.URL.Query().Get("pt_key")
-	loginType := r.URL.Query().Get("login_type")
-	tenant := r.URL.Query().Get("tenant")
-	authKey := r.URL.Query().Get("authKey")
-
-	slog.Info("oauth-callback: received", "login_type", loginType, "tenant", tenant, "auth_key", authKey, "pt_key_len", len(ptKey))
-
+// validateAndSavePtKey validates a pt_key with JoyCode API and saves the account.
+// Returns userID, nickname on success, or an error on failure.
+func (h *Handler) validateAndSavePtKey(ptKey string) (userID, nickname string, err error) {
 	if ptKey == "" {
-		writeError(w, http.StatusBadRequest, "missing pt_key parameter")
-		return
+		return "", "", fmt.Errorf("missing pt_key")
 	}
 
 	client := joycode.NewClient(ptKey, "")
-	userInfo, err := client.UserInfo()
-	if err != nil {
-		slog.Error("oauth-callback: userInfo validation failed", "error", err)
-		http.Redirect(w, r, "/?login_error="+url.QueryEscape(err.Error()), http.StatusFound)
-		return
+	userInfo, apiErr := client.UserInfo()
+	if apiErr != nil {
+		return "", "", fmt.Errorf("userInfo validation failed: %w", apiErr)
 	}
 
 	code, _ := userInfo["code"].(float64)
 	if code != 0 {
 		msg, _ := userInfo["msg"].(string)
-		slog.Error("oauth-callback: userInfo API error", "code", code, "msg", msg)
-		http.Redirect(w, r, "/?login_error="+url.QueryEscape(msg), http.StatusFound)
-		return
+		return "", "", fmt.Errorf("userInfo API error (code=%.0f): %s", code, msg)
 	}
 
-	userID := ""
-	nickname := ""
-	realName := ""
 	if data, ok := userInfo["data"].(map[string]interface{}); ok {
 		if id, ok := data["userId"].(string); ok && id != "" {
 			userID = id
 		}
 		if name, ok := data["realName"].(string); ok && name != "" {
 			nickname = name
-			realName = name
 		}
 	}
 	if nickname == "" {
@@ -815,15 +800,7 @@ func (h *Handler) handleOAuthCallback(w http.ResponseWriter, r *http.Request) {
 	}
 
 	if userID == "" {
-		slog.Error("oauth-callback: userId not found in userInfo response", "keys", formatKeys(userInfo))
-		http.Redirect(w, r, "/?login_error="+url.QueryEscape("无法获取用户ID，请重新授权"), http.StatusFound)
-		return
-	}
-
-	// Log full userInfo response for debugging user_id availability
-	slog.Info("oauth-callback: userInfo response", "user_id", userID, "nickname", nickname, "real_name", realName, "keys", formatKeys(userInfo))
-	if data, ok := userInfo["data"].(map[string]interface{}); ok {
-		slog.Info("oauth-callback: userInfo.data fields", "keys", formatKeys(data))
+		return "", "", fmt.Errorf("无法获取用户ID，请重新授权")
 	}
 
 	isDefault := true
@@ -835,18 +812,35 @@ func (h *Handler) handleOAuthCallback(w http.ResponseWriter, r *http.Request) {
 		}
 	}
 
-	if err := h.store.AddAccount(userID, ptKey, nickname, isDefault, "GLM-5.1"); err != nil {
-		slog.Error("oauth-callback: save account failed", "user_id", userID, "error", err)
+	if saveErr := h.store.AddAccount(userID, ptKey, nickname, isDefault, "GLM-5.1"); saveErr != nil {
+		return "", "", fmt.Errorf("save account failed: %w", saveErr)
+	}
+
+	slog.Info("oauth: account saved", "user_id", userID, "nickname", nickname)
+	return userID, nickname, nil
+}
+
+func (h *Handler) handleOAuthCallback(w http.ResponseWriter, r *http.Request) {
+	setCors(w)
+
+	ptKey := r.URL.Query().Get("pt_key")
+	loginType := r.URL.Query().Get("login_type")
+	tenant := r.URL.Query().Get("tenant")
+	authKey := r.URL.Query().Get("authKey")
+
+	slog.Info("oauth-callback: received", "login_type", loginType, "tenant", tenant, "auth_key", authKey, "pt_key_len", len(ptKey))
+
+	userID, _, err := h.validateAndSavePtKey(ptKey)
+	if err != nil {
+		slog.Error("oauth-callback: failed", "error", err)
 		http.Redirect(w, r, "/?login_error="+url.QueryEscape(err.Error()), http.StatusFound)
 		return
 	}
 
-	slog.Info("oauth-callback: account saved", "user_id", userID, "nickname", nickname, "real_name", realName)
-
 	// Auto-issue JWT so the frontend dashboard is immediately accessible
 	jwtSecret := h.store.GetSetting("auth_jwt_secret")
 	if jwtSecret != "" {
-		if token, err := auth.GenerateToken(userID, jwtSecret, 7*24*time.Hour); err == nil {
+		if token, jwtErr := auth.GenerateToken(userID, jwtSecret, 7*24*time.Hour); jwtErr == nil {
 			http.SetCookie(w, &http.Cookie{
 				Name:     "joycode_auto_jwt",
 				Value:    token,
@@ -859,6 +853,39 @@ func (h *Handler) handleOAuthCallback(w http.ResponseWriter, r *http.Request) {
 	}
 
 	http.Redirect(w, r, "/?login_success="+url.QueryEscape(userID), http.StatusFound)
+}
+
+func (h *Handler) handleOAuthSubmit(w http.ResponseWriter, r *http.Request) {
+	setCors(w)
+	if r.Method == http.MethodOptions {
+		w.WriteHeader(http.StatusNoContent)
+		return
+	}
+	if r.Method != http.MethodPost {
+		writeError(w, http.StatusMethodNotAllowed, "method not allowed")
+		return
+	}
+
+	var body struct {
+		PtKey string `json:"pt_key"`
+	}
+	if !readJSONBody(w, r, &body) {
+		return
+	}
+
+	userID, nickname, err := h.validateAndSavePtKey(body.PtKey)
+	if err != nil {
+		slog.Error("oauth-submit: failed", "error", err)
+		writeError(w, http.StatusBadRequest, err.Error())
+		return
+	}
+
+	slog.Info("oauth-submit: success", "user_id", userID, "nickname", nickname)
+	writeJSON(w, http.StatusOK, map[string]interface{}{
+		"ok":       true,
+		"user_id":  userID,
+		"nickname": nickname,
+	})
 }
 
 func (h *Handler) handleQRLoginInit(w http.ResponseWriter, r *http.Request) {

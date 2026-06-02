@@ -37,6 +37,7 @@ func JWTMiddleware(getter SettingsGetter, next http.Handler) http.Handler {
 			"/api/github-stars":    true,
 			"/api/browser-login":   true,
 			"/api/oauth-callback":  true,
+			"/api/oauth-submit":    true,
 		}
 		if whitelist[path] {
 			next.ServeHTTP(w, r)
