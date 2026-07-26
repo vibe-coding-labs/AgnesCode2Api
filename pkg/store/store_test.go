@@ -59,7 +59,7 @@ func TestDefaultDBPath(t *testing.T) {
 func TestEncryptDecrypt(t *testing.T) {
 	s := openTestStore(t)
 
-	plaintext := "super-secret-pt-key-12345"
+	plaintext := "super-secret-jwt-token-12345"
 	encrypted, err := s.encrypt(plaintext)
 	if err != nil {
 		t.Fatalf("encrypt: %v", err)
@@ -184,15 +184,15 @@ func TestAddAccountOverwrites(t *testing.T) {
 	}
 
 	a, _ := s.GetAccount("key1")
-	if a.PtKey != "pt1-updated" {
-		t.Errorf("PtKey = %q, want %q", a.PtKey, "pt1-updated")
+	if a.JWTToken != "pt1-updated" {
+		t.Errorf("JWTToken = %q, want %q", a.JWTToken, "pt1-updated")
 	}
 }
 
 func TestGetAccount(t *testing.T) {
 	s := openTestStore(t)
 
-	s.AddAccount("key1", "secret-pt-key", "user1", true, "JoyAI-Code")
+	s.AddAccount("key1", "secret-jwt-token", "user1", true, "JoyAI-Code")
 
 	a, err := s.GetAccount("key1")
 	if err != nil {
@@ -201,8 +201,8 @@ func TestGetAccount(t *testing.T) {
 	if a == nil {
 		t.Fatal("expected account, got nil")
 	}
-	if a.PtKey != "secret-pt-key" {
-		t.Errorf("PtKey = %q, want %q", a.PtKey, "secret-pt-key")
+	if a.JWTToken != "secret-jwt-token" {
+		t.Errorf("JWTToken = %q, want %q", a.JWTToken, "secret-jwt-token")
 	}
 	if a.UserID != "key1" {
 		t.Errorf("UserID = %q, want %q", a.UserID, "key1")

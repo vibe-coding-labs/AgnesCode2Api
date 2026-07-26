@@ -18,7 +18,7 @@ var configCmd = &cobra.Command{
 	Example: `  agnescode-proxy config
 
   # 查看指定凭据的配置
-  agnescode-proxy -k <ptkey> -u <userid> config`,
+  agnescode-proxy -k <jwttoken> -u <userid> config`,
 	RunE: func(cmd *cobra.Command, args []string) error {
 		fmt.Println("AgnesCode Proxy Configuration")
 		fmt.Println("============================")
@@ -26,10 +26,10 @@ var configCmd = &cobra.Command{
 		// Credentials
 		fmt.Println()
 		fmt.Println("  Credentials:")
-		if PtKey != "" && userID != "" {
+		if JWTToken != "" && userID != "" {
 			fmt.Printf("    Source:    flags\n")
 			fmt.Printf("    UserID:    %s\n", userID)
-			fmt.Printf("    PtKey:     %s...%s\n", PtKey[:8], PtKey[len(PtKey)-4:])
+			fmt.Printf("    JWTToken:     %s...%s\n", JWTToken[:8], JWTToken[len(JWTToken)-4:])
 		} else {
 			creds, err := auth.LoadFromSystem()
 			if err != nil {
@@ -37,7 +37,7 @@ var configCmd = &cobra.Command{
 			} else {
 				fmt.Printf("    Source:    auto-detected\n")
 				fmt.Printf("    UserID:    %s\n", creds.UserID)
-				fmt.Printf("    PtKey:     %s...%s\n", creds.PtKey[:8], creds.PtKey[len(creds.PtKey)-4:])
+				fmt.Printf("    JWTToken:     %s...%s\n", creds.JWTToken[:8], creds.JWTToken[len(creds.JWTToken)-4:])
 			}
 		}
 

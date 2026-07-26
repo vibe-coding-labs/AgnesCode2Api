@@ -19,9 +19,9 @@ func TestLoadFromSystem_DatabaseNotFound(t *testing.T) {
 }
 
 func TestCredentials_Fields(t *testing.T) {
-	creds := &Credentials{PtKey: "test-key", UserID: "test-user"}
-	if creds.PtKey != "test-key" {
-		t.Errorf("PtKey = %q, want test-key", creds.PtKey)
+	creds := &Credentials{JWTToken: "test-key", UserID: "test-user"}
+	if creds.JWTToken != "test-key" {
+		t.Errorf("JWTToken = %q, want test-key", creds.JWTToken)
 	}
 	if creds.UserID != "test-user" {
 		t.Errorf("UserID = %q, want test-user", creds.UserID)
@@ -41,8 +41,8 @@ func TestLoadFromSystem_Integration(t *testing.T) {
 		t.Logf("LoadFromSystem error: %v", err)
 		return
 	}
-	if creds.PtKey == "" {
-		t.Error("auto-detected PtKey should not be empty")
+	if creds.JWTToken == "" {
+		t.Error("auto-detected JWTToken should not be empty")
 	}
 	if creds.UserID == "" {
 		t.Error("auto-detected UserID should not be empty")

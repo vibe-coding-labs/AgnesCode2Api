@@ -118,7 +118,7 @@ func (k *Keeper) checkStale() {
 			"user_id", acc.UserID,
 		)
 
-		result := k.checkOne(acc.UserID, acc.PtKey, acc.UserID)
+		result := k.checkOne(acc.UserID, acc.JWTToken, acc.UserID)
 
 		switch result {
 		case "valid":
@@ -143,9 +143,9 @@ func (k *Keeper) checkStale() {
 	)
 }
 
-// checkOne validates a single account and refreshes pt_key if possible.
+// checkOne validates a single account and refreshes jwt_token if possible.
 // Returns "valid", "refreshed", or "failed".
-func (k *Keeper) checkOne(apiKey, ptKey, userID string) string {
+func (k *Keeper) checkOne(apiKey, JWTToken, userID string) string {
 	if userID == "" {
 		slog.Error("keepalive: checkOne called with empty userID")
 		return "failed"
@@ -153,7 +153,7 @@ func (k *Keeper) checkOne(apiKey, ptKey, userID string) string {
 
 	checkStart := time.Now()
 
-	client := agnescode.NewClient(ptKey)
+	client := agnescode.NewClient(JWTToken)
 	client.SetTimeout(30 * time.Second)
 
 	err := client.Authenticate()
@@ -169,7 +169,7 @@ func (k *Keeper) checkOne(apiKey, ptKey, userID string) string {
 			"user_id", userID,
 			"error", err,
 			"duration", checkDuration,
-			"jwt_prefix", maskKey(ptKey),
+			"jwt_prefix", maskKey(JWTToken),
 		)
 		k.status[apiKey] = &CredentialStatus{
 			Valid:        false,
@@ -194,7 +194,7 @@ func (k *Keeper) checkOne(apiKey, ptKey, userID string) string {
 	return "valid"
 }
 
-// maskKey returns a masked version of a pt_key for logging (first 6...last 6 chars).
+// maskKey returns a masked version of a jwt_token for logging (first 6...last 6 chars).
 func maskKey(key string) string {
 	if len(key) <= 12 {
 		return "***"

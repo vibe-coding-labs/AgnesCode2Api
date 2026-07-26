@@ -174,7 +174,7 @@ export const authApi = {
 
 export const api = {
   listAccounts: () => request<{ accounts: Account[] }>('/api/accounts').then(r => r.accounts),
-  addAccount: (data: { user_id: string; pt_key: string; nickname?: string; is_default?: boolean; default_model?: string }) =>
+  addAccount: (data: { user_id: string; jwt_token: string; nickname?: string; is_default?: boolean; default_model?: string }) =>
     request<{ ok: boolean }>('/api/accounts', { method: 'POST', body: JSON.stringify(data) }),
   removeAccount: (userId: string) =>
     request<{ ok: boolean }>(`/api/accounts/${encodeURIComponent(userId)}`, { method: 'DELETE' }),
@@ -209,8 +209,8 @@ export const api = {
     request<{ status: string; ok?: boolean; user_id?: string; nickname?: string; real_name?: string; message?: string; verify_url?: string; risk_code?: number }>(`/api/qr-login/status?session=${encodeURIComponent(sessionId)}`),
   browserLogin: () =>
     request<{ ok: boolean; url: string; token: string }>('/api/browser-login', { method: 'POST' }),
-  oauthSubmit: (ptKey: string) =>
-    request<{ ok: boolean; user_id: string; nickname: string }>('/api/oauth-submit', { method: 'POST', body: JSON.stringify({ pt_key: ptKey }) }),
+  oauthSubmit: (JWTToken: string) =>
+    request<{ ok: boolean; user_id: string; nickname: string }>('/api/oauth-submit', { method: 'POST', body: JSON.stringify({ jwt_token: JWTToken }) }),
   getRecentErrors: (limit = 50) =>
     request<{ errors: RequestLog[]; total: number }>(`/api/errors?limit=${limit}`),
   getGitHubStars: () =>
@@ -224,7 +224,7 @@ export const api = {
   reorderAccounts: (userIds: string[]) =>
     request<{ ok: boolean }>('/api/accounts/reorder', { method: 'PUT', body: JSON.stringify({ user_ids: userIds }) }),
   exportAccounts: () =>
-    request<{ ok: boolean; accounts: Array<{ user_id: string; nickname: string; remark: string; pt_key: string; is_default: boolean; default_model: string; display_order: number }>; count: number }>('/api/accounts-export'),
-  importAccounts: (accounts: Array<{ user_id: string; nickname: string; remark: string; pt_key: string; is_default: boolean; default_model: string; display_order: number }>) =>
+    request<{ ok: boolean; accounts: Array<{ user_id: string; nickname: string; remark: string; jwt_token: string; is_default: boolean; default_model: string; display_order: number }>; count: number }>('/api/accounts-export'),
+  importAccounts: (accounts: Array<{ user_id: string; nickname: string; remark: string; jwt_token: string; is_default: boolean; default_model: string; display_order: number }>) =>
     request<{ ok: boolean; added: number; updated: number; total: number }>('/api/accounts-import', { method: 'POST', body: JSON.stringify({ accounts }) }),
 };

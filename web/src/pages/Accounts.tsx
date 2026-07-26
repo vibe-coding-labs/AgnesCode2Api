@@ -186,7 +186,7 @@ const Accounts: React.FC = () => {
   useEffect(() => { fetchAccounts(); }, []);
 
 
-  const handleAdd = async (values: { pt_key: string; user_id: string; is_default?: boolean; default_model?: string }) => {
+  const handleAdd = async (values: { jwt_token: string; user_id: string; is_default?: boolean; default_model?: string }) => {
     try {
       await api.addAccount(values);
       message.success(`账号「${values.user_id}」添加成功`);
@@ -659,7 +659,7 @@ const Accounts: React.FC = () => {
           type="info"
           showIcon
           message="手动添加账号"
-          description="普通模型使用网页 OAuth 登录得到的账号凭证。选择 Claude 模型时，服务端还需要读取本机 AgnesCode IDE 登录状态中的短 ptKey。"
+          description="普通模型使用网页 OAuth 登录得到的账号凭证。选择 Claude 模型时，服务端还需要读取本机 AgnesCode IDE 登录状态中的短 JWTToken。"
           style={{ marginBottom: 16 }}
         />
         {isClaudeModel(selectedModel) && (
@@ -669,7 +669,7 @@ const Accounts: React.FC = () => {
             message="Claude 模型需要 AgnesCode IDE 已登录"
             description={(
               <div>
-                <div>请先在本机 AgnesCode IDE 客户端完成登录。Docker 启动时还需要挂载 AgnesCode IDE 的本地状态文件，代理会从该文件自动读取 Claude 所需的短 ptKey。</div>
+                <div>请先在本机 AgnesCode IDE 客户端完成登录。Docker 启动时还需要挂载 AgnesCode IDE 的本地状态文件，代理会从该文件自动读取 Claude 所需的短 JWTToken。</div>
                 <pre style={{ margin: '8px 0 0', whiteSpace: 'pre-wrap', fontSize: 12 }}>{claudeDockerHint}</pre>
               </div>
             )}
@@ -678,25 +678,25 @@ const Accounts: React.FC = () => {
         )}
         <Form form={form} layout="vertical" onFinish={handleAdd}>
           <Form.Item
-            name="pt_key"
+            name="jwt_token"
             label={
               <Space size={4}>
-                AgnesCode ptKey 凭证
-                <Tooltip title="普通模型使用网页 OAuth 登录得到的长 ptKey。Claude 模型还会从本机 AgnesCode IDE 状态文件读取短 ptKey，不会覆盖这里保存的普通账号凭证。">
+                AgnesCode JWTToken 凭证
+                <Tooltip title="普通模型使用网页 OAuth 登录得到的长 JWTToken。Claude 模型还会从本机 AgnesCode IDE 状态文件读取短 JWTToken，不会覆盖这里保存的普通账号凭证。">
                   <QuestionCircleOutlined style={{ color: '#999' }} />
                 </Tooltip>
               </Space>
             }
-            rules={[{ required: true, message: '请输入 ptKey' }]}
+            rules={[{ required: true, message: '请输入 JWTToken' }]}
           >
-            <Input.Password placeholder="粘贴网页 OAuth 或 AgnesCode 普通接口可用的 ptKey" />
+            <Input.Password placeholder="粘贴网页 OAuth 或 AgnesCode 普通接口可用的 JWTToken" />
           </Form.Item>
           <Form.Item
             name="user_id"
             label={
               <Space size={4}>
                 AgnesCode 用户 ID
-                <Tooltip title="与 ptKey 对应的用户 ID。获取方式：打开 AgnesCode 桌面客户端 → 设置 → 个人信息 → 复制用户 ID">
+                <Tooltip title="与 JWTToken 对应的用户 ID。获取方式：打开 AgnesCode 桌面客户端 → 设置 → 个人信息 → 复制用户 ID">
                   <QuestionCircleOutlined style={{ color: '#999' }} />
                 </Tooltip>
               </Space>
@@ -778,23 +778,23 @@ const Accounts: React.FC = () => {
         onOk={async () => {
           const raw = oauthInput.trim();
           if (!raw) {
-            message.error('请输入回调 URL 或 pt_key');
+            message.error('请输入回调 URL 或 jwt_token');
             return;
           }
-          let ptKey = '';
+          let JWTToken = '';
           try {
             const urlObj = new URL(raw);
-            ptKey = urlObj.searchParams.get('pt_key') || '';
+            JWTToken = urlObj.searchParams.get('jwt_token') || '';
           } catch {
-            ptKey = raw;
+            JWTToken = raw;
           }
-          if (!ptKey) {
-            message.error('无法从输入中提取 pt_key，请粘贴完整的回调 URL 或纯 pt_key');
+          if (!JWTToken) {
+            message.error('无法从输入中提取 jwt_token，请粘贴完整的回调 URL 或纯 jwt_token');
             return;
           }
           setOauthSubmitting(true);
           try {
-            const result = await api.oauthSubmit(ptKey);
+            const result = await api.oauthSubmit(JWTToken);
             message.success(`授权成功！账号「${result.nickname || result.user_id}」已添加`);
             setOauthModalOpen(false);
             setOauthInput('');
@@ -822,12 +822,12 @@ const Accounts: React.FC = () => {
               type="info"
               showIcon
               message="完成授权后"
-              description="本地部署会自动检测并添加账号。若使用 Docker 或远程部署，浏览器会跳转到一个无法访问的 localhost 页面——这是正常现象：请复制该页面地址栏中的完整 URL 粘贴到下方，或直接粘贴 pt_key 后点击「提交授权」。"
+              description="本地部署会自动检测并添加账号。若使用 Docker 或远程部署，浏览器会跳转到一个无法访问的 localhost 页面——这是正常现象：请复制该页面地址栏中的完整 URL 粘贴到下方，或直接粘贴 jwt_token 后点击「提交授权」。"
               style={{ marginBottom: 12 }}
             />
             <Input.TextArea
               rows={3}
-              placeholder="粘贴回调 URL（如 http://127.0.0.1:34891/?pt_key=xxx&...）或直接粘贴 pt_key"
+              placeholder="粘贴回调 URL（如 http://127.0.0.1:34891/?jwt_token=xxx&...）或直接粘贴 jwt_token"
               value={oauthInput}
               onChange={(e) => setOauthInput(e.target.value)}
             />

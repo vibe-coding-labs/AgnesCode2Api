@@ -33,7 +33,7 @@ func TestDashboardEndpoints(t *testing.T) {
 	// existing password hash and caused 401 responses on /api/* endpoints.
 	tmpHome := t.TempDir()
 
-	cmd := exec.Command(bin, "serve", "--port", fmt.Sprintf("%d", port), "--skip-validation", "--ptkey", "test", "--userid", "test", "--tls=false")
+	cmd := exec.Command(bin, "serve", "--port", fmt.Sprintf("%d", port), "--skip-validation", "--jwttoken", "test", "--userid", "test", "--tls=false")
 	cmd.Env = append(os.Environ(), "HOME="+tmpHome)
 	cmd.Stdout = nil
 	cmd.Stderr = nil
@@ -69,7 +69,7 @@ func TestDashboardEndpoints(t *testing.T) {
 
 	// Test add account
 	t.Run("add_account", func(t *testing.T) {
-		body := `{"api_key":"test-integration","pt_key":"test-pt","user_id":"test-user","is_default":true}`
+		body := `{"api_key":"test-integration","jwt_token":"test-pt","user_id":"test-user","is_default":true}`
 		resp, err := http.Post(base+"/api/accounts", "application/json", strings.NewReader(body))
 		if err != nil {
 			t.Fatalf("add account: %v", err)
@@ -167,7 +167,7 @@ func TestStaticFileServing(t *testing.T) {
 	port := freePort(t)
 	tmpHome := t.TempDir()
 
-	cmd := exec.Command(bin, "serve", "--port", fmt.Sprintf("%d", port), "--skip-validation", "--ptkey", "test", "--userid", "test", "--tls=false")
+	cmd := exec.Command(bin, "serve", "--port", fmt.Sprintf("%d", port), "--skip-validation", "--jwttoken", "test", "--userid", "test", "--tls=false")
 	cmd.Env = append(os.Environ(), "HOME="+tmpHome)
 	cmd.Stdout = nil
 	cmd.Stderr = nil
@@ -234,7 +234,7 @@ func TestOpenAPIEndpoints(t *testing.T) {
 	port := freePort(t)
 	tmpHome := t.TempDir()
 
-	cmd := exec.Command(bin, "serve", "--port", fmt.Sprintf("%d", port), "--skip-validation", "--ptkey", "test", "--userid", "test", "--tls=false")
+	cmd := exec.Command(bin, "serve", "--port", fmt.Sprintf("%d", port), "--skip-validation", "--jwttoken", "test", "--userid", "test", "--tls=false")
 	cmd.Env = append(os.Environ(), "HOME="+tmpHome)
 	cmd.Stdout = nil
 	cmd.Stderr = nil

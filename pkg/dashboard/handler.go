@@ -5,7 +5,6 @@ import (
 	"database/sql"
 	"encoding/hex"
 	"encoding/json"
-	"errors"
 	"fmt"
 	"io"
 	"io/fs"
@@ -63,8 +62,6 @@ func (h *Handler) RegisterRoutes(mux *http.ServeMux) {
 	mux.HandleFunc("/api/browser-login", h.handleBrowserLogin)
 	mux.HandleFunc("/api/oauth-callback", h.handleOAuthCallback)
 	mux.HandleFunc("/api/oauth-submit", h.handleOAuthSubmit)
-	mux.HandleFunc("/api/qr-login/init", h.handleQRLoginInit)
-	mux.HandleFunc("/api/qr-login/status", h.handleQRLoginStatus)
 	mux.HandleFunc("/api/models", h.handleModels)
 	mux.HandleFunc("/api/stats", h.handleStats)
 	mux.HandleFunc("/api/settings", h.handleSettings)
@@ -178,7 +175,6 @@ func (h *Handler) handleErrors(w http.ResponseWriter, r *http.Request) {
 	if logs == nil {
 		logs = []store.RequestLog{}
 	}
-	writeJSON(w, http.StatusOK, map[string]interface{}{"errors": logs, "total": len(logs)})
 }
 
 // knownAPISet lists OpenAI/Anthropic-style endpoint paths that users
@@ -533,7 +529,7 @@ func (h *Handler) listAccounts(w http.ResponseWriter, r *http.Request) {
 func (h *Handler) addAccount(w http.ResponseWriter, r *http.Request) {
 	var body struct {
 		Nickname     string `json:"nickname"`
-		PtKey        string `json:"pt_key"`
+		JWTToken     string `json:"jwt_token"`
 		UserID       string `json:"user_id"`
 		IsDefault    *bool  `json:"is_default"`
 		DefaultModel string `json:"default_model"`
@@ -541,7 +537,7 @@ func (h *Handler) addAccount(w http.ResponseWriter, r *http.Request) {
 	if !readJSONBody(w, r, &body) {
 		return
 	}
-	if body.UserID == "" || body.PtKey == "" {
+	if body.UserID == "" || body.JWTToken == "" {
 		writeError(w, http.StatusBadRequest, "user_id and pt_key are required")
 		return
 	}
@@ -551,7 +547,7 @@ func (h *Handler) addAccount(w http.ResponseWriter, r *http.Request) {
 		isDefault = *body.IsDefault
 	}
 
-	if err := h.store.AddAccount(body.UserID, body.PtKey, body.Nickname, isDefault, body.DefaultModel); err != nil {
+	if err := h.store.AddAccount(body.UserID, body.JWTToken, body.Nickname, isDefault, body.DefaultModel); err != nil {
 		slog.Error("add account", "user_id", body.UserID, "error", err)
 		writeError(w, http.StatusInternalServerError, err.Error())
 		return
@@ -578,7 +574,7 @@ func (h *Handler) handleAutoLogin(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	client := agnescode.NewClient(creds.PtKey)
+	client := agnescode.NewClient(creds.JWTToken)
 	client.Authenticate()
 	ui, err := client.GetUserInfo()
 	if err != nil {
@@ -608,7 +604,7 @@ func (h *Handler) handleAutoLogin(w http.ResponseWriter, r *http.Request) {
 		}
 	}
 
-	if err := h.store.AddAccount(userID, creds.PtKey, nickname, isDefault, "GLM-5.1"); err != nil {
+	if err := h.store.AddAccount(userID, creds.JWTToken, nickname, isDefault, "GLM-5.1"); err != nil {
 		slog.Error("auto-login: save account failed", "user_id", userID, "error", err)
 		writeError(w, http.StatusInternalServerError, "保存账号失败: "+err.Error())
 		return
@@ -841,13 +837,13 @@ func (h *Handler) handleOAuthSubmit(w http.ResponseWriter, r *http.Request) {
 	}
 
 	var body struct {
-		PtKey string `json:"pt_key"`
+		JWTToken string `json:"jwt_token"`
 	}
 	if !readJSONBody(w, r, &body) {
 		return
 	}
 
-	userID, nickname, err := h.validateAndSavePtKey(body.PtKey)
+	userID, nickname, err := h.validateAndSavePtKey(body.JWTToken)
 	if err != nil {
 		slog.Error("oauth-submit: failed", "error", err)
 		writeError(w, http.StatusBadRequest, err.Error())
@@ -862,117 +858,7 @@ func (h *Handler) handleOAuthSubmit(w http.ResponseWriter, r *http.Request) {
 	})
 }
 
-func (h *Handler) handleQRLoginInit(w http.ResponseWriter, r *http.Request) {
-	setCors(w)
-	if r.Method == http.MethodOptions {
-		w.WriteHeader(http.StatusNoContent)
-		return
-	}
-	if r.Method != http.MethodPost {
-		writeError(w, http.StatusMethodNotAllowed, "method not allowed")
-		return
-	}
 
-	sessionID, qrImage, err := auth.QRInit()
-	if err != nil {
-		slog.Error("qr-login init", "error", err)
-		writeError(w, http.StatusInternalServerError, "生成二维码失败: "+err.Error())
-		return
-	}
-
-	writeJSON(w, http.StatusOK, map[string]interface{}{
-		"ok":         true,
-		"session_id": sessionID,
-		"qr_image":   "data:image/png;base64," + qrImage,
-	})
-}
-
-func (h *Handler) handleQRLoginStatus(w http.ResponseWriter, r *http.Request) {
-	setCors(w)
-	if r.Method == http.MethodOptions {
-		w.WriteHeader(http.StatusNoContent)
-		return
-	}
-	if r.Method != http.MethodGet {
-		writeError(w, http.StatusMethodNotAllowed, "method not allowed")
-		return
-	}
-
-	sessionID := r.URL.Query().Get("session")
-	if sessionID == "" {
-		writeError(w, http.StatusBadRequest, "missing session parameter")
-		return
-	}
-
-	status, result, err := auth.QRPollStatus(sessionID)
-	if err != nil {
-		slog.Error("qr-login poll", "session", sessionID, "error", err)
-		resp := map[string]interface{}{
-			"status":  "error",
-			"message": err.Error(),
-		}
-		var verifyErr *auth.QRVerifyNeededError
-		if errors.As(err, &verifyErr) {
-			resp["status"] = "verification_required"
-			resp["verify_url"] = verifyErr.VerifyURL
-			resp["risk_code"] = verifyErr.RiskCode
-		}
-		writeJSON(w, http.StatusOK, resp)
-		return
-	}
-
-	if status != "confirmed" {
-		slog.Debug("qr-login poll", "session", sessionID, "status", status)
-		writeJSON(w, http.StatusOK, map[string]interface{}{
-			"status": status,
-		})
-		return
-	}
-
-	nickname := result.RealName
-	if nickname == "" {
-		nickname = result.UserID
-	}
-
-	if result.UserID == "" {
-		slog.Error("qr-login: userId not found in QR login result")
-		writeJSON(w, http.StatusOK, map[string]interface{}{
-			"status":  "error",
-			"ok":      false,
-			"message": "二维码登录未返回有效的用户ID，请重试",
-		})
-		return
-	}
-
-	isDefault := true
-	accounts, _ := h.store.ListAccounts()
-	for _, a := range accounts {
-		if a.IsDefault {
-			isDefault = false
-			break
-		}
-	}
-
-	if err := h.store.AddAccount(result.UserID, result.PtKey, nickname, isDefault, "GLM-5.1"); err != nil {
-		slog.Error("qr-login save account failed", "user_id", result.UserID, "error", err)
-		writeJSON(w, http.StatusOK, map[string]interface{}{
-			"status":  "confirmed",
-			"ok":      false,
-			"user_id": result.UserID,
-			"message": "登录成功但保存账号失败: " + err.Error(),
-		})
-		return
-	}
-
-	slog.Info("qr-login: account saved", "user_id", result.UserID, "nickname", nickname)
-	writeJSON(w, http.StatusOK, map[string]interface{}{
-		"status":    "confirmed",
-		"ok":        true,
-		"user_id":   result.UserID,
-		"nickname":  nickname,
-		"real_name": result.RealName,
-	})
-}
 
 func (h *Handler) handleAccountAction(w http.ResponseWriter, r *http.Request) {
 	setCors(w)
@@ -1070,7 +956,7 @@ func (h *Handler) validateAccount(w http.ResponseWriter, r *http.Request, apiKey
 		return
 	}
 
-	client := agnescode.NewClient(account.PtKey)
+	client := agnescode.NewClient(account.JWTToken)
 	valid := true
 	if err := client.Authenticate(); err != nil {
 		valid = false
@@ -1107,7 +993,7 @@ func (h *Handler) listAccountModels(w http.ResponseWriter, r *http.Request, apiK
 		return
 	}
 
-	client := agnescode.NewClient(account.PtKey)
+	client := agnescode.NewClient(account.JWTToken)
 	models, err := client.ListModels()
 	if err != nil {
 		slog.Error("list account models", "api_key", apiKey, "error", err)
@@ -1421,7 +1307,7 @@ func (h *Handler) handleAccountBalance(w http.ResponseWriter, r *http.Request) {
 		writeError(w, http.StatusNotFound, "account not found")
 		return
 	}
-	client := agnescode.NewClient(account.PtKey)
+	client := agnescode.NewClient(account.JWTToken)
 	balance, err := client.GetBalance()
 	if err != nil {
 		slog.Error("get balance error", "user_id", userID, "error", err)
@@ -1449,7 +1335,7 @@ func (h *Handler) handleAccountTransactions(w http.ResponseWriter, r *http.Reque
 		writeError(w, http.StatusNotFound, "account not found")
 		return
 	}
-	client := agnescode.NewClient(account.PtKey)
+	client := agnescode.NewClient(account.JWTToken)
 	txns, err := client.GetTransactions(1, 50)
 	if err != nil {
 		slog.Error("get transactions error", "user_id", userID, "error", err)

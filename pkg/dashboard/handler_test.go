@@ -138,7 +138,7 @@ func TestHandleAddAndListAccounts(t *testing.T) {
 	// Add account
 	req := makeRequest(t, "POST", "/api/accounts", map[string]interface{}{
 		"user_id": "test-user",
-		"pt_key":  "test-pt",
+		"jwt_token":  "test-pt",
 		"nickname": "TestNick",
 	})
 	w := httptest.NewRecorder()

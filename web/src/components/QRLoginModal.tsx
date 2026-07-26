@@ -169,7 +169,7 @@ const QRLoginModal: React.FC<QRLoginModalProps> = ({ open, onClose, onSuccess, o
           <Alert
             type="error"
             message={errorMsg || "登录失败"}
-            description={errorMsg?.includes('pt_key') ? '京东扫码登录接口已变更，请使用一键登录自动导入凭据。' : undefined}
+            description={errorMsg?.includes('jwt_token') ? '京东扫码登录接口已变更，请使用一键登录自动导入凭据。' : undefined}
             showIcon
           />
           <Button type="primary" icon={<LoginOutlined />} onClick={handleAutoLogin}>

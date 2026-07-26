@@ -23,8 +23,8 @@ func TestLoadFromSystem_NonDarwin(t *testing.T) {
 
 func TestCredentials_EmptyFields(t *testing.T) {
 	creds := &Credentials{}
-	if creds.PtKey != "" {
-		t.Errorf("PtKey = %q, want empty string", creds.PtKey)
+	if creds.JWTToken != "" {
+		t.Errorf("JWTToken = %q, want empty string", creds.JWTToken)
 	}
 	if creds.UserID != "" {
 		t.Errorf("UserID = %q, want empty string", creds.UserID)
@@ -33,34 +33,34 @@ func TestCredentials_EmptyFields(t *testing.T) {
 
 func TestCredentials_NilVsNonNil(t *testing.T) {
 	var creds *Credentials
-	nonNil := &Credentials{PtKey: "x", UserID: "y"}
+	nonNil := &Credentials{JWTToken: "x", UserID: "y"}
 	if creds == nonNil {
 		t.Error("nil should not equal allocated Credentials")
 	}
 }
 
 func TestStateData_JSONParsing(t *testing.T) {
-	raw := `{"joyCoderUser":{"ptKey":"test-pt-key-123","userId":"user-456"}}`
+	raw := `{"joyCoderUser":{"JWTToken":"test-jwt-token-123","userId":"user-456"}}`
 	var data stateData
 	if err := json.Unmarshal([]byte(raw), &data); err != nil {
 		t.Fatalf("failed to parse valid JSON: %v", err)
 	}
-	if data.AgnesCoderUser.PtKey != "test-pt-key-123" {
-		t.Errorf("PtKey = %q, want %q", data.AgnesCoderUser.PtKey, "test-pt-key-123")
+	if data.AgnesCoderUser.JWTToken != "test-jwt-token-123" {
+		t.Errorf("JWTToken = %q, want %q", data.AgnesCoderUser.JWTToken, "test-jwt-token-123")
 	}
 	if data.AgnesCoderUser.UserID != "user-456" {
 		t.Errorf("UserID = %q, want %q", data.AgnesCoderUser.UserID, "user-456")
 	}
 }
 
-func TestStateData_EmptyPtKey(t *testing.T) {
-	raw := `{"joyCoderUser":{"ptKey":"","userId":"user-789"}}`
+func TestStateData_EmptyJWTToken(t *testing.T) {
+	raw := `{"joyCoderUser":{"JWTToken":"","userId":"user-789"}}`
 	var data stateData
 	if err := json.Unmarshal([]byte(raw), &data); err != nil {
 		t.Fatalf("failed to parse JSON: %v", err)
 	}
-	if data.AgnesCoderUser.PtKey != "" {
-		t.Errorf("PtKey = %q, want empty string", data.AgnesCoderUser.PtKey)
+	if data.AgnesCoderUser.JWTToken != "" {
+		t.Errorf("JWTToken = %q, want empty string", data.AgnesCoderUser.JWTToken)
 	}
 	if data.AgnesCoderUser.UserID != "user-789" {
 		t.Errorf("UserID = %q, want %q", data.AgnesCoderUser.UserID, "user-789")
@@ -68,13 +68,13 @@ func TestStateData_EmptyPtKey(t *testing.T) {
 }
 
 func TestStateData_EmptyUserID(t *testing.T) {
-	raw := `{"joyCoderUser":{"ptKey":"some-key","userId":""}}`
+	raw := `{"joyCoderUser":{"JWTToken":"some-key","userId":""}}`
 	var data stateData
 	if err := json.Unmarshal([]byte(raw), &data); err != nil {
 		t.Fatalf("failed to parse JSON: %v", err)
 	}
-	if data.AgnesCoderUser.PtKey != "some-key" {
-		t.Errorf("PtKey = %q, want %q", data.AgnesCoderUser.PtKey, "some-key")
+	if data.AgnesCoderUser.JWTToken != "some-key" {
+		t.Errorf("JWTToken = %q, want %q", data.AgnesCoderUser.JWTToken, "some-key")
 	}
 	if data.AgnesCoderUser.UserID != "" {
 		t.Errorf("UserID = %q, want empty string", data.AgnesCoderUser.UserID)
@@ -87,8 +87,8 @@ func TestStateData_MissingAgnesCoderUser(t *testing.T) {
 	if err := json.Unmarshal([]byte(raw), &data); err != nil {
 		t.Fatalf("failed to parse JSON: %v", err)
 	}
-	if data.AgnesCoderUser.PtKey != "" {
-		t.Errorf("PtKey = %q, want empty string", data.AgnesCoderUser.PtKey)
+	if data.AgnesCoderUser.JWTToken != "" {
+		t.Errorf("JWTToken = %q, want empty string", data.AgnesCoderUser.JWTToken)
 	}
 	if data.AgnesCoderUser.UserID != "" {
 		t.Errorf("UserID = %q, want empty string", data.AgnesCoderUser.UserID)
@@ -151,7 +151,7 @@ func TestLoadFromSystem_ValidDatabase(t *testing.T) {
 	}
 	tmpDir := t.TempDir()
 
-	createTestDB(t, tmpDir, `{"joyCoderUser":{"ptKey":"valid-pt-key-abc","userId":"valid-user-xyz"}}`)
+	createTestDB(t, tmpDir, `{"joyCoderUser":{"JWTToken":"valid-jwt-token-abc","userId":"valid-user-xyz"}}`)
 
 	origHome := os.Getenv("HOME")
 	os.Setenv("HOME", tmpDir)
@@ -161,8 +161,8 @@ func TestLoadFromSystem_ValidDatabase(t *testing.T) {
 	if err != nil {
 		t.Fatalf("expected no error, got: %v", err)
 	}
-	if creds.PtKey != "valid-pt-key-abc" {
-		t.Errorf("PtKey = %q, want %q", creds.PtKey, "valid-pt-key-abc")
+	if creds.JWTToken != "valid-jwt-token-abc" {
+		t.Errorf("JWTToken = %q, want %q", creds.JWTToken, "valid-jwt-token-abc")
 	}
 	if creds.UserID != "valid-user-xyz" {
 		t.Errorf("UserID = %q, want %q", creds.UserID, "valid-user-xyz")

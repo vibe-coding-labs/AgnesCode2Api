@@ -13,7 +13,7 @@ import (
 
 // Credentials holds AgnesCode authentication data.
 type Credentials struct {
-	PtKey         string
+	JWTToken         string
 	UserID        string
 	ColorBaseURL  string
 	MasterBaseURL string
@@ -24,7 +24,7 @@ type Credentials struct {
 
 type stateData struct {
 	AgnesCoderUser struct {
-		PtKey         string `json:"ptKey"`
+		JWTToken         string `json:"JWTToken"`
 		UserID        string `json:"userId"`
 		ColorBaseURL  string `json:"colorBaseUrl"`
 		MasterBaseURL string `json:"masterBaseUrl"`
@@ -39,7 +39,7 @@ const (
 	containerStateDB = "/root/.agnescode-ide/state.vscdb"
 )
 
-// LoadFromSystem reads ptKey from local AgnesCode state database (macOS).
+// LoadFromSystem reads JWTToken from local AgnesCode state database (macOS).
 func LoadFromSystem() (*Credentials, error) {
 	if dbPath := os.Getenv(stateDBEnv); dbPath != "" {
 		return loadFromStateDB(dbPath)
@@ -87,14 +87,14 @@ func loadFromStateDB(dbPath string) (*Credentials, error) {
 	if err := json.Unmarshal([]byte(value), &data); err != nil {
 		return nil, fmt.Errorf("cannot parse login data from database: %w", err)
 	}
-	if data.AgnesCoderUser.PtKey == "" {
-		return nil, fmt.Errorf("ptKey is empty in stored credentials\n  Please re-login to AgnesCode IDE")
+	if data.AgnesCoderUser.JWTToken == "" {
+		return nil, fmt.Errorf("JWTToken is empty in stored credentials\n  Please re-login to AgnesCode IDE")
 	}
 	if data.AgnesCoderUser.UserID == "" {
 		return nil, fmt.Errorf("userId is empty in stored credentials\n  Please re-login to AgnesCode IDE")
 	}
 	return &Credentials{
-		PtKey:         data.AgnesCoderUser.PtKey,
+		JWTToken:         data.AgnesCoderUser.JWTToken,
 		UserID:        data.AgnesCoderUser.UserID,
 		ColorBaseURL:  data.AgnesCoderUser.ColorBaseURL,
 		MasterBaseURL: data.AgnesCoderUser.MasterBaseURL,

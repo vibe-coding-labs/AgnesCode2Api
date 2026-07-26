@@ -107,7 +107,7 @@ const Accounts: React.FC = () => {
 
 
 
-  const handleAdd = async (values: { api_key: string; pt_key: string; user_id: string; is_default?: boolean; default_model?: string }) => {
+  const handleAdd = async (values: { api_key: string; jwt_token: string; user_id: string; is_default?: boolean; default_model?: string }) => {
     try {
       await api.addAccount(values);
       message.success(`账号「${values.api_key}」添加成功`);
@@ -465,25 +465,25 @@ const Accounts: React.FC = () => {
             <Input placeholder="例如：team-a、user-zhangsan、dev-key-01" />
           </Form.Item>
           <Form.Item
-            name="pt_key"
+            name="jwt_token"
             label={
               <Space size={4}>
-                AgnesCode ptKey 凭证
-                <Tooltip title="从 AgnesCode 客户端获取的 ptKey，用于后端 API 认证。获取方式：打开 AgnesCode 桌面客户端 → 设置 → 开发者 → 复制 ptKey。凭证将以加密形式存储在本地数据库中">
+                AgnesCode JWTToken 凭证
+                <Tooltip title="从 AgnesCode 客户端获取的 JWTToken，用于后端 API 认证。获取方式：打开 AgnesCode 桌面客户端 → 设置 → 开发者 → 复制 JWTToken。凭证将以加密形式存储在本地数据库中">
                   <QuestionCircleOutlined style={{ color: '#999' }} />
                 </Tooltip>
               </Space>
             }
-            rules={[{ required: true, message: '请输入 ptKey' }]}
+            rules={[{ required: true, message: '请输入 JWTToken' }]}
           >
-            <Input.Password placeholder="粘贴从 AgnesCode 客户端复制的 ptKey，例如：eyJhbGci..." />
+            <Input.Password placeholder="粘贴从 AgnesCode 客户端复制的 JWTToken，例如：eyJhbGci..." />
           </Form.Item>
           <Form.Item
             name="user_id"
             label={
               <Space size={4}>
                 AgnesCode 用户 ID
-                <Tooltip title="与 ptKey 对应的用户 ID。获取方式：打开 AgnesCode 桌面客户端 → 设置 → 个人信息 → 复制用户 ID">
+                <Tooltip title="与 JWTToken 对应的用户 ID。获取方式：打开 AgnesCode 桌面客户端 → 设置 → 个人信息 → 复制用户 ID">
                   <QuestionCircleOutlined style={{ color: '#999' }} />
                 </Tooltip>
               </Space>

@@ -132,9 +132,9 @@ claude
 
 1. **OAuth 授权（推荐）**：在 Dashboard 点「OAuth授权登录」，在打开的 AgnesCode 页面完成授权。
    - 本地直接部署时，回调会自动检测并添加账号。
-   - **Docker / 远程部署时，浏览器会跳转到一个无法访问的 `localhost` 页面，这是正常现象**。把该页面地址栏里的完整 URL（形如 `http://127.0.0.1:34891/?pt_key=xxx&...`）复制下来，粘贴进弹窗的输入框，点「提交授权」即可。弹窗里的粘贴框现在一打开就可见，不用再等。
-2. **手动添加**：若你已经有 `pt_key`，可在「手动添加」里直接填。
-   - `pt_key`：来自上面 OAuth 回调 URL 的 `pt_key` 参数，或本地 AgnesCode IDE 的 `state.vscdb`。
+   - **Docker / 远程部署时，浏览器会跳转到一个无法访问的 `localhost` 页面，这是正常现象**。把该页面地址栏里的完整 URL（形如 `http://127.0.0.1:34891/?jwt_token=xxx&...`）复制下来，粘贴进弹窗的输入框，点「提交授权」即可。弹窗里的粘贴框现在一打开就可见，不用再等。
+2. **手动添加**：若你已经有 `jwt_token`，可在「手动添加」里直接填。
+   - `jwt_token`：来自上面 OAuth 回调 URL 的 `jwt_token` 参数，或本地 AgnesCode IDE 的 `state.vscdb`。
    - `user_id`：AgnesCode 客户端 → 设置 → 个人信息。
 3. **挂载本地凭据**：如果宿主机装了 AgnesCode IDE，可把其状态库挂进容器，让「一键导入」可用：
    ```bash

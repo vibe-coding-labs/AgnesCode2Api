@@ -126,7 +126,7 @@ var serveCmd = &cobra.Command{
 				systemClient := client
 				if systemClient != nil && systemClient.JWTToken == "placeholder" {
 					if creds, err := auth.LoadFromSystem(); err == nil {
-						systemClient = agnescode.NewClient(creds.PtKey)
+						systemClient = agnescode.NewClient(creds.JWTToken)
 					}
 				}
 				apiKey := r.Header.Get("x-api-key")
@@ -142,14 +142,14 @@ var serveCmd = &cobra.Command{
 				}
 				if apiKey != "" {
 					if account, _ := s.GetAccountByToken(apiKey); account != nil {
-						cl := agnescode.NewClient(account.PtKey)
+						cl := agnescode.NewClient(account.JWTToken)
 						if systemClient != nil && systemClient.JWTToken != "" && systemClient.JWTToken != "placeholder" && "" == account.UserID {
 						}
 						cl.SetTimeout(time.Duration(timeout) * time.Second)
 						return cl
 					}
 					if account, _ := s.GetAccount(apiKey); account != nil {
-						cl := agnescode.NewClient(account.PtKey)
+						cl := agnescode.NewClient(account.JWTToken)
 						if systemClient != nil && systemClient.JWTToken != "" && systemClient.JWTToken != "placeholder" && "" == account.UserID {
 						}
 						cl.SetTimeout(time.Duration(timeout) * time.Second)
@@ -157,7 +157,7 @@ var serveCmd = &cobra.Command{
 					}
 				}
 				if account, _ := s.GetDefaultAccount(); account != nil {
-					cl := agnescode.NewClient(account.PtKey)
+					cl := agnescode.NewClient(account.JWTToken)
 					if systemClient != nil && systemClient.JWTToken != "" && systemClient.JWTToken != "placeholder" && "" == account.UserID {
 					}
 					cl.SetTimeout(time.Duration(timeout) * time.Second)

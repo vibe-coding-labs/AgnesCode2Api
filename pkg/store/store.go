@@ -29,7 +29,7 @@ type Account struct {
 	Nickname     string `json:"nickname"`
 	Remark       string `json:"remark"`
 	APIToken     string `json:"api_token"`
-	PtKey        string `json:"-"`
+	JWTToken        string `json:"-"`
 	IsDefault    bool   `json:"is_default"`
 	DefaultModel string `json:"default_model"`
 	CreatedAt    string `json:"created_at,omitempty"`
@@ -241,7 +241,7 @@ func (s *Store) migrate() error {
 			nickname TEXT DEFAULT '',
 			remark TEXT DEFAULT '',
 			api_token TEXT NOT NULL DEFAULT '',
-			pt_key TEXT NOT NULL,
+			jwt_token TEXT NOT NULL,
 			is_default INTEGER DEFAULT 0,
 			default_model TEXT DEFAULT '',
 			created_at TEXT DEFAULT (datetime('now', 'localtime')),
@@ -316,7 +316,7 @@ func (s *Store) migrateUserIDAsPK() {
 			nickname TEXT DEFAULT '',
 			remark TEXT DEFAULT '',
 			api_token TEXT NOT NULL DEFAULT '',
-			pt_key TEXT NOT NULL,
+			jwt_token TEXT NOT NULL,
 			is_default INTEGER DEFAULT 0,
 			default_model TEXT DEFAULT '',
 			created_at TEXT DEFAULT (datetime('now', 'localtime')),
@@ -333,15 +333,15 @@ func (s *Store) migrateUserIDAsPK() {
 	// Copy data from old table:
 	//   user_id = COALESCE(NULLIF(old.user_id, ''), 'local_' || old.api_key)
 	//   nickname = old.api_key (the old display name becomes the nickname)
-	//   api_token, pt_key, is_default, default_model, created_at, updated_at,
+	//   api_token, jwt_token, is_default, default_model, created_at, updated_at,
 	//   credential_refreshed_at, credential_valid carried over
 	_, err = s.db.Exec(`
-		INSERT INTO accounts_new (user_id, nickname, api_token, pt_key, is_default, default_model, created_at, updated_at, credential_refreshed_at, credential_valid, display_order)
+		INSERT INTO accounts_new (user_id, nickname, api_token, jwt_token, is_default, default_model, created_at, updated_at, credential_refreshed_at, credential_valid, display_order)
 		SELECT
 			CASE WHEN user_id = '' OR user_id IS NULL THEN 'local_' || api_key ELSE user_id END,
 			api_key,
 			COALESCE(api_token, ''),
-			pt_key,
+			jwt_token,
 			is_default,
 			COALESCE(default_model, ''),
 			created_at,
@@ -496,12 +496,12 @@ func (s *Store) decrypt(ciphertext string) (string, error) {
 
 const MaxAccounts = 10
 
-func (s *Store) AddAccount(userID, ptKey, nickname string, isDefault bool, defaultModel string) error {
+func (s *Store) AddAccount(userID, JWTToken, nickname string, isDefault bool, defaultModel string) error {
 	if userID == "" {
 		return fmt.Errorf("user_id cannot be empty")
 	}
-	if ptKey == "" {
-		return fmt.Errorf("pt_key cannot be empty")
+	if JWTToken == "" {
+		return fmt.Errorf("jwt_token cannot be empty")
 	}
 
 	s.mu.Lock()
@@ -511,14 +511,14 @@ func (s *Store) AddAccount(userID, ptKey, nickname string, isDefault bool, defau
 	var existingToken string
 	err := s.db.QueryRow("SELECT api_token FROM accounts WHERE user_id = ?", userID).Scan(&existingToken)
 	if err == nil {
-		encPtKey, err := s.encrypt(ptKey)
+		encJWTToken, err := s.encrypt(JWTToken)
 		if err != nil {
-			slog.Error("store: encrypt pt_key failed", "user_id", userID, "error", err)
-			return fmt.Errorf("encrypt pt_key: %w", err)
+			slog.Error("store: encrypt jwt_token failed", "user_id", userID, "error", err)
+			return fmt.Errorf("encrypt jwt_token: %w", err)
 		}
 		_, err = s.db.Exec(
-			"UPDATE accounts SET pt_key = ?, nickname = CASE WHEN nickname = '' OR nickname IS NULL THEN ? ELSE nickname END, updated_at = datetime('now', 'localtime') WHERE user_id = ?",
-			encPtKey, nickname, userID,
+			"UPDATE accounts SET jwt_token = ?, nickname = CASE WHEN nickname = '' OR nickname IS NULL THEN ? ELSE nickname END, updated_at = datetime('now', 'localtime') WHERE user_id = ?",
+			encJWTToken, nickname, userID,
 		)
 		if err != nil {
 			slog.Error("store: update account failed", "user_id", userID, "error", err)
@@ -528,34 +528,34 @@ func (s *Store) AddAccount(userID, ptKey, nickname string, isDefault bool, defau
 		return nil
 	}
 
-		// Check if another account already has the same pt_key (dedup by credential)
-		rows, err := s.db.Query("SELECT user_id, pt_key FROM accounts")
+		// Check if another account already has the same jwt_token (dedup by credential)
+		rows, err := s.db.Query("SELECT user_id, jwt_token FROM accounts")
 		if err == nil {
 			for rows.Next() {
-				var existingUserID, encExistingPtKey string
-				if rows.Scan(&existingUserID, &encExistingPtKey) != nil {
+				var existingUserID, encExistingJWTToken string
+				if rows.Scan(&existingUserID, &encExistingJWTToken) != nil {
 					continue
 				}
-				existingPtKey, decErr := s.decrypt(encExistingPtKey)
+				existingJWTToken, decErr := s.decrypt(encExistingJWTToken)
 				if decErr != nil {
 					continue
 				}
-				if existingPtKey == ptKey {
+				if existingJWTToken == JWTToken {
 					rows.Close()
-					encPtKey, encErr := s.encrypt(ptKey)
+					encJWTToken, encErr := s.encrypt(JWTToken)
 					if encErr != nil {
-						slog.Error("store: encrypt pt_key failed", "user_id", userID, "error", encErr)
-						return fmt.Errorf("encrypt pt_key: %w", encErr)
+						slog.Error("store: encrypt jwt_token failed", "user_id", userID, "error", encErr)
+						return fmt.Errorf("encrypt jwt_token: %w", encErr)
 					}
 					_, err = s.db.Exec(
-						"UPDATE accounts SET user_id = ?, pt_key = ?, nickname = CASE WHEN nickname = '' OR nickname IS NULL THEN ? ELSE nickname END, updated_at = datetime('now', 'localtime') WHERE user_id = ?",
-						userID, encPtKey, nickname, existingUserID,
+						"UPDATE accounts SET user_id = ?, jwt_token = ?, nickname = CASE WHEN nickname = '' OR nickname IS NULL THEN ? ELSE nickname END, updated_at = datetime('now', 'localtime') WHERE user_id = ?",
+						userID, encJWTToken, nickname, existingUserID,
 					)
 					if err != nil {
-						slog.Error("store: update account (pt_key dedup) failed", "old_user_id", existingUserID, "new_user_id", userID, "error", err)
+						slog.Error("store: update account (jwt_token dedup) failed", "old_user_id", existingUserID, "new_user_id", userID, "error", err)
 						return err
 					}
-					slog.Info("store: merged account by pt_key dedup", "old_user_id", existingUserID, "new_user_id", userID)
+					slog.Info("store: merged account by jwt_token dedup", "old_user_id", existingUserID, "new_user_id", userID)
 					return nil
 				}
 			}
@@ -569,10 +569,10 @@ func (s *Store) AddAccount(userID, ptKey, nickname string, isDefault bool, defau
 		return fmt.Errorf("账号数量已达上限（%d 个）。本工具仅供个人学习和研究使用，禁止用于商业转售、API 中转服务或任何违法违规用途", MaxAccounts)
 	}
 
-	encPtKey, err := s.encrypt(ptKey)
+	encJWTToken, err := s.encrypt(JWTToken)
 	if err != nil {
-		slog.Error("store: encrypt pt_key failed", "user_id", userID, "error", err)
-		return fmt.Errorf("encrypt pt_key: %w", err)
+		slog.Error("store: encrypt jwt_token failed", "user_id", userID, "error", err)
+		return fmt.Errorf("encrypt jwt_token: %w", err)
 	}
 
 	// New account
@@ -591,8 +591,8 @@ func (s *Store) AddAccount(userID, ptKey, nickname string, isDefault bool, defau
 
 	token := generateToken()
 	_, err = s.db.Exec(
-		"INSERT INTO accounts (user_id, nickname, api_token, pt_key, is_default, default_model, display_order) VALUES (?, ?, ?, ?, ?, ?, ?)",
-		userID, nickname, token, encPtKey, def, defaultModel, maxOrder+1,
+		"INSERT INTO accounts (user_id, nickname, api_token, jwt_token, is_default, default_model, display_order) VALUES (?, ?, ?, ?, ?, ?, ?)",
+		userID, nickname, token, encJWTToken, def, defaultModel, maxOrder+1,
 	)
 	if err != nil {
 		slog.Error("store: add account failed", "user_id", userID, "error", err)
@@ -685,12 +685,12 @@ func (s *Store) FillAccountStats(accounts []AccountInfo) {
 
 func (s *Store) GetAccount(userID string) (*Account, error) {
 	var a Account
-	var encPtKey string
+	var encJWTToken string
 	var isDef int
 	err := s.db.QueryRow(
-		"SELECT user_id, nickname, remark, api_token, pt_key, is_default, default_model, created_at FROM accounts WHERE user_id = ?",
+		"SELECT user_id, nickname, remark, api_token, jwt_token, is_default, default_model, created_at FROM accounts WHERE user_id = ?",
 		userID,
-	).Scan(&a.UserID, &a.Nickname, &a.Remark, &a.APIToken, &encPtKey, &isDef, &a.DefaultModel, &a.CreatedAt)
+	).Scan(&a.UserID, &a.Nickname, &a.Remark, &a.APIToken, &encJWTToken, &isDef, &a.DefaultModel, &a.CreatedAt)
 	if err == sql.ErrNoRows {
 		return nil, nil
 	}
@@ -699,24 +699,24 @@ func (s *Store) GetAccount(userID string) (*Account, error) {
 		return nil, err
 	}
 
-	ptKey, err := s.decrypt(encPtKey)
+	JWTToken, err := s.decrypt(encJWTToken)
 	if err != nil {
-		slog.Error("store: decrypt pt_key failed", "user_id", userID, "error", err)
-		return nil, fmt.Errorf("decrypt pt_key: %w", err)
+		slog.Error("store: decrypt jwt_token failed", "user_id", userID, "error", err)
+		return nil, fmt.Errorf("decrypt jwt_token: %w", err)
 	}
-	a.PtKey = ptKey
+	a.JWTToken = JWTToken
 	a.IsDefault = isDef == 1
 	return &a, nil
 }
 
 func (s *Store) GetAccountByToken(token string) (*Account, error) {
 	var a Account
-	var encPtKey string
+	var encJWTToken string
 	var isDef int
 	err := s.db.QueryRow(
-		"SELECT user_id, nickname, remark, api_token, pt_key, is_default, default_model, created_at FROM accounts WHERE api_token = ?",
+		"SELECT user_id, nickname, remark, api_token, jwt_token, is_default, default_model, created_at FROM accounts WHERE api_token = ?",
 		token,
-	).Scan(&a.UserID, &a.Nickname, &a.Remark, &a.APIToken, &encPtKey, &isDef, &a.DefaultModel, &a.CreatedAt)
+	).Scan(&a.UserID, &a.Nickname, &a.Remark, &a.APIToken, &encJWTToken, &isDef, &a.DefaultModel, &a.CreatedAt)
 	if err == sql.ErrNoRows {
 		return nil, nil
 	}
@@ -725,12 +725,12 @@ func (s *Store) GetAccountByToken(token string) (*Account, error) {
 		return nil, err
 	}
 
-	ptKey, err := s.decrypt(encPtKey)
+	JWTToken, err := s.decrypt(encJWTToken)
 	if err != nil {
-		slog.Error("store: decrypt pt_key by token failed", "error", err)
-		return nil, fmt.Errorf("decrypt pt_key: %w", err)
+		slog.Error("store: decrypt jwt_token by token failed", "error", err)
+		return nil, fmt.Errorf("decrypt jwt_token: %w", err)
 	}
-	a.PtKey = ptKey
+	a.JWTToken = JWTToken
 	a.IsDefault = isDef == 1
 	return &a, nil
 }
@@ -747,10 +747,10 @@ func (s *Store) RenewToken(userID string) (string, error) {
 
 func (s *Store) GetDefaultAccount() (*Account, error) {
 	var a Account
-	var encPtKey string
+	var encJWTToken string
 	err := s.db.QueryRow(
-		"SELECT user_id, nickname, remark, api_token, pt_key, is_default, default_model, created_at FROM accounts WHERE is_default = 1 LIMIT 1",
-	).Scan(&a.UserID, &a.Nickname, &a.Remark, &a.APIToken, &encPtKey, new(int), &a.DefaultModel, &a.CreatedAt)
+		"SELECT user_id, nickname, remark, api_token, jwt_token, is_default, default_model, created_at FROM accounts WHERE is_default = 1 LIMIT 1",
+	).Scan(&a.UserID, &a.Nickname, &a.Remark, &a.APIToken, &encJWTToken, new(int), &a.DefaultModel, &a.CreatedAt)
 	if err == sql.ErrNoRows {
 		return nil, nil
 	}
@@ -759,12 +759,12 @@ func (s *Store) GetDefaultAccount() (*Account, error) {
 		return nil, err
 	}
 
-	ptKey, err := s.decrypt(encPtKey)
+	JWTToken, err := s.decrypt(encJWTToken)
 	if err != nil {
-		slog.Error("store: decrypt default account pt_key failed", "error", err)
-		return nil, fmt.Errorf("decrypt pt_key: %w", err)
+		slog.Error("store: decrypt default account jwt_token failed", "error", err)
+		return nil, fmt.Errorf("decrypt jwt_token: %w", err)
 	}
-	a.PtKey = ptKey
+	a.JWTToken = JWTToken
 	a.IsDefault = true
 	return &a, nil
 }
@@ -805,23 +805,23 @@ func (s *Store) ClearAllAccounts() (int, error) {
 	return int(n), nil
 }
 
-// UpdatePtKey updates the encrypted pt_key for an account.
-func (s *Store) UpdatePtKey(userID, ptKey string) error {
-	encPtKey, err := s.encrypt(ptKey)
+// UpdateJWTToken updates the encrypted jwt_token for an account.
+func (s *Store) UpdateJWTToken(userID, JWTToken string) error {
+	encJWTToken, err := s.encrypt(JWTToken)
 	if err != nil {
-		slog.Error("store: encrypt pt_key for update failed", "user_id", userID, "error", err)
-		return fmt.Errorf("encrypt pt_key: %w", err)
+		slog.Error("store: encrypt jwt_token for update failed", "user_id", userID, "error", err)
+		return fmt.Errorf("encrypt jwt_token: %w", err)
 	}
 	result, err := s.db.Exec(
-		"UPDATE accounts SET pt_key = ?, updated_at = datetime('now', 'localtime'), credential_refreshed_at = datetime('now', 'localtime') WHERE user_id = ?",
-		encPtKey, userID,
+		"UPDATE accounts SET jwt_token = ?, updated_at = datetime('now', 'localtime'), credential_refreshed_at = datetime('now', 'localtime') WHERE user_id = ?",
+		encJWTToken, userID,
 	)
 	if err != nil {
-		slog.Error("store: update pt_key failed", "user_id", userID, "error", err)
+		slog.Error("store: update jwt_token failed", "user_id", userID, "error", err)
 		return err
 	}
 	rows, _ := result.RowsAffected()
-	slog.Info("store: pt_key updated",
+	slog.Info("store: jwt_token updated",
 		"user_id", userID,
 		"rows_affected", rows,
 	)
@@ -829,7 +829,7 @@ func (s *Store) UpdatePtKey(userID, ptKey string) error {
 }
 
 // UpdateCredentialRefreshedAt sets credential_refreshed_at to now for an account
-// that was validated but did not need a pt_key refresh.
+// that was validated but did not need a jwt_token refresh.
 func (s *Store) UpdateCredentialRefreshedAt(userID string) {
 	s.db.Exec(
 		"UPDATE accounts SET credential_refreshed_at = datetime('now', 'localtime') WHERE user_id = ?",
@@ -854,7 +854,7 @@ func (s *Store) ListStaleAccounts(threshold time.Duration) ([]Account, error) {
 	normalCutoff := time.Now().Add(-threshold).Format("2006-01-02 15:04:05")
 	backoffCutoff := time.Now().Add(-threshold * 4).Format("2006-01-02 15:04:05")
 	rows, err := s.db.Query(
-		`SELECT user_id, nickname, pt_key, default_model FROM accounts
+		`SELECT user_id, nickname, jwt_token, default_model FROM accounts
 		 WHERE credential_refreshed_at = ''
 		    OR credential_valid = -1
 		    OR (credential_valid = 1 AND credential_refreshed_at < ?)
@@ -871,25 +871,25 @@ func (s *Store) ListStaleAccounts(threshold time.Duration) ([]Account, error) {
 	var accounts []Account
 	for rows.Next() {
 		var a Account
-		var encPtKey string
-		if err := rows.Scan(&a.UserID, &a.Nickname, &encPtKey, &a.DefaultModel); err != nil {
+		var encJWTToken string
+		if err := rows.Scan(&a.UserID, &a.Nickname, &encJWTToken, &a.DefaultModel); err != nil {
 			slog.Error("store: list stale accounts scan failed", "error", err)
 			return nil, err
 		}
-		ptKey, err := s.decrypt(encPtKey)
+		JWTToken, err := s.decrypt(encJWTToken)
 		if err != nil {
-			slog.Error("store: decrypt pt_key failed for stale account", "user_id", a.UserID, "error", err)
+			slog.Error("store: decrypt jwt_token failed for stale account", "user_id", a.UserID, "error", err)
 			continue
 		}
-		a.PtKey = ptKey
+		a.JWTToken = JWTToken
 		accounts = append(accounts, a)
 	}
 	return accounts, nil
 }
 
-// ListAllAccountsWithCredentials returns all accounts with decrypted pt_keys.
+// ListAllAccountsWithCredentials returns all accounts with decrypted jwt_tokens.
 func (s *Store) ListAllAccountsWithCredentials() ([]Account, error) {
-	rows, err := s.db.Query("SELECT user_id, nickname, pt_key, default_model FROM accounts ORDER BY created_at")
+	rows, err := s.db.Query("SELECT user_id, nickname, jwt_token, default_model FROM accounts ORDER BY created_at")
 	if err != nil {
 		slog.Error("store: list accounts with credentials query failed", "error", err)
 		return nil, err
@@ -899,17 +899,17 @@ func (s *Store) ListAllAccountsWithCredentials() ([]Account, error) {
 	var accounts []Account
 	for rows.Next() {
 		var a Account
-		var encPtKey string
-		if err := rows.Scan(&a.UserID, &a.Nickname, &encPtKey, &a.DefaultModel); err != nil {
+		var encJWTToken string
+		if err := rows.Scan(&a.UserID, &a.Nickname, &encJWTToken, &a.DefaultModel); err != nil {
 			slog.Error("store: list accounts with credentials scan failed", "error", err)
 			return nil, err
 		}
-		ptKey, err := s.decrypt(encPtKey)
+		JWTToken, err := s.decrypt(encJWTToken)
 		if err != nil {
-			slog.Error("store: decrypt pt_key failed for keepalive", "user_id", a.UserID, "error", err)
+			slog.Error("store: decrypt jwt_token failed for keepalive", "user_id", a.UserID, "error", err)
 			continue
 		}
-		a.PtKey = ptKey
+		a.JWTToken = JWTToken
 		accounts = append(accounts, a)
 	}
 	return accounts, rows.Err()
@@ -1379,19 +1379,19 @@ type ExportAccountItem struct {
 	UserID       string `json:"user_id"`
 	Nickname     string `json:"nickname"`
 	Remark       string `json:"remark"`
-	PtKey        string `json:"pt_key"`
+	JWTToken        string `json:"jwt_token"`
 	IsDefault    bool   `json:"is_default"`
 	DefaultModel string `json:"default_model"`
 	DisplayOrder int    `json:"display_order"`
 }
 
-// ExportAccounts returns all accounts with decrypted pt_keys for export.
+// ExportAccounts returns all accounts with decrypted jwt_tokens for export.
 func (s *Store) ExportAccounts() ([]ExportAccountItem, error) {
 	s.mu.Lock()
 	defer s.mu.Unlock()
 
 	rows, err := s.db.Query(
-		"SELECT user_id, nickname, remark, pt_key, is_default, default_model, COALESCE(display_order, 0) FROM accounts ORDER BY display_order, created_at",
+		"SELECT user_id, nickname, remark, jwt_token, is_default, default_model, COALESCE(display_order, 0) FROM accounts ORDER BY display_order, created_at",
 	)
 	if err != nil {
 		return nil, fmt.Errorf("query accounts for export: %w", err)
@@ -1401,17 +1401,17 @@ func (s *Store) ExportAccounts() ([]ExportAccountItem, error) {
 	var items []ExportAccountItem
 	for rows.Next() {
 		var item ExportAccountItem
-		var encPtKey string
+		var encJWTToken string
 		var isDef int
-		if err := rows.Scan(&item.UserID, &item.Nickname, &item.Remark, &encPtKey, &isDef, &item.DefaultModel, &item.DisplayOrder); err != nil {
+		if err := rows.Scan(&item.UserID, &item.Nickname, &item.Remark, &encJWTToken, &isDef, &item.DefaultModel, &item.DisplayOrder); err != nil {
 			return nil, fmt.Errorf("scan account for export: %w", err)
 		}
-		ptKey, err := s.decrypt(encPtKey)
+		JWTToken, err := s.decrypt(encJWTToken)
 		if err != nil {
 			slog.Warn("store: skip account in export, decrypt failed", "user_id", item.UserID, "error", err)
 			continue
 		}
-		item.PtKey = ptKey
+		item.JWTToken = JWTToken
 		item.IsDefault = isDef == 1
 		items = append(items, item)
 	}
@@ -1421,10 +1421,10 @@ func (s *Store) ExportAccounts() ([]ExportAccountItem, error) {
 	return items, nil
 }
 
-// ImportAccounts imports accounts from export data. Existing accounts are updated (pt_key only).
+// ImportAccounts imports accounts from export data. Existing accounts are updated (jwt_token only).
 func (s *Store) ImportAccounts(items []ExportAccountItem) (added int, updated int, err error) {
 	for _, item := range items {
-		if item.UserID == "" || item.PtKey == "" {
+		if item.UserID == "" || item.JWTToken == "" {
 			continue
 		}
 		var existing int
@@ -1434,7 +1434,7 @@ func (s *Store) ImportAccounts(items []ExportAccountItem) (added int, updated in
 		if e != nil {
 			return added, updated, fmt.Errorf("check existing account %s: %w", item.UserID, e)
 		}
-		if err := s.AddAccount(item.UserID, item.PtKey, item.Nickname, item.IsDefault, item.DefaultModel); err != nil {
+		if err := s.AddAccount(item.UserID, item.JWTToken, item.Nickname, item.IsDefault, item.DefaultModel); err != nil {
 			return added, updated, fmt.Errorf("import account %s: %w", item.UserID, err)
 		}
 		if existing > 0 {

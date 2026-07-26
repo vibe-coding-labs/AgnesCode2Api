@@ -10,7 +10,7 @@ import (
 )
 
 var (
-	PtKey          string
+	JWTToken          string
 	userID         string
 	skipValidation bool
 	verbose        bool
@@ -37,7 +37,7 @@ var rootCmd = &cobra.Command{
 }
 
 func init() {
-	rootCmd.PersistentFlags().StringVarP(&PtKey, "ptkey", "k", "", "AgnesCode PtKey（留空则自动从客户端检测）")
+	rootCmd.PersistentFlags().StringVarP(&JWTToken, "jwttoken", "k", "", "AgnesCode JWTToken（留空则自动从客户端检测）")
 	rootCmd.PersistentFlags().StringVarP(&userID, "userid", "u", "", "AgnesCode userID（留空则自动从客户端检测）")
 	rootCmd.PersistentFlags().BoolVar(&skipValidation, "skip-validation", false, "跳过凭据验证")
 	rootCmd.PersistentFlags().BoolVarP(&verbose, "verbose", "v", false, "启用调试日志")
@@ -47,25 +47,25 @@ func resolveClient() (*agnescode.Client, error) {
 	var creds *auth.Credentials
 	var source string
 
-	if PtKey != "" && userID != "" {
-		creds = &auth.Credentials{PtKey: PtKey, UserID: userID}
+	if JWTToken != "" && userID != "" {
+		creds = &auth.Credentials{JWTToken: JWTToken, UserID: userID}
 		source = "flags"
 	} else {
 		detected, err := auth.LoadFromSystem()
 		if err != nil {
 			if !skipValidation {
-				return nil, fmt.Errorf("cannot auto-detect credentials: %w\n  Please provide --ptkey and --userid flags, or log in to AgnesCode first", err)
+				return nil, fmt.Errorf("cannot auto-detect credentials: %w\n  Please provide --jwttoken and --userid flags, or log in to AgnesCode first", err)
 			}
 			// With --skip-validation, create a placeholder client; real requests use DB accounts via resolver
 			log.Printf("Warning: cannot auto-detect credentials (%v); using placeholder (requests will use DB accounts)", err)
-			creds = &auth.Credentials{PtKey: "placeholder", UserID: "placeholder"}
+			creds = &auth.Credentials{JWTToken: "placeholder", UserID: "placeholder"}
 			source = "placeholder (no local AgnesCode session)"
 		} else {
 			creds = detected
 			source = "auto-detected"
 
-			if PtKey != "" {
-				creds.PtKey = PtKey
+			if JWTToken != "" {
+				creds.JWTToken = JWTToken
 				source = "flags+auto-detected"
 			}
 			if userID != "" {
@@ -76,7 +76,7 @@ func resolveClient() (*agnescode.Client, error) {
 	}
 
 	log.Printf("Credentials source: %s (userId=%s)", source, creds.UserID)
-	client := agnescode.NewClient(creds.PtKey)
+	client := agnescode.NewClient(creds.JWTToken)
 
 	if skipValidation {
 		log.Printf("Credential validation skipped (--skip-validation)")
@@ -85,7 +85,7 @@ func resolveClient() (*agnescode.Client, error) {
 
 	log.Printf("Validating credentials...")
 	if err := client.Authenticate(); err != nil {
-		return nil, fmt.Errorf("%w\n  Your credentials may have expired. Try re-logging into AgnesCode or provide fresh --ptkey and --userid", err)
+		return nil, fmt.Errorf("%w\n  Your credentials may have expired. Try re-logging into AgnesCode or provide fresh --jwttoken and --userid", err)
 	}
 	log.Printf("Credentials validated successfully")
 	return client, nil
