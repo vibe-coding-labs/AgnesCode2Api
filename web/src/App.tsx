@@ -75,7 +75,37 @@ const AuthGuard: React.FC<{ children: React.ReactNode }> = ({ children }) => {
 };
 
 const App: React.FC = () => (
-  <ConfigProvider locale={zhCN} theme={{ token: { colorPrimary: '#00b578' } }}>
+  <ConfigProvider locale={zhCN} theme={{
+    token: {
+      colorPrimary: '#00b578',
+      colorSuccess: '#52c41a',
+      colorWarning: '#faad14',
+      colorError: '#ff4d4f',
+      colorInfo: '#1890ff',
+      borderRadius: 8,
+      wireframe: false,
+    },
+    components: {
+      Layout: {
+        headerBg: '#fff',
+        bodyBg: '#f5f5f5',
+        siderBg: '#1a1a2e',
+      },
+      Menu: {
+        darkItemBg: '#1a1a2e',
+        darkItemColor: 'rgba(255,255,255,0.65)',
+        darkItemSelectedBg: 'rgba(0,181,120,0.15)',
+        darkItemSelectedColor: '#00b578',
+        darkItemHoverBg: 'rgba(0,181,120,0.08)',
+      },
+      Card: {
+        paddingLG: 20,
+      },
+      Table: {
+        headerBg: '#fafafa',
+      },
+    },
+  }}>
     <BrowserRouter>
       <Routes>
         <Route path="/setup" element={<Setup />} />
