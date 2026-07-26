@@ -73,6 +73,8 @@ func (h *Handler) RegisterRoutes(mux *http.ServeMux) {
 	mux.HandleFunc("/api/github-stars", h.handleGitHubStars)
 	mux.HandleFunc("/api/accounts-export", h.handleExportAccounts)
 	mux.HandleFunc("/api/accounts-import", h.handleImportAccounts)
+	mux.HandleFunc("/api/account-balance", h.handleAccountBalance)
+	mux.HandleFunc("/api/account-transactions", h.handleAccountTransactions)
 }
 
 // GitHub Stars cache
@@ -1399,4 +1401,60 @@ func (h *Handler) handleHealth(w http.ResponseWriter, r *http.Request) {
 		"accounts": count,
 		"version":  version,
 	})
+}
+
+// --- Account Balance Handler ---
+
+func (h *Handler) handleAccountBalance(w http.ResponseWriter, r *http.Request) {
+	setCors(w)
+	if r.Method == http.MethodOptions {
+		w.WriteHeader(http.StatusNoContent)
+		return
+	}
+	userID := r.URL.Query().Get("user_id")
+	if userID == "" {
+		writeError(w, http.StatusBadRequest, "missing user_id")
+		return
+	}
+	account, err := h.store.GetAccount(userID)
+	if err != nil {
+		writeError(w, http.StatusNotFound, "account not found")
+		return
+	}
+	client := agnescode.NewClient(account.PtKey)
+	balance, err := client.GetBalance()
+	if err != nil {
+		slog.Error("get balance error", "user_id", userID, "error", err)
+		writeError(w, http.StatusBadGateway, "failed to fetch balance: "+err.Error())
+		return
+	}
+	writeJSON(w, http.StatusOK, balance)
+}
+
+// --- Account Transactions Handler ---
+
+func (h *Handler) handleAccountTransactions(w http.ResponseWriter, r *http.Request) {
+	setCors(w)
+	if r.Method == http.MethodOptions {
+		w.WriteHeader(http.StatusNoContent)
+		return
+	}
+	userID := r.URL.Query().Get("user_id")
+	if userID == "" {
+		writeError(w, http.StatusBadRequest, "missing user_id")
+		return
+	}
+	account, err := h.store.GetAccount(userID)
+	if err != nil {
+		writeError(w, http.StatusNotFound, "account not found")
+		return
+	}
+	client := agnescode.NewClient(account.PtKey)
+	txns, err := client.GetTransactions(1, 50)
+	if err != nil {
+		slog.Error("get transactions error", "user_id", userID, "error", err)
+		writeError(w, http.StatusBadGateway, "failed to fetch transactions: "+err.Error())
+		return
+	}
+	writeJSON(w, http.StatusOK, txns)
 }

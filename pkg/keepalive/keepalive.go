@@ -156,7 +156,7 @@ func (k *Keeper) checkOne(apiKey, ptKey, userID string) string {
 	client := agnescode.NewClient(ptKey)
 	client.SetTimeout(30 * time.Second)
 
-	refreshedPtKey, err := "", client.Authenticate()
+	err := client.Authenticate()
 	checkDuration := time.Since(checkStart)
 	now := time.Now()
 
@@ -169,7 +169,7 @@ func (k *Keeper) checkOne(apiKey, ptKey, userID string) string {
 			"user_id", userID,
 			"error", err,
 			"duration", checkDuration,
-			"pt_key_prefix", maskKey(ptKey),
+			"jwt_prefix", maskKey(ptKey),
 		)
 		k.status[apiKey] = &CredentialStatus{
 			Valid:        false,
@@ -180,64 +180,17 @@ func (k *Keeper) checkOne(apiKey, ptKey, userID string) string {
 		return "failed"
 	}
 
+	slog.Info("keepalive: account authenticated successfully",
+		"user_id", apiKey,
+		"user_id", userID,
+	)
 	k.store.SetCredentialValid(apiKey, true)
 	status := &CredentialStatus{
-		Valid:       true,
-		LastChecked: now,
+		Valid:        true,
+		LastChecked:  now,
+		LastRefreshed: now,
 	}
-
-	if refreshedPtKey != "" && refreshedPtKey != ptKey {
-		slog.Info("keepalive: pt_key refresh available",
-			"user_id", apiKey,
-			"user_id", userID,
-			"old_prefix", maskKey(ptKey),
-			"new_prefix", maskKey(refreshedPtKey),
-		)
-
-		if err := k.store.UpdatePtKey(apiKey, refreshedPtKey); err != nil {
-			slog.Error("keepalive: failed to save refreshed pt_key",
-				"user_id", apiKey,
-				"error", err,
-			)
-		} else {
-			status.LastRefreshed = now
-
-			verifyClient := agnescode.NewClient(refreshedPtKey)
-			verifyClient.SetTimeout(15 * time.Second)
-			if verifyErr := verifyClient.Authenticate(); verifyErr != nil {
-				slog.Error("keepalive: refreshed pt_key verification FAILED",
-					"user_id", apiKey,
-					"user_id", userID,
-					"error", verifyErr,
-				)
-			} else {
-				slog.Info("keepalive: refreshed pt_key verified OK",
-					"user_id", apiKey,
-					"user_id", userID,
-				)
-			}
-
-			slog.Info("keepalive: pt_key refreshed and saved",
-				"user_id", apiKey,
-				"user_id", userID,
-			)
-		}
-	} else {
-		// No refresh needed, but update credential_refreshed_at so this account
-		// doesn't get re-checked next cycle
-		k.store.UpdateCredentialRefreshedAt(apiKey)
-
-		slog.Info("keepalive: account valid, no refresh needed",
-			"user_id", apiKey,
-			"user_id", userID,
-			"duration", checkDuration,
-		)
-	}
-
 	k.status[apiKey] = status
-	if refreshedPtKey != "" && refreshedPtKey != ptKey {
-		return "refreshed"
-	}
 	return "valid"
 }
 
