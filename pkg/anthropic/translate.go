@@ -11,7 +11,7 @@ import (
 	"github.com/vibe-coding-labs/AgnesCode2Api/pkg/store"
 )
 
-// TranslateRequest converts an Anthropic MessageRequest to a JoyCode API body.
+// TranslateRequest converts an Anthropic MessageRequest to a AgnesCode API body.
 func TranslateRequest(req *MessageRequest, accountDefault string, systemDefault string) map[string]interface{} {
 	model := resolveModel(req.Model, accountDefault, systemDefault)
 	messages := buildMessages(req)
@@ -42,7 +42,7 @@ func TranslateRequest(req *MessageRequest, accountDefault string, systemDefault 
 	return body
 }
 
-// TranslateAnthropicRequest converts an Anthropic request to JoyCode's native
+// TranslateAnthropicRequest converts an Anthropic request to AgnesCode's native
 // Anthropic endpoint body. Claude-family models reject the legacy OpenAI path.
 func TranslateAnthropicRequest(req *MessageRequest, accountDefault string, systemDefault string) map[string]interface{} {
 	model := resolveNativeAnthropicModel(req.Model, accountDefault, systemDefault)
@@ -82,7 +82,7 @@ func normalizeAnthropicSystem(raw json.RawMessage) interface{} {
 
 // ClaudeNativeEnabled reports whether the native Anthropic code path is active.
 // Guarded by the "enable_claude" store setting — defaults to false until the
-// upstream JoyCode platform makes Claude models generally available.
+// upstream AgnesCode platform makes Claude models generally available.
 func ClaudeNativeEnabled(s *store.Store) bool {
 	if s == nil {
 		return false
@@ -123,7 +123,7 @@ func convertToolsToOpenAI(tools []Tool) []interface{} {
 	return result
 }
 
-// TranslateResponse converts a JoyCode API response to Anthropic Message format.
+// TranslateResponse converts a AgnesCode API response to Anthropic Message format.
 func TranslateResponse(jcResp map[string]interface{}, reqModel string) *MessageResponse {
 	msgID := "msg_" + newID()
 	usage := extractUsage(jcResp)
@@ -142,7 +142,7 @@ func TranslateResponse(jcResp map[string]interface{}, reqModel string) *MessageR
 	content := []ContentBlock{}
 	stopReason := "end_turn"
 
-	// Handle tool_calls from JoyCode response
+	// Handle tool_calls from AgnesCode response
 	toolCalls, _ := msg["tool_calls"].([]interface{})
 	if len(toolCalls) > 0 {
 		stopReason = "tool_use"
@@ -523,7 +523,7 @@ func NewMessageID() string {
 	return "msg_" + newID()
 }
 
-// StreamChunk represents a parsed SSE chunk from JoyCode.
+// StreamChunk represents a parsed SSE chunk from AgnesCode.
 type StreamChunk struct {
 	Choices []struct {
 		Delta struct {

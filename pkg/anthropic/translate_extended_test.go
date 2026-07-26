@@ -13,8 +13,8 @@ import (
 // resolveModel (cases 1-4)
 // ---------------------------------------------------------------------------
 
-func TestResolveModel_KnownJoyCodePassThrough(t *testing.T) {
-	// A known JoyCode model (e.g. "GLM-5.1") passes through directly.
+func TestResolveModel_KnownAgnesCodePassThrough(t *testing.T) {
+	// A known AgnesCode model (e.g. "GLM-5.1") passes through directly.
 	input := "GLM-5.1"
 	got := resolveModel(input, "", "")
 	if got != input {

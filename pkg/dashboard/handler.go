@@ -82,7 +82,7 @@ var (
 )
 
 const ghStarsCacheTTL = 1 * time.Hour
-const ghRepo = "vibe-coding-labs/JoyCodeProxy"
+const ghRepo = "vibe-coding-labs/AgnesCodeProxy"
 
 func (h *Handler) handleGitHubStars(w http.ResponseWriter, r *http.Request) {
 	setCors(w)
@@ -203,14 +203,14 @@ func (h *Handler) ServeStatic(w http.ResponseWriter, r *http.Request) {
 		writeJSON(w, http.StatusNotFound, map[string]interface{}{
 			"error": map[string]string{
 				"type":    "invalid_request_error",
-				"message": fmt.Sprintf("%s %s not found. JoyCodeProxy serves the API under /v1/. Set base_url to http://<host>:<port>/v1", r.Method, path),
+				"message": fmt.Sprintf("%s %s not found. AgnesCodeProxy serves the API under /v1/. Set base_url to http://<host>:<port>/v1", r.Method, path),
 			},
 		})
 		return
 	}
 
-	// Handle AgnesCode OAuth callback on root path: /?pt_key=xxx
-	if path == "/" && r.URL.Query().Get("pt_key") != "" {
+	// Handle AgnesCode OAuth callback on root path: /?jwt_token=xxx
+	if path == "/" && r.URL.Query().Get("jwt_token") != "" {
 		h.handleOAuthCallback(w, r)
 		return
 	}
@@ -538,7 +538,7 @@ func (h *Handler) addAccount(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 	if body.UserID == "" || body.JWTToken == "" {
-		writeError(w, http.StatusBadRequest, "user_id and pt_key are required")
+		writeError(w, http.StatusBadRequest, "user_id and jwt_token are required")
 		return
 	}
 
@@ -570,7 +570,7 @@ func (h *Handler) handleAutoLogin(w http.ResponseWriter, r *http.Request) {
 	creds, err := auth.LoadFromSystem()
 	if err != nil {
 		slog.Error("auto-login: load from system failed", "error", err)
-		writeError(w, http.StatusBadRequest, "无法从本机获取 JoyCode 凭据: "+err.Error())
+		writeError(w, http.StatusBadRequest, "无法从本机获取 AgnesCode 凭据: "+err.Error())
 		return
 	}
 
@@ -591,7 +591,7 @@ func (h *Handler) handleAutoLogin(w http.ResponseWriter, r *http.Request) {
 
 	if userID == "" {
 		slog.Error("auto-login: userId not found from system or API", "creds_user_id", creds.UserID)
-		writeError(w, http.StatusBadRequest, "无法获取用户ID，请先在 JoyCode IDE 中登录")
+		writeError(w, http.StatusBadRequest, "无法获取用户ID，请先在 AgnesCode IDE 中登录")
 		return
 	}
 
@@ -735,7 +735,7 @@ func (h *Handler) handleBrowserLogin(w http.ResponseWriter, r *http.Request) {
 	token := hex.EncodeToString(b)
 
 	loginURL := fmt.Sprintf(
-		"https://agnescode.jd.com/login/?ideAppName=AgnesCode&fromIde=ide&redirect=0&authPort=%s&authKey=%s",
+		"https://app.agnes-ai.com/login/?ideAppName=AgnesCode&fromIde=ide&redirect=0&authPort=%s&authKey=%s",
 		url.QueryEscape(port), url.QueryEscape(token),
 	)
 
@@ -748,21 +748,21 @@ func (h *Handler) handleBrowserLogin(w http.ResponseWriter, r *http.Request) {
 	})
 }
 
-// validateAndSavePtKey validates a pt_key with JoyCode API and saves the account.
+// validateAndSaveJWTToken validates a jwt_token with AgnesCode API and saves the account.
 // Returns userID, nickname on success, or an error on failure.
-func (h *Handler) validateAndSavePtKey(ptKey string) (userID, nickname string, err error) {
-	if ptKey == "" {
-		return "", "", fmt.Errorf("missing pt_key")
+func (h *Handler) validateAndSaveJWTToken(jwtToken string) (userID, nickname string, err error) {
+	if jwtToken == "" {
+		return "", "", fmt.Errorf("missing jwt_token")
 	}
 
-	client := agnescode.NewClient(ptKey)
+	client := agnescode.NewClient(jwtToken)
 	ui, apiErr := client.GetUserInfo()
 	if apiErr != nil {
 		return "", "", fmt.Errorf("userInfo validation failed: %w", apiErr)
 	}
 	userID = ui.Username
 	if userID == "" {
-		userID = ptKey
+		userID = jwtToken
 	}
 	nickname = ui.Username
 	if nickname == "" {
@@ -782,7 +782,7 @@ func (h *Handler) validateAndSavePtKey(ptKey string) (userID, nickname string, e
 		}
 	}
 
-	if saveErr := h.store.AddAccount(userID, ptKey, nickname, isDefault, "GLM-5.1"); saveErr != nil {
+	if saveErr := h.store.AddAccount(userID, jwtToken, nickname, isDefault, "GLM-5.1"); saveErr != nil {
 		return "", "", fmt.Errorf("save account failed: %w", saveErr)
 	}
 
@@ -793,14 +793,14 @@ func (h *Handler) validateAndSavePtKey(ptKey string) (userID, nickname string, e
 func (h *Handler) handleOAuthCallback(w http.ResponseWriter, r *http.Request) {
 	setCors(w)
 
-	ptKey := r.URL.Query().Get("pt_key")
+	jwtToken := r.URL.Query().Get("jwt_token")
 	loginType := r.URL.Query().Get("login_type")
 	tenant := r.URL.Query().Get("tenant")
 	authKey := r.URL.Query().Get("authKey")
 
-	slog.Info("oauth-callback: received", "login_type", loginType, "tenant", tenant, "auth_key", authKey, "pt_key_len", len(ptKey))
+	slog.Info("oauth-callback: received", "login_type", loginType, "tenant", tenant, "auth_key", authKey, "jwt_token_len", len(jwtToken))
 
-	userID, _, err := h.validateAndSavePtKey(ptKey)
+	userID, _, err := h.validateAndSaveJWTToken(jwtToken)
 	if err != nil {
 		slog.Error("oauth-callback: failed", "error", err)
 		http.Redirect(w, r, "/?login_error="+url.QueryEscape(err.Error()), http.StatusFound)
@@ -843,7 +843,7 @@ func (h *Handler) handleOAuthSubmit(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	userID, nickname, err := h.validateAndSavePtKey(body.JWTToken)
+	userID, nickname, err := h.validateAndSaveJWTToken(body.JWTToken)
 	if err != nil {
 		slog.Error("oauth-submit: failed", "error", err)
 		writeError(w, http.StatusBadRequest, err.Error())
@@ -1086,20 +1086,20 @@ func (h *Handler) handleClearAgnesCodeSession(w http.ResponseWriter, r *http.Req
 		writeError(w, http.StatusInternalServerError, "cannot determine home directory")
 		return
 	}
-	dbPath := filepath.Join(home, "Library", "Application Support", "JoyCode", "User", "globalStorage", "state.vscdb")
+	dbPath := filepath.Join(home, "Library", "Application Support", "AgnesCode", "User", "globalStorage", "state.vscdb")
 	if _, err := os.Stat(dbPath); os.IsNotExist(err) {
-		writeError(w, http.StatusNotFound, "JoyCode 本地数据库不存在，请先安装 JoyCode IDE")
+		writeError(w, http.StatusNotFound, "AgnesCode 本地数据库不存在，请先安装 AgnesCode IDE")
 		return
 	}
 
 	db, err := sql.Open("sqlite3", dbPath+"?mode=rw")
 	if err != nil {
-		writeError(w, http.StatusInternalServerError, "无法打开 JoyCode 数据库: "+err.Error())
+		writeError(w, http.StatusInternalServerError, "无法打开 AgnesCode 数据库: "+err.Error())
 		return
 	}
 	defer db.Close()
 
-	result, err := db.Exec("DELETE FROM ItemTable WHERE key IN ('JoyCoder.IDE', 'agnescode.storageUser')")
+	result, err := db.Exec("DELETE FROM ItemTable WHERE key IN ('AgnesCoder.IDE', 'agnescode.storageUser')")
 	if err != nil {
 		writeError(w, http.StatusInternalServerError, "清除会话失败: "+err.Error())
 		return

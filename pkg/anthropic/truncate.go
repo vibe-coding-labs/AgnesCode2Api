@@ -6,7 +6,7 @@ import (
 )
 
 const (
-	// Upstream model context window size (JoyCode's ModelArts limit)
+	// Upstream model context window size (AgnesCode's ModelArts limit)
 	contextWindowSize = 196608
 	// Safety margin: start truncation when estimated tokens exceed this ratio of contextWindowSize
 	preemptiveThresholdRatio = 0.85

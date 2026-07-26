@@ -31,7 +31,7 @@ type stateData struct {
 		Tenant        string `json:"tenant"`
 		LoginType     string `json:"loginType"`
 		OrgFullName   string `json:"orgFullName"`
-	} `json:"joyCoderUser"`
+	} `json:"agnesCoderUser"`
 }
 
 const (

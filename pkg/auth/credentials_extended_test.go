@@ -40,7 +40,7 @@ func TestCredentials_NilVsNonNil(t *testing.T) {
 }
 
 func TestStateData_JSONParsing(t *testing.T) {
-	raw := `{"joyCoderUser":{"JWTToken":"test-jwt-token-123","userId":"user-456"}}`
+	raw := `{"agnesCoderUser":{"JWTToken":"test-jwt-token-123","userId":"user-456"}}`
 	var data stateData
 	if err := json.Unmarshal([]byte(raw), &data); err != nil {
 		t.Fatalf("failed to parse valid JSON: %v", err)
@@ -54,7 +54,7 @@ func TestStateData_JSONParsing(t *testing.T) {
 }
 
 func TestStateData_EmptyJWTToken(t *testing.T) {
-	raw := `{"joyCoderUser":{"JWTToken":"","userId":"user-789"}}`
+	raw := `{"agnesCoderUser":{"JWTToken":"","userId":"user-789"}}`
 	var data stateData
 	if err := json.Unmarshal([]byte(raw), &data); err != nil {
 		t.Fatalf("failed to parse JSON: %v", err)
@@ -68,7 +68,7 @@ func TestStateData_EmptyJWTToken(t *testing.T) {
 }
 
 func TestStateData_EmptyUserID(t *testing.T) {
-	raw := `{"joyCoderUser":{"JWTToken":"some-key","userId":""}}`
+	raw := `{"agnesCoderUser":{"JWTToken":"some-key","userId":""}}`
 	var data stateData
 	if err := json.Unmarshal([]byte(raw), &data); err != nil {
 		t.Fatalf("failed to parse JSON: %v", err)
@@ -151,7 +151,7 @@ func TestLoadFromSystem_ValidDatabase(t *testing.T) {
 	}
 	tmpDir := t.TempDir()
 
-	createTestDB(t, tmpDir, `{"joyCoderUser":{"JWTToken":"valid-jwt-token-abc","userId":"valid-user-xyz"}}`)
+	createTestDB(t, tmpDir, `{"agnesCoderUser":{"JWTToken":"valid-jwt-token-abc","userId":"valid-user-xyz"}}`)
 
 	origHome := os.Getenv("HOME")
 	os.Setenv("HOME", tmpDir)
