@@ -124,7 +124,7 @@ func fixPartialJSON(s string) string {
 ```
 
 - [ ] **Step 3: 验证编译通过**
-Run: `cd /Users/cc11001100/github/vibe-coding-labs/JoyCodeProxy && go build ./...`
+Run: `cd /Users/cc11001100/github/vibe-coding-labs/AgnesCodeProxy && go build ./...`
 Expected:
   - Exit code: 0
   - Output does NOT contain: "Error" or "cannot"
@@ -160,7 +160,7 @@ Run: `git add pkg/anthropic/handler.go && git commit -m "fix(stream): send accum
 ```
 
 - [ ] **Step 2: 验证编译通过**
-Run: `cd /Users/cc11001100/github/vibe-coding-labs/JoyCodeProxy && go build ./...`
+Run: `cd /Users/cc11001100/github/vibe-coding-labs/AgnesCodeProxy && go build ./...`
 Expected:
   - Exit code: 0
   - Output does NOT contain: "Error" or "cannot"
@@ -374,14 +374,14 @@ func TestTruncateMessages_PreservesToolPairs(t *testing.T) {
 ```
 
 - [ ] **Step 4: 验证测试通过**
-Run: `cd /Users/cc11001100/github/vibe-coding-labs/JoyCodeProxy && go test ./pkg/anthropic/ -run TestFindToolPair -v`
+Run: `cd /Users/cc11001100/github/vibe-coding-labs/AgnesCodeProxy && go test ./pkg/anthropic/ -run TestFindToolPair -v`
 Expected:
   - Exit code: 0
   - Output contains: "PASS"
   - Output does NOT contain: "FAIL"
 
 - [ ] **Step 5: 验证全部测试通过**
-Run: `cd /Users/cc11001100/github/vibe-coding-labs/JoyCodeProxy && go test ./pkg/anthropic/ -v`
+Run: `cd /Users/cc11001100/github/vibe-coding-labs/AgnesCodeProxy && go test ./pkg/anthropic/ -v`
 Expected:
   - Exit code: 0
   - Output contains: "PASS"

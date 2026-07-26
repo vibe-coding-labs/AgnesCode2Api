@@ -31,9 +31,9 @@ func TestCredentials_Fields(t *testing.T) {
 func TestLoadFromSystem_Integration(t *testing.T) {
 	home, _ := os.UserHomeDir()
 	dbPath := filepath.Join(home, "Library", "Application Support",
-		"JoyCode", "User", "globalStorage", "state.vscdb")
+		"AgnesCode", "User", "globalStorage", "state.vscdb")
 	if _, err := os.Stat(dbPath); os.IsNotExist(err) {
-		t.Skip("JoyCode database not found, skipping integration test")
+		t.Skip("AgnesCode database not found, skipping integration test")
 	}
 
 	creds, err := LoadFromSystem()

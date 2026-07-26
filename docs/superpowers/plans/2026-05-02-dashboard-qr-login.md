@@ -3,9 +3,9 @@
 > **For agentic workers:** REQUIRED SUB-SKILL: `superpowers:subagent-driven-development`
 > Steps use checkbox (`- [ ]`) syntax.
 
-**Goal:** 在 Dashboard 账号管理页面添加"扫码登录"功能，用户使用京东 APP 扫描二维码登录，每次扫码获得不同用户的凭据，支持配置多个 JoyCode 账号。保留现有"一键登录"（从本机 IDE 读取）和"手动添加"方式。
+**Goal:** 在 Dashboard 账号管理页面添加"扫码登录"功能，用户使用京东 APP 扫描二维码登录，每次扫码获得不同用户的凭据，支持配置多个 AgnesCode 账号。保留现有"一键登录"（从本机 IDE 读取）和"手动添加"方式。
 
-**Architecture:** 用户点击"扫码登录" → 前端 POST `/api/accounts/qr-login/init` → 后端调用 JD Passport `qr.m.jd.com/show` 获取 QR 码 token，生成 QR 码 PNG 图片（base64）返回前端 → 前端在 Modal 中显示 QR 码 → 前端每 3 秒轮询 `/api/accounts/qr-login/status?session=xxx` → 后端轮询 `qr.m.jd.com/check` 等待扫码确认 → 确认后调用 `passport.jd.com/uc/qrCodeTicketValidation` 验证 ticket → 从 cookie 中提取 `pt_key` → 用 ptKey 调用 JoyCode UserInfo API 获取 userId/realName → 保存为新账号 → 返回成功给前端。
+**Architecture:** 用户点击"扫码登录" → 前端 POST `/api/accounts/qr-login/init` → 后端调用 JD Passport `qr.m.jd.com/show` 获取 QR 码 token，生成 QR 码 PNG 图片（base64）返回前端 → 前端在 Modal 中显示 QR 码 → 前端每 3 秒轮询 `/api/accounts/qr-login/status?session=xxx` → 后端轮询 `qr.m.jd.com/check` 等待扫码确认 → 确认后调用 `passport.jd.com/uc/qrCodeTicketValidation` 验证 ticket → 从 cookie 中提取 `pt_key` → 用 ptKey 调用 AgnesCode UserInfo API 获取 userId/realName → 保存为新账号 → 返回成功给前端。
 
 **Tech Stack:** Go 1.23, `github.com/skip2/go-qrcode` (QR 码图片生成), React 18, Ant Design 5 Modal
 
@@ -25,7 +25,7 @@
 
 - [ ] **Step 1: 安装 go-qrcode 依赖 — 生成 QR 码 PNG 图片**
 
-Run: `cd /Users/cc11001100/github/vibe-coding-labs/JoyCodeProxy && go get github.com/skip2/go-qrcode`
+Run: `cd /Users/cc11001100/github/vibe-coding-labs/AgnesCodeProxy && go get github.com/skip2/go-qrcode`
 Expected:
   - Exit code: 0
   - go.mod contains `github.com/skip2/go-qrcode`
@@ -255,12 +255,12 @@ func validateAndFetchInfo(client *http.Client, ticket string) (*QRLoginResult, e
 
 func fetchUserInfoWithPtKey(ptKey string) (map[string]interface{}, error) {
 	body := map[string]interface{}{
-		"tenant": "JOYCODE", "userId": "",
-		"client": "JoyCode", "clientVersion": "2.4.5",
+		"tenant": "AGNESCODE", "userId": "",
+		"client": "AgnesCode", "clientVersion": "2.4.5",
 		"sessionId": "qr-login-session",
 	}
 	data, _ := json.Marshal(body)
-	req, err := http.NewRequest("POST", "https://joycode-api.jd.com/api/saas/user/v1/userInfo", strings.NewReader(string(data)))
+	req, err := http.NewRequest("POST", "https://agnescode-api.jd.com/api/saas/user/v1/userInfo", strings.NewReader(string(data)))
 	if err != nil {
 		return nil, err
 	}
@@ -268,7 +268,7 @@ func fetchUserInfoWithPtKey(ptKey string) (map[string]interface{}, error) {
 		"Content-Type": {"application/json; charset=UTF-8"},
 		"ptKey":        {ptKey},
 		"loginType":    {"N_PIN_PC"},
-		"User-Agent":   {"Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) JoyCode/2.4.5 Chrome/133.0.0.0 Electron/35.2.0 Safari/537.36"},
+		"User-Agent":   {"Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) AgnesCode/2.4.5 Chrome/133.0.0.0 Electron/35.2.0 Safari/537.36"},
 	}
 	resp, err := http.DefaultClient.Do(req)
 	if err != nil {
@@ -299,7 +299,7 @@ func QRCleanup(sessionID string) {
 
 - [ ] **Step 3: 验证编译**
 
-Run: `cd /Users/cc11001100/github/vibe-coding-labs/JoyCodeProxy && go build ./pkg/auth/`
+Run: `cd /Users/cc11001100/github/vibe-coding-labs/AgnesCodeProxy && go build ./pkg/auth/`
 Expected:
   - Exit code: 0
 
@@ -453,11 +453,11 @@ func (h *Handler) handleQRLoginStatus(w http.ResponseWriter, r *http.Request) {
 }
 ```
 
-需要在 handler.go 的 import 中添加 `"github.com/vibe-coding-labs/JoyCodeProxy/pkg/auth"`（已存在则不需要重复添加）。
+需要在 handler.go 的 import 中添加 `"github.com/vibe-coding-labs/AgnesCodeProxy/pkg/auth"`（已存在则不需要重复添加）。
 
 - [ ] **Step 4: 验证编译**
 
-Run: `cd /Users/cc11001100/github/vibe-coding-labs/JoyCodeProxy && go build ./pkg/dashboard/`
+Run: `cd /Users/cc11001100/github/vibe-coding-labs/AgnesCodeProxy && go build ./pkg/dashboard/`
 Expected:
   - Exit code: 0
 
@@ -617,7 +617,7 @@ const QRLoginModal: React.FC<QRLoginModalProps> = ({ open, onClose, onSuccess })
     >
       <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 16 }}>
         <Typography.Text type="secondary" style={{ fontSize: 12 }}>
-          使用京东 APP 扫描二维码登录，每个京东账号对应一个 JoyCode 账号
+          使用京东 APP 扫描二维码登录，每个京东账号对应一个 AgnesCode 账号
         </Typography.Text>
         {qrImage && status !== 'confirmed' && (
           <div style={{
@@ -676,7 +676,7 @@ import QRLoginModal from '../components/QRLoginModal';
 ```
 
 - [ ] **Step 4: 验证前端构建**
-Run: `cd /Users/cc11001100/github/vibe-coding-labs/JoyCodeProxy/web && npm run build 2>&1 | tail -5`
+Run: `cd /Users/cc11001100/github/vibe-coding-labs/AgnesCodeProxy/web && npm run build 2>&1 | tail -5`
 Expected:
   - Exit code: 0
   - Output contains: "built in"
@@ -690,15 +690,15 @@ Run: `git add web/src/components/QRLoginModal.tsx web/src/api.ts web/src/pages/A
 
 **Depends on:** Task 3
 **Files:**
-- Modify: `cmd/JoyCodeProxy/static/`（前端产物）
+- Modify: `cmd/AgnesCodeProxy/static/`（前端产物）
 
 - [ ] **Step 1: 构建 Go 二进制**
-Run: `cd /Users/cc11001100/github/vibe-coding-labs/JoyCodeProxy && go build -o joycode_proxy_bin ./cmd/JoyCodeProxy/`
+Run: `cd /Users/cc11001100/github/vibe-coding-labs/AgnesCodeProxy && go build -o agnescode_proxy_bin ./cmd/AgnesCodeProxy/`
 Expected:
   - Exit code: 0
 
 - [ ] **Step 2: 部署到本地服务**
-Run: `launchctl unload ~/Library/LaunchAgents/com.joycode.proxy.plist 2>/dev/null; sleep 1; launchctl load ~/Library/LaunchAgents/com.joycode.proxy.plist && sleep 2 && curl -s http://localhost:34891/api/health | python3 -m json.tool`
+Run: `launchctl unload ~/Library/LaunchAgents/com.agnescode.proxy.plist 2>/dev/null; sleep 1; launchctl load ~/Library/LaunchAgents/com.agnescode.proxy.plist && sleep 2 && curl -s http://localhost:34891/api/health | python3 -m json.tool`
 Expected:
   - Returns JSON with `status: "ok"`
 
@@ -713,4 +713,4 @@ Expected:
   - HTTP 200
 
 - [ ] **Step 5: 提交**
-Run: `git add cmd/JoyCodeProxy/static/ && git commit -m "build: deploy with QR code login for multi-account support"`
+Run: `git add cmd/AgnesCodeProxy/static/ && git commit -m "build: deploy with QR code login for multi-account support"`

@@ -3,9 +3,9 @@
 > **For agentic workers:** REQUIRED SUB-SKILL: `superpowers:subagent-driven-development`
 > Steps use checkbox (`- [ ]`) syntax.
 
-**Goal:** 为 JoyCodeProxy 开发一个 Web 管理界面（TypeScript + React + Ant Design），支持账号管理、代理状态监控、设置配置，数据存储在 `~/.joycode-proxy/proxy.db`（SQLite）。
+**Goal:** 为 AgnesCodeProxy 开发一个 Web 管理界面（TypeScript + React + Ant Design），支持账号管理、代理状态监控、设置配置，数据存储在 `~/.agnescode-proxy/proxy.db`（SQLite）。
 
-**Architecture:** 用户浏览器 → React SPA（Ant Design）→ FastAPI Web API (`/api/*`) → SQLite 数据层 → JoyCode 后端。前端使用 Vite 构建，开发时 Vite dev server 代理 API 到 FastAPI，部署时构建产物复制到 `joycode_proxy/static/` 由 FastAPI 直接 serve。数据层从现有 JSON 文件迁移到 SQLite，保持向后兼容。
+**Architecture:** 用户浏览器 → React SPA（Ant Design）→ FastAPI Web API (`/api/*`) → SQLite 数据层 → AgnesCode 后端。前端使用 Vite 构建，开发时 Vite dev server 代理 API 到 FastAPI，部署时构建产物复制到 `agnescode_proxy/static/` 由 FastAPI 直接 serve。数据层从现有 JSON 文件迁移到 SQLite，保持向后兼容。
 
 **Tech Stack:** TypeScript 5, React 19, Ant Design 5, Vite 6, Python 3.12, FastAPI, aiosqlite 0.20, SQLite 3
 
@@ -20,13 +20,13 @@
 
 **Depends on:** None
 **Files:**
-- Create: `joycode_proxy/db.py`
+- Create: `agnescode_proxy/db.py`
 - Create: `tests/test_db.py`
 
 - [ ] **Step 1: 创建 Database 类 — 负责账号和设置的 SQLite CRUD 操作**
 
 ```python
-# joycode_proxy/db.py
+# agnescode_proxy/db.py
 import json
 import logging
 import os
@@ -34,9 +34,9 @@ import sqlite3
 from pathlib import Path
 from typing import Any, Dict, List, Optional
 
-log = logging.getLogger("joycode-proxy.db")
+log = logging.getLogger("agnescode-proxy.db")
 
-DATA_DIR = Path.home() / ".joycode-proxy"
+DATA_DIR = Path.home() / ".agnescode-proxy"
 DB_PATH = DATA_DIR / "proxy.db"
 
 SCHEMA = """
@@ -165,7 +165,7 @@ class Database:
         acc = self.get_account(api_key)
         if not acc:
             return False
-        from joycode_proxy.client import Client
+        from agnescode_proxy.client import Client
         try:
             client = Client(acc["pt_key"], acc["user_id"])
             client.validate()
@@ -234,7 +234,7 @@ class Database:
 
     def get_credential_router(self):
         """Build a CredentialRouter from DB accounts, for use by existing handlers."""
-        from joycode_proxy.credential_router import CredentialRouter
+        from agnescode_proxy.credential_router import CredentialRouter
         router = CredentialRouter()
         for acc in self.list_accounts():
             full = self.get_account(acc["api_key"])
@@ -269,7 +269,7 @@ class Database:
 import tempfile
 from pathlib import Path
 
-from joycode_proxy.db import Database
+from agnescode_proxy.db import Database
 
 
 def _make_db() -> Database:
@@ -358,7 +358,7 @@ def test_migrate_from_json():
     ]))
     db = Database(data_dir / "test.db")
     # Monkey-patch DATA_DIR for migration
-    import joycode_proxy.db as db_mod
+    import agnescode_proxy.db as db_mod
     orig = db_mod.DATA_DIR
     db_mod.DATA_DIR = data_dir
     try:
@@ -391,13 +391,13 @@ dependencies = [
 ```
 
 - [ ] **Step 4: 验证 Database 模块**
-Run: `cd /Users/cc11001100/github/vibe-coding-labs/JoyCodeProxy && pip install aiosqlite>=0.20 -q && python3 -m pytest tests/test_db.py -v`
+Run: `cd /Users/cc11001100/github/vibe-coding-labs/AgnesCodeProxy && pip install aiosqlite>=0.20 -q && python3 -m pytest tests/test_db.py -v`
 Expected:
   - Exit code: 0
   - Output contains: "9 passed"
 
 - [ ] **Step 5: 提交**
-Run: `git add joycode_proxy/db.py tests/test_db.py pyproject.toml && git commit -m "feat(db): add SQLite data layer for accounts, settings, and request logs"`
+Run: `git add agnescode_proxy/db.py tests/test_db.py pyproject.toml && git commit -m "feat(db): add SQLite data layer for accounts, settings, and request logs"`
 
 ---
 
@@ -405,13 +405,13 @@ Run: `git add joycode_proxy/db.py tests/test_db.py pyproject.toml && git commit 
 
 **Depends on:** Task 1
 **Files:**
-- Create: `joycode_proxy/web_api.py`
-- Modify: `joycode_proxy/server.py:1-19`（挂载 Web API + 静态文件服务）
+- Create: `agnescode_proxy/web_api.py`
+- Modify: `agnescode_proxy/server.py:1-19`（挂载 Web API + 静态文件服务）
 
 - [ ] **Step 1: 创建 web_api.py — 提供 /api/* 管理端点**
 
 ```python
-# joycode_proxy/web_api.py
+# agnescode_proxy/web_api.py
 import logging
 import time
 from pathlib import Path
@@ -420,9 +420,9 @@ from typing import Any, Dict, Optional
 from fastapi import APIRouter, HTTPException, Request
 from fastapi.responses import JSONResponse
 
-from joycode_proxy.db import Database
+from agnescode_proxy.db import Database
 
-log = logging.getLogger("joycode-proxy.web-api")
+log = logging.getLogger("agnescode-proxy.web-api")
 
 
 def create_web_api_router(db: Database) -> APIRouter:
@@ -508,17 +508,17 @@ def create_web_api_router(db: Database) -> APIRouter:
 - [ ] **Step 2: 修改 server.py — 挂载 Web API + 静态文件 + 请求日志中间件**
 
 ```python
-# joycode_proxy/server.py
+# agnescode_proxy/server.py
 import logging
 import time
 from pathlib import Path
 from typing import Optional
 
-from joycode_proxy.credential_router import CredentialRouter
-from joycode_proxy.openai_handler import create_openai_router
-from joycode_proxy.anthropic_handler import create_anthropic_router
+from agnescode_proxy.credential_router import CredentialRouter
+from agnescode_proxy.openai_handler import create_openai_router
+from agnescode_proxy.anthropic_handler import create_anthropic_router
 
-log = logging.getLogger("joycode-proxy")
+log = logging.getLogger("agnescode-proxy")
 
 
 def create_app(router: CredentialRouter, db=None):
@@ -526,7 +526,7 @@ def create_app(router: CredentialRouter, db=None):
     from fastapi.middleware.cors import CORSMiddleware
     from fastapi.staticfiles import StaticFiles
 
-    app = FastAPI(title="JoyCode Proxy")
+    app = FastAPI(title="AgnesCode Proxy")
     app.add_middleware(
         CORSMiddleware,
         allow_origins=["*"],
@@ -558,7 +558,7 @@ def create_app(router: CredentialRouter, db=None):
                 )
             return response
 
-        from joycode_proxy.web_api import create_web_api_router
+        from agnescode_proxy.web_api import create_web_api_router
         app.include_router(create_web_api_router(db))
 
     app.include_router(create_openai_router(router))
@@ -573,7 +573,7 @@ def create_app(router: CredentialRouter, db=None):
 ```
 
 - [ ] **Step 3: 修改 cli.py serve 命令 — 使用 Database 替代 JSON CredentialRouter**
-文件: `joycode_proxy/cli.py:73-101`（替换 serve 函数）
+文件: `agnescode_proxy/cli.py:73-101`（替换 serve 函数）
 
 ```python
 # 替换 cli.py 中 serve 函数（第73-101行）
@@ -583,7 +583,7 @@ def create_app(router: CredentialRouter, db=None):
 @click.pass_context
 def serve(ctx, host: str, port: int):
     import uvicorn
-    from joycode_proxy.db import Database
+    from agnescode_proxy.db import Database
     print_banner()
 
     db = Database()
@@ -599,7 +599,7 @@ def serve(ctx, host: str, port: int):
         router = db.get_credential_router()
         log.info("No accounts configured, using auto-detected credentials as default")
 
-    from joycode_proxy.server import create_app
+    from agnescode_proxy.server import create_app
     app = create_app(router, db=db)
     print_endpoint_tree(host, port)
     console.print()
@@ -608,13 +608,13 @@ def serve(ctx, host: str, port: int):
 ```
 
 - [ ] **Step 4: 验证 Web API 启动**
-Run: `cd /Users/cc11001100/github/vibe-coding-labs/JoyCodeProxy && python3 -c "from joycode_proxy.server import create_app; from joycode_proxy.db import Database; db = Database(); app = create_app(db.get_credential_router(), db=db); routes = [r.path for r in app.routes if hasattr(r, 'path')]; print('OK:', [r for r in routes if '/api/' in r or '/v1/' in r or r == '/health'])"`
+Run: `cd /Users/cc11001100/github/vibe-coding-labs/AgnesCodeProxy && python3 -c "from agnescode_proxy.server import create_app; from agnescode_proxy.db import Database; db = Database(); app = create_app(db.get_credential_router(), db=db); routes = [r.path for r in app.routes if hasattr(r, 'path')]; print('OK:', [r for r in routes if '/api/' in r or '/v1/' in r or r == '/health'])"`
 Expected:
   - Exit code: 0
   - Output contains: "/api/accounts"
 
 - [ ] **Step 5: 提交**
-Run: `git add joycode_proxy/web_api.py joycode_proxy/server.py joycode_proxy/cli.py && git commit -m "feat(web-api): add management REST API for accounts, settings, and stats"`
+Run: `git add agnescode_proxy/web_api.py agnescode_proxy/server.py agnescode_proxy/cli.py && git commit -m "feat(web-api): add management REST API for accounts, settings, and stats"`
 
 ---
 
@@ -626,13 +626,13 @@ Run: `git add joycode_proxy/web_api.py joycode_proxy/server.py joycode_proxy/cli
 - Modify: `.gitignore`（添加 web/node_modules/, web/dist/）
 
 - [ ] **Step 1: 初始化 Vite + React + TypeScript 项目**
-Run: `cd /Users/cc11001100/github/vibe-coding-labs/JoyCodeProxy && npm create vite@latest web -- --template react-ts 2>&1`
+Run: `cd /Users/cc11001100/github/vibe-coding-labs/AgnesCodeProxy && npm create vite@latest web -- --template react-ts 2>&1`
 Expected:
   - Exit code: 0
   - Directory `web/` exists with `package.json`
 
 - [ ] **Step 2: 安装依赖 — Ant Design + React Router**
-Run: `cd /Users/cc11001100/github/vibe-coding-labs/JoyCodeProxy/web && npm install antd @ant-design/icons react-router-dom recharts 2>&1`
+Run: `cd /Users/cc11001100/github/vibe-coding-labs/AgnesCodeProxy/web && npm install antd @ant-design/icons react-router-dom recharts 2>&1`
 Expected:
   - Exit code: 0
   - `web/node_modules/antd` exists
@@ -661,7 +661,7 @@ export default defineConfig({
     },
   },
   build: {
-    outDir: '../joycode_proxy/static',
+    outDir: '../agnescode_proxy/static',
     emptyOutDir: true,
   },
 });
@@ -765,7 +765,7 @@ const MainLayout: React.FC = () => {
           borderBottom: `1px solid ${token.colorBorderSecondary}`,
         }}>
           <ApiOutlined style={{ fontSize: 20, marginRight: collapsed ? 0 : 8 }} />
-          {!collapsed && <Text strong>JoyCode Proxy</Text>}
+          {!collapsed && <Text strong>AgnesCode Proxy</Text>}
         </div>
         <Menu
           mode="inline"
@@ -782,7 +782,7 @@ const MainLayout: React.FC = () => {
           display: 'flex',
           alignItems: 'center',
         }}>
-          <Text type="secondary">JoyCode API Proxy Management</Text>
+          <Text type="secondary">AgnesCode API Proxy Management</Text>
         </Header>
         <Content style={{ margin: 24 }}>
           <Outlet />
@@ -847,11 +847,11 @@ ReactDOM.createRoot(document.getElementById('root')!).render(
 # Frontend
 web/node_modules/
 web/dist/
-joycode_proxy/static/
+agnescode_proxy/static/
 ```
 
 - [ ] **Step 9: 验证前端项目启动**
-Run: `cd /Users/cc11001100/github/vibe-coding-labs/JoyCodeProxy/web && npx tsc --noEmit 2>&1 | head -20`
+Run: `cd /Users/cc11001100/github/vibe-coding-labs/AgnesCodeProxy/web && npx tsc --noEmit 2>&1 | head -20`
 Expected:
   - Exit code: 0
   - No TypeScript errors
@@ -1027,10 +1027,10 @@ const Accounts: React.FC = () => {
           <Form.Item name="api_key" label="API Key" rules={[{ required: true, message: 'Required' }]}>
             <Input placeholder="e.g. my-key-1 (used by clients to route)" />
           </Form.Item>
-          <Form.Item name="pt_key" label="JoyCode ptKey" rules={[{ required: true, message: 'Required' }]}>
-            <Input.Password placeholder="JoyCode ptKey credential" />
+          <Form.Item name="pt_key" label="AgnesCode ptKey" rules={[{ required: true, message: 'Required' }]}>
+            <Input.Password placeholder="AgnesCode ptKey credential" />
           </Form.Item>
-          <Form.Item name="user_id" label="JoyCode User ID" rules={[{ required: true, message: 'Required' }]}>
+          <Form.Item name="user_id" label="AgnesCode User ID" rules={[{ required: true, message: 'Required' }]}>
             <Input placeholder="e.g. user-12345" />
           </Form.Item>
           <Form.Item name="is_default" label="Set as default" valuePropName="checked">
@@ -1046,7 +1046,7 @@ export default Accounts;
 ```
 
 - [ ] **Step 2: 验证 Accounts 页面编译**
-Run: `cd /Users/cc11001100/github/vibe-coding-labs/JoyCodeProxy/web && npx tsc --noEmit 2>&1 | head -20`
+Run: `cd /Users/cc11001100/github/vibe-coding-labs/AgnesCodeProxy/web && npx tsc --noEmit 2>&1 | head -20`
 Expected:
   - Exit code: 0
   - No TypeScript errors
@@ -1230,7 +1230,7 @@ const SettingsPage: React.FC = () => {
       <Card>
         <Form form={form} layout="vertical" onFinish={handleSave}>
           <Typography.Text type="secondary">
-            These settings are stored in SQLite at <Typography.Text code>~/.joycode-proxy/proxy.db</Typography.Text>
+            These settings are stored in SQLite at <Typography.Text code>~/.agnescode-proxy/proxy.db</Typography.Text>
           </Typography.Text>
 
           <Divider />
@@ -1263,7 +1263,7 @@ export default SettingsPage;
 ```
 
 - [ ] **Step 3: 验证全部前端编译**
-Run: `cd /Users/cc11001100/github/vibe-coding-labs/JoyCodeProxy/web && npx tsc --noEmit 2>&1 | head -20`
+Run: `cd /Users/cc11001100/github/vibe-coding-labs/AgnesCodeProxy/web && npx tsc --noEmit 2>&1 | head -20`
 Expected:
   - Exit code: 0
   - No TypeScript errors
@@ -1277,22 +1277,22 @@ Run: `git add web/src/pages/Dashboard.tsx web/src/pages/Settings.tsx && git comm
 
 **Depends on:** Task 5
 **Files:**
-- Modify: `joycode_proxy/server.py`（静态文件服务已在 Task 2 添加）
+- Modify: `agnescode_proxy/server.py`（静态文件服务已在 Task 2 添加）
 - Modify: `web/index.html`（如有需要修正标题）
 
-- [ ] **Step 1: 构建前端产物 — 输出到 joycode_proxy/static/**
-Run: `cd /Users/cc11001100/github/vibe-coding-labs/JoyCodeProxy/web && npm run build 2>&1`
+- [ ] **Step 1: 构建前端产物 — 输出到 agnescode_proxy/static/**
+Run: `cd /Users/cc11001100/github/vibe-coding-labs/AgnesCodeProxy/web && npm run build 2>&1`
 Expected:
   - Exit code: 0
-  - Directory `joycode_proxy/static/` contains `index.html`, `assets/`
+  - Directory `agnescode_proxy/static/` contains `index.html`, `assets/`
 
 - [ ] **Step 2: 更新 .gitignore — 确保构建产物在 gitignore 中**
-确认 `joycode_proxy/static/` 已在 `.gitignore` 中（Task 3 Step 8 已添加）。
+确认 `agnescode_proxy/static/` 已在 `.gitignore` 中（Task 3 Step 8 已添加）。
 
 - [ ] **Step 3: 验证完整应用启动 — 后端 + 静态文件 + API**
-Run: `cd /Users/cc11001100/github/vibe-coding-labs/JoyCodeProxy && python3 -c "
-from joycode_proxy.server import create_app
-from joycode_proxy.db import Database
+Run: `cd /Users/cc11001100/github/vibe-coding-labs/AgnesCodeProxy && python3 -c "
+from agnescode_proxy.server import create_app
+from agnescode_proxy.db import Database
 db = Database()
 db.add_account('test-key', 'test-pt', 'test-user')
 app = create_app(db.get_credential_router(), db=db)
@@ -1308,7 +1308,7 @@ Expected:
   - Output contains: "/api/accounts" and "OK"
 
 - [ ] **Step 4: 运行全部 Python 测试确保无回归**
-Run: `cd /Users/cc11001100/github/vibe-coding-labs/JoyCodeProxy && python3 -m pytest tests/ -v`
+Run: `cd /Users/cc11001100/github/vibe-coding-labs/AgnesCodeProxy && python3 -m pytest tests/ -v`
 Expected:
   - Exit code: 0
   - All tests pass

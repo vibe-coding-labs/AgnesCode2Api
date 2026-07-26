@@ -3,7 +3,7 @@
 > **For agentic workers:** REQUIRED SUB-SKILL: `superpowers:subagent-driven-development`
 > Steps use checkbox (`- [ ]`) syntax.
 
-**Goal:** Add log file auto-rotation with max disk space constraint (default 500MB), auto-delete old files, and more detailed communication logging for JoyCodeProxy.
+**Goal:** Add log file auto-rotation with max disk space constraint (default 500MB), auto-delete old files, and more detailed communication logging for AgnesCodeProxy.
 
 **Architecture:** Create a `pkg/logrot` package with a `RotatingWriter` (io.Writer) that wraps log file output. On each Write, it checks file size — when exceeding max single-file size (default 50MB), it renames current file with timestamp suffix and creates a new one. After rotation, it scans the log directory and deletes oldest files until total directory size is under the max total size (default 500MB). Integration points: daemon child process (runAsDaemonChild), supervisor (RunSupervisor), and serve.go slog setup. No external dependencies needed.
 
@@ -390,7 +390,7 @@ func TestRotatingWriter_Stats(t *testing.T) {
 ```
 
 - [ ] **Step 3: Verify log rotation module**
-Run: `cd /Users/cc11001100/github/vibe-coding-labs/JoyCodeProxy && go test ./pkg/logrot/ -v`
+Run: `cd /Users/cc11001100/github/vibe-coding-labs/AgnesCodeProxy && go test ./pkg/logrot/ -v`
 Expected:
   - Exit code: 0
   - Output contains: "PASS"
@@ -405,8 +405,8 @@ Run: `git add pkg/logrot/rotator.go pkg/logrot/rotator_test.go && git commit -m 
 
 **Depends on:** Task 1
 **Files:**
-- Modify: `cmd/JoyCodeProxy/serve.go:3-31,56-92,253-275`
-- Modify: `cmd/JoyCodeProxy/daemon.go:253-260,262-272`
+- Modify: `cmd/AgnesCodeProxy/serve.go:3-31,56-92,253-275`
+- Modify: `cmd/AgnesCodeProxy/daemon.go:253-260,262-272`
 
 - [ ] **Step 1: Add logrot import and setupLogger function in serve.go**
 
@@ -417,13 +417,13 @@ Add import for logrot package and create a setupLogger function that initializes
 Replace direct os.OpenFile with logrot.New in both runAsDaemonChild and RunSupervisor functions. Set both log and slog output to the rotating writer.
 
 - [ ] **Step 3: Verify compilation**
-Run: `cd /Users/cc11001100/github/vibe-coding-labs/JoyCodeProxy && go build ./cmd/JoyCodeProxy/`
+Run: `cd /Users/cc11001100/github/vibe-coding-labs/AgnesCodeProxy && go build ./cmd/AgnesCodeProxy/`
 Expected:
   - Exit code: 0
   - No error output
 
 - [ ] **Step 4: Commit**
-Run: `git add cmd/JoyCodeProxy/serve.go cmd/JoyCodeProxy/daemon.go && git commit -m "feat(logging): integrate log rotation into server and daemon"`
+Run: `git add cmd/AgnesCodeProxy/serve.go cmd/AgnesCodeProxy/daemon.go && git commit -m "feat(logging): integrate log rotation into server and daemon"`
 
 ---
 
@@ -431,20 +431,20 @@ Run: `git add cmd/JoyCodeProxy/serve.go cmd/JoyCodeProxy/daemon.go && git commit
 
 **Depends on:** Task 2
 **Files:**
-- Modify: `~/.joycode-proxy/joycode_proxy_bin` (deployed binary)
+- Modify: `~/.agnescode-proxy/agnescode_proxy_bin` (deployed binary)
 
 - [ ] **Step 1: Build and deploy**
-Run: `cd /Users/cc11001100/github/vibe-coding-labs/JoyCodeProxy && go build -o ~/.joycode-proxy/joycode_proxy_bin ./cmd/JoyCodeProxy/`
+Run: `cd /Users/cc11001100/github/vibe-coding-labs/AgnesCodeProxy && go build -o ~/.agnescode-proxy/agnescode_proxy_bin ./cmd/AgnesCodeProxy/`
 Expected:
   - Exit code: 0
 
 - [ ] **Step 2: Restart service**
-Run: `launchctl unload ~/Library/LaunchAgents/com.joycode.proxy.plist && launchctl load ~/Library/LaunchAgents/com.joycode.proxy.plist`
+Run: `launchctl unload ~/Library/LaunchAgents/com.agnescode.proxy.plist && launchctl load ~/Library/LaunchAgents/com.agnescode.proxy.plist`
 Expected:
   - Service restarts successfully
 
 - [ ] **Step 3: Verify log rotation is active**
-Run: `sleep 2 && head -5 ~/.joycode-proxy/logs/stderr.log`
+Run: `sleep 2 && head -5 ~/.agnescode-proxy/logs/stderr.log`
 Expected:
   - Log file contains startup messages
   - Service is responding on port 34891

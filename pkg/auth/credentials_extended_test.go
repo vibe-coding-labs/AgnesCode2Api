@@ -45,11 +45,11 @@ func TestStateData_JSONParsing(t *testing.T) {
 	if err := json.Unmarshal([]byte(raw), &data); err != nil {
 		t.Fatalf("failed to parse valid JSON: %v", err)
 	}
-	if data.JoyCoderUser.PtKey != "test-pt-key-123" {
-		t.Errorf("PtKey = %q, want %q", data.JoyCoderUser.PtKey, "test-pt-key-123")
+	if data.AgnesCoderUser.PtKey != "test-pt-key-123" {
+		t.Errorf("PtKey = %q, want %q", data.AgnesCoderUser.PtKey, "test-pt-key-123")
 	}
-	if data.JoyCoderUser.UserID != "user-456" {
-		t.Errorf("UserID = %q, want %q", data.JoyCoderUser.UserID, "user-456")
+	if data.AgnesCoderUser.UserID != "user-456" {
+		t.Errorf("UserID = %q, want %q", data.AgnesCoderUser.UserID, "user-456")
 	}
 }
 
@@ -59,11 +59,11 @@ func TestStateData_EmptyPtKey(t *testing.T) {
 	if err := json.Unmarshal([]byte(raw), &data); err != nil {
 		t.Fatalf("failed to parse JSON: %v", err)
 	}
-	if data.JoyCoderUser.PtKey != "" {
-		t.Errorf("PtKey = %q, want empty string", data.JoyCoderUser.PtKey)
+	if data.AgnesCoderUser.PtKey != "" {
+		t.Errorf("PtKey = %q, want empty string", data.AgnesCoderUser.PtKey)
 	}
-	if data.JoyCoderUser.UserID != "user-789" {
-		t.Errorf("UserID = %q, want %q", data.JoyCoderUser.UserID, "user-789")
+	if data.AgnesCoderUser.UserID != "user-789" {
+		t.Errorf("UserID = %q, want %q", data.AgnesCoderUser.UserID, "user-789")
 	}
 }
 
@@ -73,25 +73,25 @@ func TestStateData_EmptyUserID(t *testing.T) {
 	if err := json.Unmarshal([]byte(raw), &data); err != nil {
 		t.Fatalf("failed to parse JSON: %v", err)
 	}
-	if data.JoyCoderUser.PtKey != "some-key" {
-		t.Errorf("PtKey = %q, want %q", data.JoyCoderUser.PtKey, "some-key")
+	if data.AgnesCoderUser.PtKey != "some-key" {
+		t.Errorf("PtKey = %q, want %q", data.AgnesCoderUser.PtKey, "some-key")
 	}
-	if data.JoyCoderUser.UserID != "" {
-		t.Errorf("UserID = %q, want empty string", data.JoyCoderUser.UserID)
+	if data.AgnesCoderUser.UserID != "" {
+		t.Errorf("UserID = %q, want empty string", data.AgnesCoderUser.UserID)
 	}
 }
 
-func TestStateData_MissingJoyCoderUser(t *testing.T) {
+func TestStateData_MissingAgnesCoderUser(t *testing.T) {
 	raw := `{"otherField":"some-value"}`
 	var data stateData
 	if err := json.Unmarshal([]byte(raw), &data); err != nil {
 		t.Fatalf("failed to parse JSON: %v", err)
 	}
-	if data.JoyCoderUser.PtKey != "" {
-		t.Errorf("PtKey = %q, want empty string", data.JoyCoderUser.PtKey)
+	if data.AgnesCoderUser.PtKey != "" {
+		t.Errorf("PtKey = %q, want empty string", data.AgnesCoderUser.PtKey)
 	}
-	if data.JoyCoderUser.UserID != "" {
-		t.Errorf("UserID = %q, want empty string", data.JoyCoderUser.UserID)
+	if data.AgnesCoderUser.UserID != "" {
+		t.Errorf("UserID = %q, want empty string", data.AgnesCoderUser.UserID)
 	}
 }
 
@@ -124,7 +124,7 @@ func TestLoadFromSystem_InvalidDatabase(t *testing.T) {
 	tmpDir := t.TempDir()
 
 	dbDir := filepath.Join(tmpDir, "Library", "Application Support",
-		"JoyCode", "User", "globalStorage")
+		"AgnesCode", "User", "globalStorage")
 	if err := os.MkdirAll(dbDir, 0755); err != nil {
 		t.Fatalf("failed to create db directory: %v", err)
 	}
@@ -176,7 +176,7 @@ func TestLoadFromSystem_DatabaseMissingKey(t *testing.T) {
 	tmpDir := t.TempDir()
 
 	dbDir := filepath.Join(tmpDir, "Library", "Application Support",
-		"JoyCode", "User", "globalStorage")
+		"AgnesCode", "User", "globalStorage")
 	if err := os.MkdirAll(dbDir, 0755); err != nil {
 		t.Fatalf("failed to create db directory: %v", err)
 	}
@@ -204,7 +204,7 @@ func TestLoadFromSystem_DatabaseMissingKey(t *testing.T) {
 
 	_, err = LoadFromSystem()
 	if err == nil {
-		t.Fatal("expected error when JoyCoder.IDE key is missing, got nil")
+		t.Fatal("expected error when AgnesCoder.IDE key is missing, got nil")
 	}
 	t.Logf("got expected error: %v", err)
 }
@@ -232,7 +232,7 @@ func createTestDB(t *testing.T, baseDir string, jsonValue string) {
 	t.Helper()
 
 	dbDir := filepath.Join(baseDir, "Library", "Application Support",
-		"JoyCode", "User", "globalStorage")
+		"AgnesCode", "User", "globalStorage")
 	if err := os.MkdirAll(dbDir, 0755); err != nil {
 		t.Fatalf("failed to create db directory: %v", err)
 	}
@@ -249,7 +249,7 @@ func createTestDB(t *testing.T, baseDir string, jsonValue string) {
 		t.Fatalf("failed to create ItemTable: %v", err)
 	}
 
-	_, err = db.Exec("INSERT INTO ItemTable (key, value) VALUES ('JoyCoder.IDE', ?)", jsonValue)
+	_, err = db.Exec("INSERT INTO ItemTable (key, value) VALUES ('AgnesCoder.IDE', ?)", jsonValue)
 	if err != nil {
 		db.Close()
 		t.Fatalf("failed to insert test data: %v", err)

@@ -120,7 +120,7 @@ func validateAndFetchInfo(client *http.Client, ticket string) (*QRLoginResult, e
 ```
 
 - [ ] **Step 2: 验证编译通过**
-Run: `cd /Users/cc11001100/github/vibe-coding-labs/JoyCodeProxy && go build ./...`
+Run: `cd /Users/cc11001100/github/vibe-coding-labs/AgnesCodeProxy && go build ./...`
 Expected:
   - Exit code: 0
   - Output does NOT contain: "Error" or "cannot"
@@ -145,13 +145,13 @@ logging for cookie extraction and expanded cookie host search."`
 - Modify: (binary output)
 
 - [ ] **Step 1: 构建 Go 二进制文件**
-Run: `cd /Users/cc11001100/github/vibe-coding-labs/JoyCodeProxy && go build -o joycode_proxy_bin ./cmd/JoyCodeProxy/`
+Run: `cd /Users/cc11001100/github/vibe-coding-labs/AgnesCodeProxy && go build -o agnescode_proxy_bin ./cmd/AgnesCodeProxy/`
 Expected:
   - Exit code: 0
-  - Binary `joycode_proxy_bin` exists and is newer than source files
+  - Binary `agnescode_proxy_bin` exists and is newer than source files
 
 - [ ] **Step 2: 重新加载服务**
-Run: `launchctl unload ~/Library/LaunchAgents/com.joycode.proxy.plist && launchctl load ~/Library/LaunchAgents/com.joycode.proxy.plist`
+Run: `launchctl unload ~/Library/LaunchAgents/com.agnescode.proxy.plist && launchctl load ~/Library/LaunchAgents/com.agnescode.proxy.plist`
 Expected:
   - Exit code: 0
   - Service restarted successfully

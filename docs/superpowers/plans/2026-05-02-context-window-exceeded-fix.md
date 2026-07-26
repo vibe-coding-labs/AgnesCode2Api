@@ -3,7 +3,7 @@
 > **For agentic workers:** REQUIRED SUB-SKILL: `superpowers:subagent-driven-development`
 > Steps use checkbox (`- [ ]`) syntax.
 
-**Goal:** 当上游 JoyCode API 返回上下文长度超限错误时，代理返回不可重试的 Anthropic API 错误（`invalid_request_error`），让 Claude Code 客户端停止重试并告知用户。同时降低复制命令中的 `CLAUDE_CODE_MAX_RETRIES`。
+**Goal:** 当上游 AgnesCode API 返回上下文长度超限错误时，代理返回不可重试的 Anthropic API 错误（`invalid_request_error`），让 Claude Code 客户端停止重试并告知用户。同时降低复制命令中的 `CLAUDE_CODE_MAX_RETRIES`。
 
 **Root Cause:** 两个问题叠加导致无限重试：1) 复制命令中 `CLAUDE_CODE_MAX_RETRIES=1000000` 允许无限重试；2) 代理将所有上游错误统一返回 `api_error`（500），Claude Code 认为这是可重试的临时错误。
 
@@ -112,7 +112,7 @@ func writeAnthropicRequestError(w http.ResponseWriter, msg string) {
 ```
 
 - [ ] **Step 6: 验证编译**
-Run: `cd /Users/cc11001100/github/vibe-coding-labs/JoyCodeProxy && go build ./cmd/JoyCodeProxy/`
+Run: `cd /Users/cc11001100/github/vibe-coding-labs/AgnesCodeProxy && go build ./cmd/AgnesCodeProxy/`
 Expected:
   - Exit code: 0
 
@@ -144,17 +144,17 @@ const buildClaudeCodeCmd = (apiKey: string, model = 'GLM-5.1') => [
 ```
 
 - [ ] **Step 2: 构建前端**
-Run: `cd /Users/cc11001100/github/vibe-coding-labs/JoyCodeProxy/web && npm run build`
+Run: `cd /Users/cc11001100/github/vibe-coding-labs/AgnesCodeProxy/web && npm run build`
 Expected:
   - Exit code: 0
 
 - [ ] **Step 3: 复制构建产物**
-Run: `cp -r /Users/cc11001100/github/vibe-coding-labs/JoyCodeProxy/web/dist/* /Users/cc11001100/github/vibe-coding-labs/JoyCodeProxy/cmd/JoyCodeProxy/static/`
+Run: `cp -r /Users/cc11001100/github/vibe-coding-labs/AgnesCodeProxy/web/dist/* /Users/cc11001100/github/vibe-coding-labs/AgnesCodeProxy/cmd/AgnesCodeProxy/static/`
 Expected:
   - Exit code: 0
 
 - [ ] **Step 4: 提交**
-Run: `git add web/src/pages/AccountDetail.tsx cmd/JoyCodeProxy/static/ && git commit -m "fix(web): lower MAX_RETRIES from 1000000 to 3 in copy command"`
+Run: `git add web/src/pages/AccountDetail.tsx cmd/AgnesCodeProxy/static/ && git commit -m "fix(web): lower MAX_RETRIES from 1000000 to 3 in copy command"`
 
 ---
 
@@ -164,12 +164,12 @@ Run: `git add web/src/pages/AccountDetail.tsx cmd/JoyCodeProxy/static/ && git co
 **Files:** None (build only)
 
 - [ ] **Step 1: 构建 Go 二进制**
-Run: `cd /Users/cc11001100/github/vibe-coding-labs/JoyCodeProxy && go build -o joycode_proxy_bin ./cmd/JoyCodeProxy/`
+Run: `cd /Users/cc11001100/github/vibe-coding-labs/AgnesCodeProxy && go build -o agnescode_proxy_bin ./cmd/AgnesCodeProxy/`
 Expected:
   - Exit code: 0
 
 - [ ] **Step 2: 重启服务**
-Run: `launchctl unload ~/Library/LaunchAgents/com.joycode.proxy.plist && launchctl load ~/Library/LaunchAgents/com.joycode.proxy.plist`
+Run: `launchctl unload ~/Library/LaunchAgents/com.agnescode.proxy.plist && launchctl load ~/Library/LaunchAgents/com.agnescode.proxy.plist`
 Expected:
   - Exit code: 0
 

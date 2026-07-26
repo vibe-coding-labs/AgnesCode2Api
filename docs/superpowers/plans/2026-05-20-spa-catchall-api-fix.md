@@ -48,7 +48,7 @@ func (h *Handler) ServeStatic(w http.ResponseWriter, r *http.Request) {
 			writeJSON(w, http.StatusNotFound, map[string]interface{}{
 				"error": map[string]string{
 					"type":    "invalid_request_error",
-					"message": fmt.Sprintf("%s %s not found. JoyCodeProxy serves the API under /v1/. Set base_url to http://<host>:<port>/v1", r.Method, path),
+					"message": fmt.Sprintf("%s %s not found. AgnesCodeProxy serves the API under /v1/. Set base_url to http://<host>:<port>/v1", r.Method, path),
 				},
 			})
 			return
@@ -60,13 +60,13 @@ func (h *Handler) ServeStatic(w http.ResponseWriter, r *http.Request) {
 		writeJSON(w, http.StatusNotFound, map[string]interface{}{
 			"error": map[string]string{
 				"type":    "invalid_request_error",
-				"message": fmt.Sprintf("%s %s not found. JoyCodeProxy serves the API under /v1/. Set base_url to http://<host>:<port>/v1", r.Method, path),
+				"message": fmt.Sprintf("%s %s not found. AgnesCodeProxy serves the API under /v1/. Set base_url to http://<host>:<port>/v1", r.Method, path),
 			},
 		})
 		return
 	}
 
-	// Handle JoyCode OAuth callback on root path: /?pt_key=xxx
+	// Handle AgnesCode OAuth callback on root path: /?pt_key=xxx
 	if path == "/" && r.URL.Query().Get("pt_key") != "" {
 		h.handleOAuthCallback(w, r)
 		return
@@ -132,14 +132,14 @@ var knownAPISet = func() map[string]bool {
 
 - [ ] **Step 3: 验证 — 编译检查**
 
-Run: `cd /Users/cc11001100/github/vibe-coding-labs/JoyCodeProxy && go build ./...`
+Run: `cd /Users/cc11001100/github/vibe-coding-labs/AgnesCodeProxy && go build ./...`
 Expected:
   - Exit code: 0
   - Output does NOT contain: "error" or "undefined"
 
 - [ ] **Step 4: 验证 — 手动测试路由行为**
 
-Run: `cd /Users/cc11001100/github/vibe-coding-labs/JoyCodeProxy && go test ./pkg/dashboard/...`
+Run: `cd /Users/cc11001100/github/vibe-coding-labs/AgnesCodeProxy && go test ./pkg/dashboard/...`
 Expected:
   - Exit code: 0 (如果有测试) 或无 test files 报错也可接受
 
@@ -151,7 +151,7 @@ Expected:
 
 - [ ] **Step 5: 质量门禁检查**
 
-Run: `cd /Users/cc11001100/github/vibe-coding-labs/JoyCodeProxy && go build ./... && go vet ./...`
+Run: `cd /Users/cc11001100/github/vibe-coding-labs/AgnesCodeProxy && go build ./... && go vet ./...`
 Expected:
   - Exit code: 0
   - 无遗留 debug 语句

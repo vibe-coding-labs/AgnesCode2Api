@@ -95,7 +95,7 @@ export default CommandTooltip;
 ```
 
 - [ ] **Step 2: 验证组件编译**
-Run: `cd /Users/cc11001100/github/vibe-coding-labs/JoyCodeProxy/web && npx tsc --noEmit 2>&1 | head -20`
+Run: `cd /Users/cc11001100/github/vibe-coding-labs/AgnesCodeProxy/web && npx tsc --noEmit 2>&1 | head -20`
 Expected:
   - Exit code: 0
   - No error output mentioning CommandTooltip
@@ -205,12 +205,12 @@ import type { Account } from '../api';
           onClick: () => navigate(`/accounts/${encodeURIComponent(record.api_key)}`),
           style: { cursor: 'pointer' },
         })}
-        locale={{ emptyText: '暂无账号，请点击「一键登录」或「手动添加」按钮配置您的第一个 JoyCode 账号' }}
+        locale={{ emptyText: '暂无账号，请点击「一键登录」或「手动添加」按钮配置您的第一个 AgnesCode 账号' }}
       />
 ```
 
 - [ ] **Step 5: 验证前端构建**
-Run: `cd /Users/cc11001100/github/vibe-coding-labs/JoyCodeProxy/web && npm run build 2>&1 | tail -5`
+Run: `cd /Users/cc11001100/github/vibe-coding-labs/AgnesCodeProxy/web && npm run build 2>&1 | tail -5`
 Expected:
   - Exit code: 0
   - Output contains: "built in"
@@ -289,7 +289,7 @@ import CommandTooltip from '../components/CommandTooltip';
 ```
 
 - [ ] **Step 4: 验证前端构建**
-Run: `cd /Users/cc11001100/github/vibe-coding-labs/JoyCodeProxy/web && npm run build 2>&1 | tail -5`
+Run: `cd /Users/cc11001100/github/vibe-coding-labs/AgnesCodeProxy/web && npm run build 2>&1 | tail -5`
 Expected:
   - Exit code: 0
   - Output contains: "built in"
@@ -303,15 +303,15 @@ Run: `git add web/src/pages/AccountDetail.tsx && git commit -m "feat(web): add c
 
 **Depends on:** Task 2, Task 3
 **Files:**
-- Modify: `cmd/JoyCodeProxy/static/`（前端产物）
+- Modify: `cmd/AgnesCodeProxy/static/`（前端产物）
 
 - [ ] **Step 1: 构建 Go 二进制**
-Run: `cd /Users/cc11001100/github/vibe-coding-labs/JoyCodeProxy && go build -o joycode_proxy_bin ./cmd/JoyCodeProxy/`
+Run: `cd /Users/cc11001100/github/vibe-coding-labs/AgnesCodeProxy && go build -o agnescode_proxy_bin ./cmd/AgnesCodeProxy/`
 Expected:
   - Exit code: 0
 
 - [ ] **Step 2: 部署到本地服务**
-Run: `launchctl unload ~/Library/LaunchAgents/com.joycode.proxy.plist 2>/dev/null; sleep 1; launchctl load ~/Library/LaunchAgents/com.joycode.proxy.plist && sleep 2 && curl -s http://localhost:34891/api/health | python3 -m json.tool`
+Run: `launchctl unload ~/Library/LaunchAgents/com.agnescode.proxy.plist 2>/dev/null; sleep 1; launchctl load ~/Library/LaunchAgents/com.agnescode.proxy.plist && sleep 2 && curl -s http://localhost:34891/api/health | python3 -m json.tool`
 Expected:
   - Returns JSON with `status: "ok"`
 
@@ -321,4 +321,4 @@ Expected:
   - HTTP 200
 
 - [ ] **Step 4: 提交**
-Run: `git add cmd/JoyCodeProxy/static/ && git commit -m "build: deploy with command tooltip and row click navigation fix"`
+Run: `git add cmd/AgnesCodeProxy/static/ && git commit -m "build: deploy with command tooltip and row click navigation fix"`

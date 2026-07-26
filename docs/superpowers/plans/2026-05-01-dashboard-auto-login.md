@@ -3,15 +3,15 @@
 > **For agentic workers:** REQUIRED SUB-SKILL: `superpowers:subagent-driven-development`
 > Steps use checkbox (`- [ ]`) syntax.
 
-**Goal:** 在 JoyCodeProxy Dashboard 账号管理页面添加"一键登录"按钮，自动从本机 JoyCode IDE 提取凭据、验证、保存为账号。保留现有手动添加账号方式不变。
+**Goal:** 在 AgnesCodeProxy Dashboard 账号管理页面添加"一键登录"按钮，自动从本机 AgnesCode IDE 提取凭据、验证、保存为账号。保留现有手动添加账号方式不变。
 
-**Architecture:** 用户点击"一键登录" → 前端 POST `/api/accounts/auto-login` → 后端调用 `auth.LoadFromSystem()` 从本地 JoyCode state.vscdb 提取 ptKey/userID → 调用 `joycode.UserInfo()` 验证凭据并获取用户真实姓名 → 用 realName 作为 api_key 调用 `store.AddAccount()` 保存 → 返回成功/失败给前端。复用已有的 `pkg/auth/credentials.go` 和 `pkg/joycode/client.go`，不引入新依赖。
+**Architecture:** 用户点击"一键登录" → 前端 POST `/api/accounts/auto-login` → 后端调用 `auth.LoadFromSystem()` 从本地 AgnesCode state.vscdb 提取 ptKey/userID → 调用 `agnescode.UserInfo()` 验证凭据并获取用户真实姓名 → 用 realName 作为 api_key 调用 `store.AddAccount()` 保存 → 返回成功/失败给前端。复用已有的 `pkg/auth/credentials.go` 和 `pkg/agnescode/client.go`，不引入新依赖。
 
 **Tech Stack:** Go 1.23, React 18, Ant Design 5, TypeScript 5
 
 **Risks:**
 - `auth.LoadFromSystem()` 仅支持 macOS → 缓解：非 macOS 返回明确错误信息，前端友好展示
-- ptKey 可能已过期 → 缓解：保存前先调 UserInfo API 验证，失败则提示用户先在 JoyCode IDE 中重新登录
+- ptKey 可能已过期 → 缓解：保存前先调 UserInfo API 验证，失败则提示用户先在 AgnesCode IDE 中重新登录
 - 重复点击一键登录可能创建重复账号 → 缓解：用 realName 作为 api_key，`INSERT OR REPLACE` 自动覆盖更新
 
 ---
@@ -41,9 +41,9 @@ import (
 	"path/filepath"
 	"strings"
 
-	"github.com/vibe-coding-labs/JoyCodeProxy/pkg/auth"
-	"github.com/vibe-coding-labs/JoyCodeProxy/pkg/joycode"
-	"github.com/vibe-coding-labs/JoyCodeProxy/pkg/store"
+	"github.com/vibe-coding-labs/AgnesCodeProxy/pkg/auth"
+	"github.com/vibe-coding-labs/AgnesCodeProxy/pkg/agnescode"
+	"github.com/vibe-coding-labs/AgnesCodeProxy/pkg/store"
 )
 ```
 
@@ -71,7 +71,7 @@ func (h *Handler) RegisterRoutes(mux *http.ServeMux) {
 文件: `pkg/dashboard/handler.go`（在 `addAccount` 方法之后添加，约第 201 行之后）
 
 ```go
-// handleAutoLogin reads credentials from the local JoyCode IDE installation,
+// handleAutoLogin reads credentials from the local AgnesCode IDE installation,
 // validates them, and saves as a proxy account.
 func (h *Handler) handleAutoLogin(w http.ResponseWriter, r *http.Request) {
 	setCors(w)
@@ -84,20 +84,20 @@ func (h *Handler) handleAutoLogin(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	// 1. Extract credentials from local JoyCode IDE
+	// 1. Extract credentials from local AgnesCode IDE
 	creds, err := auth.LoadFromSystem()
 	if err != nil {
 		slog.Error("auto-login: load from system failed", "error", err)
-		writeError(w, http.StatusBadRequest, "无法从本机获取 JoyCode 凭据: "+err.Error())
+		writeError(w, http.StatusBadRequest, "无法从本机获取 AgnesCode 凭据: "+err.Error())
 		return
 	}
 
-	// 2. Validate credentials with JoyCode API and fetch user info
-	client := joycode.NewClient(creds.PtKey, creds.UserID)
+	// 2. Validate credentials with AgnesCode API and fetch user info
+	client := agnescode.NewClient(creds.PtKey, creds.UserID)
 	userInfo, err := client.UserInfo()
 	if err != nil {
 		slog.Error("auto-login: userInfo request failed", "user_id", creds.UserID, "error", err)
-		writeError(w, http.StatusUnauthorized, "凭据验证失败，请先在 JoyCode IDE 中登录: "+err.Error())
+		writeError(w, http.StatusUnauthorized, "凭据验证失败，请先在 AgnesCode IDE 中登录: "+err.Error())
 		return
 	}
 
@@ -152,13 +152,13 @@ func (h *Handler) handleAutoLogin(w http.ResponseWriter, r *http.Request) {
 
 - [ ] **Step 4: 验证编译**
 
-Run: `cd /Users/cc11001100/github/vibe-coding-labs/JoyCodeProxy && go build ./pkg/dashboard/`
+Run: `cd /Users/cc11001100/github/vibe-coding-labs/AgnesCodeProxy && go build ./pkg/dashboard/`
 Expected:
   - Exit code: 0
 
 - [ ] **Step 5: 提交**
 
-Run: `git add pkg/dashboard/handler.go && git commit -m "feat(dashboard): add auto-login endpoint for one-click JoyCode credential import"`
+Run: `git add pkg/dashboard/handler.go && git commit -m "feat(dashboard): add auto-login endpoint for one-click AgnesCode credential import"`
 
 ---
 
@@ -245,7 +245,7 @@ Run: `git add pkg/dashboard/handler.go && git commit -m "feat(dashboard): add au
           type="info"
           showIcon
           message="添加账号说明"
-          description="将 JoyCode 客户端的凭证信息填入下方表单。添加后，Claude Code 使用对应的路由密钥即可通过此账号访问 JoyCode 后端。"
+          description="将 AgnesCode 客户端的凭证信息填入下方表单。添加后，Claude Code 使用对应的路由密钥即可通过此账号访问 AgnesCode 后端。"
           style={{ marginBottom: 16 }}
         />
 ```
@@ -256,18 +256,18 @@ Run: `git add pkg/dashboard/handler.go && git commit -m "feat(dashboard): add au
           type="info"
           showIcon
           message="手动添加账号"
-          description="填写 JoyCode 客户端凭证信息。推荐使用「一键登录」自动导入，此处适合手动配置多个账号。"
+          description="填写 AgnesCode 客户端凭证信息。推荐使用「一键登录」自动导入，此处适合手动配置多个账号。"
           style={{ marginBottom: 16 }}
         />
 ```
 
 2e. 修改 Modal 标题（第 265 行）:
 
-将 `title="添加 JoyCode 账号"` 改为 `title="手动添加 JoyCode 账号"`
+将 `title="添加 AgnesCode 账号"` 改为 `title="手动添加 AgnesCode 账号"`
 
 - [ ] **Step 3: 验证前端构建**
 
-Run: `cd /Users/cc11001100/github/vibe-coding-labs/JoyCodeProxy/web && npm run build`
+Run: `cd /Users/cc11001100/github/vibe-coding-labs/AgnesCodeProxy/web && npm run build`
 Expected:
   - Exit code: 0
   - Output contains: "built in"
@@ -282,24 +282,24 @@ Run: `git add web/src/api.ts web/src/pages/Accounts.tsx && git commit -m "feat(w
 
 **Depends on:** Task 2
 **Files:**
-- Modify: `cmd/JoyCodeProxy/static/`（前端产物）
+- Modify: `cmd/AgnesCodeProxy/static/`（前端产物）
 
 - [ ] **Step 1: 复制前端产物到 Go 静态目录**
 
-Run: `cp -r /Users/cc11001100/github/vibe-coding-labs/JoyCodeProxy/web/dist/* /Users/cc11001100/github/vibe-coding-labs/JoyCodeProxy/cmd/JoyCodeProxy/static/`
+Run: `cp -r /Users/cc11001100/github/vibe-coding-labs/AgnesCodeProxy/web/dist/* /Users/cc11001100/github/vibe-coding-labs/AgnesCodeProxy/cmd/AgnesCodeProxy/static/`
 Expected:
   - Exit code: 0
-  - `cmd/JoyCodeProxy/static/index.html` 更新时间戳变化
+  - `cmd/AgnesCodeProxy/static/index.html` 更新时间戳变化
 
 - [ ] **Step 2: 构建 Go 二进制**
 
-Run: `cd /Users/cc11001100/github/vibe-coding-labs/JoyCodeProxy && go build -o joycode_proxy_bin ./cmd/JoyCodeProxy/`
+Run: `cd /Users/cc11001100/github/vibe-coding-labs/AgnesCodeProxy && go build -o agnescode_proxy_bin ./cmd/AgnesCodeProxy/`
 Expected:
   - Exit code: 0
 
 - [ ] **Step 3: 部署到本地服务**
 
-Run: `launchctl unload ~/Library/LaunchAgents/com.joycode.proxy.plist 2>/dev/null; sleep 1; cp /Users/cc11001100/github/vibe-coding-labs/JoyCodeProxy/joycode_proxy_bin /usr/local/bin/joycode_proxy_bin && launchctl load ~/Library/LaunchAgents/com.joycode.proxy.plist`
+Run: `launchctl unload ~/Library/LaunchAgents/com.agnescode.proxy.plist 2>/dev/null; sleep 1; cp /Users/cc11001100/github/vibe-coding-labs/AgnesCodeProxy/agnescode_proxy_bin /usr/local/bin/agnescode_proxy_bin && launchctl load ~/Library/LaunchAgents/com.agnescode.proxy.plist`
 Expected:
   - Exit code: 0
   - No error output
@@ -308,8 +308,8 @@ Expected:
 
 Run: `sleep 2 && curl -s -X POST http://localhost:34891/api/accounts-auto-login | python3 -m json.tool`
 Expected:
-  - Returns JSON with `ok: true` or error with clear message about JoyCode not being installed/logged in
+  - Returns JSON with `ok: true` or error with clear message about AgnesCode not being installed/logged in
 
 - [ ] **Step 5: 提交**
 
-Run: `git add cmd/JoyCodeProxy/static/ && git commit -m "build: deploy frontend with auto-login feature"`
+Run: `git add cmd/AgnesCodeProxy/static/ && git commit -m "build: deploy frontend with auto-login feature"`

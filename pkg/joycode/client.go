@@ -1,4 +1,4 @@
-package joycode
+package agnescode
 
 import (
 	"bytes"
@@ -19,17 +19,17 @@ import (
 )
 
 const (
-	BaseURL       = "https://joycode-api.jd.com"
-	SaasBaseURL   = "http://joycode-api-saas.jd.com"
+	BaseURL       = "https://agnescode-api.jd.com"
+	SaasBaseURL   = "http://agnescode-api-saas.jd.com"
 	DefaultModel  = "JoyAI-Code-1.5"
 	ClientVersion = "2.7.5"
 	UserAgent     = "Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) " +
 		"AppleWebKit/537.36 (KHTML, like Gecko) " +
-		"JoyCode/2.7.5 Chrome/133.0.0.0 Electron/35.2.0 Safari/537.36"
+		"AgnesCode/2.7.5 Chrome/133.0.0.0 Electron/35.2.0 Safari/537.36"
 
-	// color gateway 签名（逆向自 JoyCode 2.7.5 / joycoder-editor 3.8.57）
+	// color gateway 签名（逆向自 AgnesCode 2.7.5 / agnescoder-editor 3.8.57）
 	DefaultColorBaseURL = "https://api-ai.jd.com"
-	colorGatewayAppID   = "joycode_ide"
+	colorGatewayAppID   = "agnescode_ide"
 	colorGatewayPath    = "/api"
 	colorHMACKey        = "0691a3f0b37b4a85aeb63ad0fc7db3ed"
 )
@@ -43,9 +43,9 @@ type colorEndpoint struct {
 
 var colorEndpoints = map[string]colorEndpoint{
 	"/api/saas/openai/v1/chat/completions": {"chat_completions", "/api/saas/openai/v2/chat/completions"},
-	"/api/saas/models/v1/modelList":        {"joycode_modelList", "/api/saas/models/v2/modelList"},
+	"/api/saas/models/v1/modelList":        {"agnescode_modelList", "/api/saas/models/v2/modelList"},
 	"/api/saas/openai/v1/web-search":       {"web_search", "/api/saas/openai/v2/web-search"},
-	"/api/saas/user/v1/userInfo":           {"joycode_userInfo", "/api/saas/user/v2/userInfo"},
+	"/api/saas/user/v1/userInfo":           {"agnescode_userInfo", "/api/saas/user/v2/userInfo"},
 	"/api/saas/anthropic/v1/messages":      {"anthropic_completions", "/api/saas/anthropic/v1/messages"},
 }
 
@@ -174,7 +174,7 @@ func (c *Client) headers() http.Header {
 	}
 	return http.Header{
 		"Content-Type":    {"application/json; charset=UTF-8"},
-		"source-type":     {"joycoder-ide"},
+		"source-type":     {"agnescoder-ide"},
 		"ptKey":           {c.PtKey},
 		"loginType":       {loginType},
 		"User-Agent":      {UserAgent},
@@ -195,7 +195,7 @@ func (c *Client) anthropicHeaders() http.Header {
 	}
 	return http.Header{
 		"Content-Type":    {"application/json; charset=utf-8"},
-		"source-type":     {"joycoder-ide"},
+		"source-type":     {"agnescoder-ide"},
 		"ptKey":           {ptKey},
 		"loginType":       {loginType},
 		"User-Agent":      {UserAgent},
@@ -208,13 +208,13 @@ func (c *Client) anthropicHeaders() http.Header {
 func (c *Client) prepareBody(extra map[string]interface{}) map[string]interface{} {
 	tenant := c.Tenant
 	if tenant == "" {
-		tenant = "JOYCODE"
+		tenant = "AGNESCODE"
 	}
 	body := map[string]interface{}{
 		"tenant":        tenant,
 		"orgFullName":   c.OrgFullName,
 		"userId":        c.UserID,
-		"client":        "JoyCode",
+		"client":        "AgnesCode",
 		"clientVersion": ClientVersion,
 		"language":      "UNKNOWN",
 	}
@@ -233,7 +233,7 @@ func (c *Client) prepareAnthropicBody(extra map[string]interface{}) map[string]i
 		"tenant":        tenant,
 		"orgFullName":   c.OrgFullName,
 		"userId":        c.UserID,
-		"client":        "JoyCode",
+		"client":        "AgnesCode",
 		"clientVersion": ClientVersion,
 		"language":      "UNKNOWN",
 		"stream":        true,

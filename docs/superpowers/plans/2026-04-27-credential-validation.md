@@ -3,28 +3,28 @@
 > **For agentic workers:** REQUIRED SUB-SKILL: `superpowers:subagent-driven-development`
 > Steps use checkbox (`- [ ]`) syntax.
 
-**Goal:** 在 JoyCodeProxy 启动时自动验证凭证有效性，无论是手动指定还是从系统自动读取，无效凭证立即报错并给出明确提示，防止启动后才发现凭证失效。
+**Goal:** 在 AgnesCodeProxy 启动时自动验证凭证有效性，无论是手动指定还是从系统自动读取，无效凭证立即报错并给出明确提示，防止启动后才发现凭证失效。
 
 **Architecture:** 启动命令调用 `resolveClient()` → 获取凭证（手动/自动检测） → 调用 `Client.Validate()` 发起 `UserInfo` API 请求 → 检查响应 code 是否为 0 → 有效则继续启动，无效则打印错误信息并退出。验证请求设置 10 秒超时，防止网络问题阻塞启动。提供 `--skip-validation` 标志跳过验证。
 
 **Tech Stack:** Go 1.23, Cobra CLI, SQLite3 (凭证读取), net/http (API 验证)
 
 **Risks:**
-- Task 1 修改了 `pkg/joycode/client.go`，添加 `Validate()` 方法 → 缓解：纯新增方法，不改动现有代码
-- Task 2 修改了 `cmd/JoyCodeProxy/root.go` 中的 `resolveClient()` → 缓解：在现有逻辑之后追加验证步骤，不改变凭证解析逻辑
+- Task 1 修改了 `pkg/agnescode/client.go`，添加 `Validate()` 方法 → 缓解：纯新增方法，不改动现有代码
+- Task 2 修改了 `cmd/AgnesCodeProxy/root.go` 中的 `resolveClient()` → 缓解：在现有逻辑之后追加验证步骤，不改变凭证解析逻辑
 - UserInfo API 可能在网络不稳定时超时 → 缓解：Validate 设置 10s 短超时，用户可用 `--skip-validation` 跳过
 
 ---
 
-### Task 1: Add Validate Method to JoyCode Client
+### Task 1: Add Validate Method to AgnesCode Client
 
 **Depends on:** None
 **Files:**
-- Modify: `pkg/joycode/client.go:180-182`（在 `UserInfo()` 方法后添加）
-- Create: `pkg/joycode/client_test.go`
+- Modify: `pkg/agnescode/client.go:180-182`（在 `UserInfo()` 方法后添加）
+- Create: `pkg/agnescode/client_test.go`
 
 - [ ] **Step 1: Add `Validate()` method to Client — 调用 UserInfo API 验证凭证有效性**
-文件: `pkg/joycode/client.go:182`（在 `UserInfo()` 方法后追加）
+文件: `pkg/agnescode/client.go:182`（在 `UserInfo()` 方法后追加）
 
 ```go
 // Validate checks that the current credentials are valid by calling UserInfo.
@@ -49,7 +49,7 @@ func (c *Client) Validate() error {
 - [ ] **Step 2: Create unit test for Validate — 覆盖有效、无效、网络错误三种情况**
 
 ```go
-package joycode
+package agnescode
 
 import (
 	"net/http"
@@ -105,14 +105,14 @@ func TestValidate_NetworkError(t *testing.T) {
 ```
 
 - [ ] **Step 3: 验证测试通过**
-Run: `go test ./pkg/joycode/ -v -run TestValidate`
+Run: `go test ./pkg/agnescode/ -v -run TestValidate`
 Expected:
   - Exit code: 0
   - Output contains: "PASS"
   - Output does NOT contain: "FAIL"
 
 - [ ] **Step 4: 提交**
-Run: `git add pkg/joycode/client.go pkg/joycode/client_test.go && git commit -m "feat(auth): add Client.Validate() method for credential checking"`
+Run: `git add pkg/agnescode/client.go pkg/agnescode/client_test.go && git commit -m "feat(auth): add Client.Validate() method for credential checking"`
 
 ---
 
@@ -120,11 +120,11 @@ Run: `git add pkg/joycode/client.go pkg/joycode/client_test.go && git commit -m 
 
 **Depends on:** Task 1
 **Files:**
-- Modify: `cmd/JoyCodeProxy/root.go:12-39`（添加 skipValidation 变量 + 重写 resolveClient）
-- Modify: `cmd/JoyCodeProxy/serve.go:28-32`（移除旧的 Auth OK 日志，改为使用 resolveClient 中的验证输出）
+- Modify: `cmd/AgnesCodeProxy/root.go:12-39`（添加 skipValidation 变量 + 重写 resolveClient）
+- Modify: `cmd/AgnesCodeProxy/serve.go:28-32`（移除旧的 Auth OK 日志，改为使用 resolveClient 中的验证输出）
 
 - [ ] **Step 1: Add `--skip-validation` flag and enhance `resolveClient()` — 支持凭证验证、部分覆盖、跳过验证选项**
-文件: `cmd/JoyCodeProxy/root.go:12-39`（替换变量声明和 resolveClient 函数）
+文件: `cmd/AgnesCodeProxy/root.go:12-39`（替换变量声明和 resolveClient 函数）
 
 ```go
 var (
@@ -134,18 +134,18 @@ var (
 )
 
 var rootCmd = &cobra.Command{
-	Use:   "JoyCodeProxy",
-	Short: "JoyCode OpenAI-Compatible API Proxy",
-	Long:  "Convert JoyCode AI IDE APIs to OpenAI-compatible format for Codex and other tools.",
+	Use:   "AgnesCodeProxy",
+	Short: "AgnesCode OpenAI-Compatible API Proxy",
+	Long:  "Convert AgnesCode AI IDE APIs to OpenAI-compatible format for Codex and other tools.",
 }
 
 func init() {
-	rootCmd.PersistentFlags().StringVarP(&ptKey, "ptkey", "k", "", "JoyCode ptKey (auto-detected if empty)")
-	rootCmd.PersistentFlags().StringVarP(&userID, "userid", "u", "", "JoyCode userID (auto-detected if empty)")
+	rootCmd.PersistentFlags().StringVarP(&ptKey, "ptkey", "k", "", "AgnesCode ptKey (auto-detected if empty)")
+	rootCmd.PersistentFlags().StringVarP(&userID, "userid", "u", "", "AgnesCode userID (auto-detected if empty)")
 	rootCmd.PersistentFlags().BoolVar(&skipValidation, "skip-validation", false, "skip credential validation on startup")
 }
 
-func resolveClient() (*joycode.Client, error) {
+func resolveClient() (*agnescode.Client, error) {
 	var creds *auth.Credentials
 	var source string
 
@@ -157,7 +157,7 @@ func resolveClient() (*joycode.Client, error) {
 		// Auto-detect from system
 		detected, err := auth.LoadFromSystem()
 		if err != nil {
-			return nil, fmt.Errorf("cannot auto-detect credentials: %w\n  Please provide --ptkey and --userid flags, or log in to JoyCode first", err)
+			return nil, fmt.Errorf("cannot auto-detect credentials: %w\n  Please provide --ptkey and --userid flags, or log in to AgnesCode first", err)
 		}
 		creds = detected
 		source = "auto-detected"
@@ -175,7 +175,7 @@ func resolveClient() (*joycode.Client, error) {
 
 	log.Printf("Credentials source: %s (userId=%s)", source, creds.UserID)
 
-	client := joycode.NewClient(creds.PtKey, creds.UserID)
+	client := agnescode.NewClient(creds.PtKey, creds.UserID)
 
 	if skipValidation {
 		log.Printf("Credential validation skipped (--skip-validation)")
@@ -184,7 +184,7 @@ func resolveClient() (*joycode.Client, error) {
 
 	log.Printf("Validating credentials...")
 	if err := client.Validate(); err != nil {
-		return nil, fmt.Errorf("%w\n  Your credentials may have expired. Try re-logging into JoyCode or provide fresh --ptkey and --userid", err)
+		return nil, fmt.Errorf("%w\n  Your credentials may have expired. Try re-logging into AgnesCode or provide fresh --ptkey and --userid", err)
 	}
 	log.Printf("Credentials validated successfully")
 	return client, nil
@@ -192,7 +192,7 @@ func resolveClient() (*joycode.Client, error) {
 ```
 
 - [ ] **Step 2: Add missing import for `log` in root.go**
-文件: `cmd/JoyCodeProxy/root.go:3-9`（在 import 块中添加 `"log"`）
+文件: `cmd/AgnesCodeProxy/root.go:3-9`（在 import 块中添加 `"log"`）
 
 ```go
 import (
@@ -200,13 +200,13 @@ import (
 	"log"
 
 	"github.com/spf13/cobra"
-	"github.com/vibe-coding-labs/JoyCodeProxy/pkg/auth"
-	"github.com/vibe-coding-labs/JoyCodeProxy/pkg/joycode"
+	"github.com/vibe-coding-labs/AgnesCodeProxy/pkg/auth"
+	"github.com/vibe-coding-labs/AgnesCodeProxy/pkg/agnescode"
 )
 ```
 
 - [ ] **Step 3: Update serve.go to remove duplicate auth log — resolveClient now handles all logging**
-文件: `cmd/JoyCodeProxy/serve.go:31-32`（移除 `log.Printf("Auth OK: userId=%s", client.UserID)` 这行，因为 resolveClient 已经打印了验证日志）
+文件: `cmd/AgnesCodeProxy/serve.go:31-32`（移除 `log.Printf("Auth OK: userId=%s", client.UserID)` 这行，因为 resolveClient 已经打印了验证日志）
 
 将:
 ```go
@@ -226,13 +226,13 @@ import (
 ```
 
 - [ ] **Step 4: 验证编译通过**
-Run: `go build -o JoyCodeProxy ./cmd/JoyCodeProxy`
+Run: `go build -o AgnesCodeProxy ./cmd/AgnesCodeProxy`
 Expected:
   - Exit code: 0
   - Output does NOT contain: "cannot" or "undefined" or "syntax"
 
 - [ ] **Step 5: 提交**
-Run: `git add cmd/JoyCodeProxy/root.go cmd/JoyCodeProxy/serve.go && git commit -m "feat(auth): validate credentials on startup with --skip-validation option"`
+Run: `git add cmd/AgnesCodeProxy/root.go cmd/AgnesCodeProxy/serve.go && git commit -m "feat(auth): validate credentials on startup with --skip-validation option"`
 
 ---
 
@@ -247,7 +247,7 @@ Run: `git add cmd/JoyCodeProxy/root.go cmd/JoyCodeProxy/serve.go && git commit -
 文件: `pkg/auth/credentials.go:28-68`（替换整个 LoadFromSystem 函数）
 
 ```go
-// LoadFromSystem reads ptKey from local JoyCode state database (macOS).
+// LoadFromSystem reads ptKey from local AgnesCode state database (macOS).
 func LoadFromSystem() (*Credentials, error) {
 	if runtime.GOOS != "darwin" {
 		return nil, fmt.Errorf("auto credential extraction only supported on macOS; on other systems, please provide --ptkey and --userid flags")
@@ -258,38 +258,38 @@ func LoadFromSystem() (*Credentials, error) {
 	}
 	dbPath := filepath.Join(home,
 		"Library", "Application Support",
-		"JoyCode", "User", "globalStorage", "state.vscdb")
+		"AgnesCode", "User", "globalStorage", "state.vscdb")
 
 	if _, err := os.Stat(dbPath); os.IsNotExist(err) {
-		return nil, fmt.Errorf("JoyCode state database not found at %s\n  Please install and log in to JoyCode IDE first", dbPath)
+		return nil, fmt.Errorf("AgnesCode state database not found at %s\n  Please install and log in to AgnesCode IDE first", dbPath)
 	}
 
 	db, err := sql.Open("sqlite3", dbPath+"?mode=ro")
 	if err != nil {
-		return nil, fmt.Errorf("cannot open JoyCode database: %w", err)
+		return nil, fmt.Errorf("cannot open AgnesCode database: %w", err)
 	}
 	defer db.Close()
 
 	var value string
 	if err := db.QueryRow(
-		"SELECT value FROM ItemTable WHERE key='JoyCoder.IDE'",
+		"SELECT value FROM ItemTable WHERE key='AgnesCoder.IDE'",
 	).Scan(&value); err != nil {
-		return nil, fmt.Errorf("login info not found in database\n  Please log in to JoyCode IDE first")
+		return nil, fmt.Errorf("login info not found in database\n  Please log in to AgnesCode IDE first")
 	}
 
 	var data stateData
 	if err := json.Unmarshal([]byte(value), &data); err != nil {
 		return nil, fmt.Errorf("cannot parse login data from database: %w", err)
 	}
-	if data.JoyCoderUser.PtKey == "" {
-		return nil, fmt.Errorf("ptKey is empty in stored credentials\n  Please re-login to JoyCode IDE")
+	if data.AgnesCoderUser.PtKey == "" {
+		return nil, fmt.Errorf("ptKey is empty in stored credentials\n  Please re-login to AgnesCode IDE")
 	}
-	if data.JoyCoderUser.UserID == "" {
-		return nil, fmt.Errorf("userId is empty in stored credentials\n  Please re-login to JoyCode IDE")
+	if data.AgnesCoderUser.UserID == "" {
+		return nil, fmt.Errorf("userId is empty in stored credentials\n  Please re-login to AgnesCode IDE")
 	}
 	return &Credentials{
-		PtKey:  data.JoyCoderUser.PtKey,
-		UserID: data.JoyCoderUser.UserID,
+		PtKey:  data.AgnesCoderUser.PtKey,
+		UserID: data.AgnesCoderUser.UserID,
 	}, nil
 }
 ```
@@ -348,12 +348,12 @@ func TestCredentials_Fields(t *testing.T) {
 
 func TestLoadFromSystem_EmptyDbKey(t *testing.T) {
 	// Verify the SQLite query key is correct
-	expectedKey := "JoyCoder.IDE"
+	expectedKey := "AgnesCoder.IDE"
 	home, _ := os.UserHomeDir()
 	dbPath := filepath.Join(home, "Library", "Application Support",
-		"JoyCode", "User", "globalStorage", "state.vscdb")
+		"AgnesCode", "User", "globalStorage", "state.vscdb")
 	if _, err := os.Stat(dbPath); os.IsNotExist(err) {
-		t.Skip("JoyCode database not found, skipping integration test")
+		t.Skip("AgnesCode database not found, skipping integration test")
 	}
 	// If DB exists, verify we can read the key
 	creds, err := LoadFromSystem()
@@ -374,7 +374,7 @@ Expected:
   - Output does NOT contain: "FAIL"
 
 - [ ] **Step 4: 验证完整项目编译和全部测试通过**
-Run: `go build -o JoyCodeProxy ./cmd/JoyCodeProxy && go test ./...`
+Run: `go build -o AgnesCodeProxy ./cmd/AgnesCodeProxy && go test ./...`
 Expected:
   - Exit code: 0
   - Output contains: "ok" for all packages

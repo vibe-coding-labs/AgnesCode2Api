@@ -117,7 +117,7 @@ func (s *Store) GetStats() (*Stats, error) {
 ```
 
 - [ ] **Step 3: 验证编译**
-Run: `cd /Users/cc11001100/github/vibe-coding-labs/JoyCodeProxy && go build ./cmd/JoyCodeProxy/`
+Run: `cd /Users/cc11001100/github/vibe-coding-labs/AgnesCodeProxy && go build ./cmd/AgnesCodeProxy/`
 Expected:
   - Exit code: 0
 
@@ -233,8 +233,8 @@ const MainLayout: React.FC = () => {
           justifyContent: 'center',
           borderBottom: `1px solid ${token.colorBorderSecondary}`,
         }}>
-          <img src="/favicon.ico" alt="JoyCode" style={{ width: 24, height: 24, marginRight: collapsed ? 0 : 8 }} />
-          {!collapsed && <Text strong style={{ fontSize: 15 }}>JoyCode 代理</Text>}
+          <img src="/favicon.ico" alt="AgnesCode" style={{ width: 24, height: 24, marginRight: collapsed ? 0 : 8 }} />
+          {!collapsed && <Text strong style={{ fontSize: 15 }}>AgnesCode 代理</Text>}
         </div>
         <Menu
           mode="inline"
@@ -291,7 +291,7 @@ export interface Stats {
 ```
 
 - [ ] **Step 4: 验证前端编译**
-Run: `cd /Users/cc11001100/github/vibe-coding-labs/JoyCodeProxy/web && npx tsc -b --noEmit 2>&1 | head -20`
+Run: `cd /Users/cc11001100/github/vibe-coding-labs/AgnesCodeProxy/web && npx tsc -b --noEmit 2>&1 | head -20`
 Expected:
   - Exit code: 0 or no TS errors related to Dashboard/api
 
@@ -372,7 +372,7 @@ const Dashboard: React.FC = () => {
         <Row align="middle" justify="space-between">
           <Col>
             <Typography.Text style={{ color: 'rgba(255,255,255,0.85)', fontSize: 13 }}>
-              JoyCode API 代理服务
+              AgnesCode API 代理服务
             </Typography.Text>
             <Typography.Title level={3} style={{ color: '#fff', margin: '4px 0 0' }}>
               数据概览
@@ -531,13 +531,13 @@ export default Dashboard;
 ```
 
 - [ ] **Step 2: 构建前端**
-Run: `cd /Users/cc11001100/github/vibe-coding-labs/JoyCodeProxy/web && npm run build 2>&1 | tail -5`
+Run: `cd /Users/cc11001100/github/vibe-coding-labs/AgnesCodeProxy/web && npm run build 2>&1 | tail -5`
 Expected:
   - Exit code: 0
   - Output does NOT contain: "error" (warning about chunk size is ok)
 
 - [ ] **Step 3: 提交**
-Run: `git add web/src/pages/Dashboard.tsx cmd/JoyCodeProxy/static/ && git commit -m "feat(web): redesign dashboard as flat overview with real aggregated data"`
+Run: `git add web/src/pages/Dashboard.tsx cmd/AgnesCodeProxy/static/ && git commit -m "feat(web): redesign dashboard as flat overview with real aggregated data"`
 
 ---
 
@@ -547,12 +547,12 @@ Run: `git add web/src/pages/Dashboard.tsx cmd/JoyCodeProxy/static/ && git commit
 **Files:** None (build only)
 
 - [ ] **Step 1: 构建 Go 二进制**
-Run: `cd /Users/cc11001100/github/vibe-coding-labs/JoyCodeProxy && go build -o joycode_proxy_bin ./cmd/JoyCodeProxy/`
+Run: `cd /Users/cc11001100/github/vibe-coding-labs/AgnesCodeProxy && go build -o agnescode_proxy_bin ./cmd/AgnesCodeProxy/`
 Expected:
   - Exit code: 0
 
 - [ ] **Step 2: 重启服务**
-Run: `launchctl unload ~/Library/LaunchAgents/com.joycode.proxy.plist && launchctl load ~/Library/LaunchAgents/com.joycode.proxy.plist`
+Run: `launchctl unload ~/Library/LaunchAgents/com.agnescode.proxy.plist && launchctl load ~/Library/LaunchAgents/com.agnescode.proxy.plist`
 Expected:
   - Exit code: 0
 

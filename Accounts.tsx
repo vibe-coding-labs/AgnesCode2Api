@@ -389,22 +389,22 @@ const Accounts: React.FC = () => {
             loading={autoLogging}
             icon={<SafetyCertificateOutlined />}
           >
-            一键导入本地JoyCode已登录账户
+            一键导入本地AgnesCode已登录账户
           </Button>
           <Popconfirm
-            title="确定要清空本地 JoyCode IDE 的登录会话吗？"
-            description="清除后 JoyCode IDE 将需要重新登录，此操作不影响已导入的账号"
+            title="确定要清空本地 AgnesCode IDE 的登录会话吗？"
+            description="清除后 AgnesCode IDE 将需要重新登录，此操作不影响已导入的账号"
             onConfirm={async () => {
               try {
-                const result = await api.clearJoyCodeSession();
-                message.success(result.message || 'JoyCode 本地会话已清除');
+                const result = await api.clearAgnesCodeSession();
+                message.success(result.message || 'AgnesCode 本地会话已清除');
               } catch (e: unknown) {
                 message.error(e instanceof Error ? e.message : '清除会话失败');
               }
             }}
           >
             <Button danger icon={<ClearOutlined />}>
-              清空本地JoyCode会话
+              清空本地AgnesCode会话
             </Button>
           </Popconfirm>
           <Button onClick={() => setModalOpen(true)} icon={<PlusOutlined />}>
@@ -416,7 +416,7 @@ const Accounts: React.FC = () => {
         type="info"
         showIcon
         message="多账号路由说明"
-        description="每个账号对应一个 JoyCode 后端凭证。客户端通过「路由密钥」(API Key) 来指定使用哪个账号。同一个密钥始终路由到同一个账号，以最大化缓存命中率。配置 Claude Code 时，将路由密钥填入 ANTHROPIC_API_KEY 环境变量即可。"
+        description="每个账号对应一个 AgnesCode 后端凭证。客户端通过「路由密钥」(API Key) 来指定使用哪个账号。同一个密钥始终路由到同一个账号，以最大化缓存命中率。配置 Claude Code 时，将路由密钥填入 ANTHROPIC_API_KEY 环境变量即可。"
         style={{ marginBottom: 16 }}
       />
 
@@ -430,11 +430,11 @@ const Accounts: React.FC = () => {
           onClick: () => navigate(`/accounts/${encodeURIComponent(record.api_key)}`),
           style: { cursor: 'pointer' },
         })}
-        locale={{ emptyText: '暂无账号，请点击「一键导入」或「OAuth授权登录」按钮配置您的第一个 JoyCode 账号' }}
+        locale={{ emptyText: '暂无账号，请点击「一键导入」或「OAuth授权登录」按钮配置您的第一个 AgnesCode 账号' }}
       />
 
       <Modal
-        title="手动添加 JoyCode 账号"
+        title="手动添加 AgnesCode 账号"
         open={modalOpen}
         onCancel={() => { setModalOpen(false); form.resetFields(); }}
         onOk={() => form.submit()}
@@ -446,7 +446,7 @@ const Accounts: React.FC = () => {
           type="info"
           showIcon
           message="手动添加账号"
-          description="填写 JoyCode 客户端凭证信息。推荐使用「一键导入」自动导入本地已登录账户，此处适合手动配置多个账号。"
+          description="填写 AgnesCode 客户端凭证信息。推荐使用「一键导入」自动导入本地已登录账户，此处适合手动配置多个账号。"
           style={{ marginBottom: 16 }}
         />
         <Form form={form} layout="vertical" onFinish={handleAdd}>
@@ -455,7 +455,7 @@ const Accounts: React.FC = () => {
             label={
               <Space size={4}>
                 路由密钥 (API Key)
-                <Tooltip title="客户端使用此密钥来路由到对应的 JoyCode 账号。配置 Claude Code 时，将此值填入 ANTHROPIC_API_KEY 环境变量。建议使用易辨识的名称">
+                <Tooltip title="客户端使用此密钥来路由到对应的 AgnesCode 账号。配置 Claude Code 时，将此值填入 ANTHROPIC_API_KEY 环境变量。建议使用易辨识的名称">
                   <QuestionCircleOutlined style={{ color: '#999' }} />
                 </Tooltip>
               </Space>
@@ -468,29 +468,29 @@ const Accounts: React.FC = () => {
             name="pt_key"
             label={
               <Space size={4}>
-                JoyCode ptKey 凭证
-                <Tooltip title="从 JoyCode 客户端获取的 ptKey，用于后端 API 认证。获取方式：打开 JoyCode 桌面客户端 → 设置 → 开发者 → 复制 ptKey。凭证将以加密形式存储在本地数据库中">
+                AgnesCode ptKey 凭证
+                <Tooltip title="从 AgnesCode 客户端获取的 ptKey，用于后端 API 认证。获取方式：打开 AgnesCode 桌面客户端 → 设置 → 开发者 → 复制 ptKey。凭证将以加密形式存储在本地数据库中">
                   <QuestionCircleOutlined style={{ color: '#999' }} />
                 </Tooltip>
               </Space>
             }
             rules={[{ required: true, message: '请输入 ptKey' }]}
           >
-            <Input.Password placeholder="粘贴从 JoyCode 客户端复制的 ptKey，例如：eyJhbGci..." />
+            <Input.Password placeholder="粘贴从 AgnesCode 客户端复制的 ptKey，例如：eyJhbGci..." />
           </Form.Item>
           <Form.Item
             name="user_id"
             label={
               <Space size={4}>
-                JoyCode 用户 ID
-                <Tooltip title="与 ptKey 对应的用户 ID。获取方式：打开 JoyCode 桌面客户端 → 设置 → 个人信息 → 复制用户 ID">
+                AgnesCode 用户 ID
+                <Tooltip title="与 ptKey 对应的用户 ID。获取方式：打开 AgnesCode 桌面客户端 → 设置 → 个人信息 → 复制用户 ID">
                   <QuestionCircleOutlined style={{ color: '#999' }} />
                 </Tooltip>
               </Space>
             }
             rules={[{ required: true, message: '请输入用户 ID' }]}
           >
-            <Input placeholder="例如：user-12345 或从 JoyCode 客户端复制" />
+            <Input placeholder="例如：user-12345 或从 AgnesCode 客户端复制" />
           </Form.Item>
           <Form.Item
             name="default_model"

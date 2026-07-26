@@ -5,7 +5,7 @@ import (
 	"strings"
 	"testing"
 
-	"github.com/vibe-coding-labs/JoyCodeProxy/pkg/joycode"
+	"github.com/vibe-coding-labs/AgnesCode2Api/pkg/agnes"
 )
 
 // --- TranslateRequest tests ---
@@ -226,7 +226,7 @@ func TestTranslateResponse_Object(t *testing.T) {
 
 // Test 14: Single model
 func TestTranslateModels_Single(t *testing.T) {
-	models := []joycode.ModelInfo{
+	models := []agnescode.ModelInfo{
 		{Label: "JoyAI-Code", ModelID: "JoyAI-Code"},
 	}
 	result := TranslateModels(models)
@@ -244,7 +244,7 @@ func TestTranslateModels_Single(t *testing.T) {
 
 // Test 15: Multiple models
 func TestTranslateModels_Multiple(t *testing.T) {
-	models := []joycode.ModelInfo{
+	models := []agnescode.ModelInfo{
 		{Label: "JoyAI-Code", ModelID: "JoyAI-Code"},
 		{Label: "GLM-5.1", ModelID: "GLM-5.1"},
 		{Label: "Kimi-K2.6", ModelID: "Kimi-K2.6"},
@@ -258,7 +258,7 @@ func TestTranslateModels_Multiple(t *testing.T) {
 
 // Test 16: Model with ModelID uses ModelID
 func TestTranslateModels_UsesModelID(t *testing.T) {
-	models := []joycode.ModelInfo{
+	models := []agnescode.ModelInfo{
 		{Label: "Display Name", ModelID: "internal-id"},
 	}
 	result := TranslateModels(models)
@@ -270,7 +270,7 @@ func TestTranslateModels_UsesModelID(t *testing.T) {
 
 // Test 17: Model without ModelID uses Label
 func TestTranslateModels_UsesLabel(t *testing.T) {
-	models := []joycode.ModelInfo{
+	models := []agnescode.ModelInfo{
 		{Label: "Display Name", ModelID: ""},
 	}
 	result := TranslateModels(models)
@@ -282,7 +282,7 @@ func TestTranslateModels_UsesLabel(t *testing.T) {
 
 // Test 18: Model with capabilities includes them
 func TestTranslateModels_Capabilities(t *testing.T) {
-	models := []joycode.ModelInfo{
+	models := []agnescode.ModelInfo{
 		{Label: "JoyAI-Code", ModelID: "JoyAI-Code"},
 	}
 	result := TranslateModels(models)
@@ -302,7 +302,7 @@ func TestTranslateModels_Capabilities(t *testing.T) {
 
 // Test 19: Empty model list
 func TestTranslateModels_Empty(t *testing.T) {
-	result := TranslateModels([]joycode.ModelInfo{})
+	result := TranslateModels([]agnescode.ModelInfo{})
 	data, ok := result["data"].([]map[string]interface{})
 	if !ok {
 		t.Fatal("data is not a slice of maps")
@@ -378,8 +378,8 @@ func TestTranslateStreamChunk_Object(t *testing.T) {
 // Test 24: Empty returns JoyAI-Code
 func TestResolveModel_Empty(t *testing.T) {
 	result := ResolveModel("", "", "")
-	if result != joycode.DefaultModel {
-		t.Errorf("expected %s, got %s", joycode.DefaultModel, result)
+	if result != agnescode.DefaultModel {
+		t.Errorf("expected %s, got %s", agnescode.DefaultModel, result)
 	}
 }
 

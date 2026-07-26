@@ -11,14 +11,14 @@ import (
 	"testing"
 	"time"
 
-	"github.com/vibe-coding-labs/JoyCodeProxy/pkg/joycode"
-	"github.com/vibe-coding-labs/JoyCodeProxy/pkg/store"
+	"github.com/vibe-coding-labs/AgnesCode2Api/pkg/agnes"
+	"github.com/vibe-coding-labs/AgnesCode2Api/pkg/store"
 )
 
 // --- Mock infrastructure ---
 //
-// We create a joycode.Client whose httpClient uses a transport that redirects
-// requests from the real JoyCode API base URL to a local httptest.Server.
+// We create a agnescode.Client whose httpClient uses a transport that redirects
+// requests from the real AgnesCode API base URL to a local httptest.Server.
 // The mock server returns canned responses based on the request path.
 
 // redirectTransport is an http.RoundTripper that rewrites every request URL
@@ -40,10 +40,10 @@ func (rt redirectTransport) RoundTrip(req *http.Request) (*http.Response, error)
 	return http.DefaultTransport.RoundTrip(newReq)
 }
 
-// mockHandler returns an http.Handler that serves canned JoyCode API responses.
+// mockHandler returns an http.Handler that serves canned AgnesCode API responses.
 func mockHandler(responses map[string]interface{}) http.Handler {
 	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-		// JoyCode 2.7 端点升 v2；mock 仍按 v1 path 注册，这里归一化 v2→v1。
+		// AgnesCode 2.7 端点升 v2；mock 仍按 v1 path 注册，这里归一化 v2→v1。
 		path := strings.Replace(r.URL.Path, "/v2/", "/v1/", 1)
 		resp, ok := responses[path]
 		if !ok {
@@ -57,10 +57,10 @@ func mockHandler(responses map[string]interface{}) http.Handler {
 	})
 }
 
-// newMockClient creates a joycode.Client that routes all requests to the
+// newMockClient creates a agnescode.Client that routes all requests to the
 // given httptest.Server.
-func newMockClient(ts *httptest.Server) *joycode.Client {
-	c := joycode.NewClient("test-key", "test-user")
+func newMockClient(ts *httptest.Server) *agnescode.Client {
+	c := agnescode.NewClient("test-key", "test-user")
 	// 走 direct 模式（清空网关 colorBaseURL），让 mock 按 path 路由而非 /api?functionId=
 	c.ColorBaseURL = ""
 	c.SetHTTPClient(&http.Client{
@@ -74,7 +74,7 @@ func newMockClient(ts *httptest.Server) *joycode.Client {
 // The caller should call the returned cleanup function (which removes the
 // temp directory) when done.
 func newTempStore() (*store.Store, func(), error) {
-	dir, err := os.MkdirTemp("", "joycode-test-*")
+	dir, err := os.MkdirTemp("", "agnescode-test-*")
 	if err != nil {
 		return nil, nil, err
 	}
@@ -92,10 +92,10 @@ func newTempStore() (*store.Store, func(), error) {
 }
 
 // setupOpenAIServer creates a fully wired openai.Server backed by a mock
-// JoyCode API. Returns the HTTP test server for the OpenAI API, and a
+// AgnesCode API. Returns the HTTP test server for the OpenAI API, and a
 // cleanup function.
 func setupOpenAIServer(responses map[string]interface{}) (*httptest.Server, func()) {
-	// Backend mock for JoyCode API
+	// Backend mock for AgnesCode API
 	backend := httptest.NewServer(mockHandler(responses))
 	client := newMockClient(backend)
 

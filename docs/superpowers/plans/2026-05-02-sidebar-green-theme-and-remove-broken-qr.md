@@ -63,8 +63,8 @@ const MainLayout: React.FC = () => {
           justifyContent: 'center',
           borderBottom: '1px solid rgba(255,255,255,0.15)',
         }}>
-          <img src="/favicon.ico" alt="JoyCode" style={{ width: 24, height: 24, marginRight: collapsed ? 0 : 8 }} />
-          {!collapsed && <Text strong style={{ fontSize: 15, color: '#fff' }}>JoyCode 代理</Text>}
+          <img src="/favicon.ico" alt="AgnesCode" style={{ width: 24, height: 24, marginRight: collapsed ? 0 : 8 }} />
+          {!collapsed && <Text strong style={{ fontSize: 15, color: '#fff' }}>AgnesCode 代理</Text>}
         </div>
         <Menu
           mode="inline"
@@ -160,12 +160,12 @@ Expected:
   - Output contains: "built in"
 
 - [ ] **Step 2: 构建后端二进制**
-Run: `cd /Users/cc11001100/github/vibe-coding-labs/JoyCodeProxy && go build -o joycode_proxy_bin ./cmd/JoyCodeProxy`
+Run: `cd /Users/cc11001100/github/vibe-coding-labs/AgnesCodeProxy && go build -o agnescode_proxy_bin ./cmd/AgnesCodeProxy`
 Expected:
   - Exit code: 0
 
 - [ ] **Step 3: 重启服务**
-Run: `ps aux | grep joycode_proxy_bin | grep -v grep | awk '{print $2}' | xargs kill`
+Run: `ps aux | grep agnescode_proxy_bin | grep -v grep | awk '{print $2}' | xargs kill`
 Expected: launchd 自动重启
 
 - [ ] **Step 4: 验证**

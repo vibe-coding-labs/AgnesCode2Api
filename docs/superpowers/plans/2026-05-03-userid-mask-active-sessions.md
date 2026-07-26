@@ -60,7 +60,7 @@ const maskUserId = (id: string): string => {
 ```
 
 - [ ] **Step 3: 验证前端打码效果**
-Run: `cd /Users/cc11001100/github/vibe-coding-labs/JoyCodeProxy/web && npm run build`
+Run: `cd /Users/cc11001100/github/vibe-coding-labs/AgnesCodeProxy/web && npm run build`
 Expected:
   - Exit code: 0
   - Output contains: "built in"
@@ -75,7 +75,7 @@ Run: `git add web/src/pages/Accounts.tsx web/src/pages/AccountDetail.tsx && git 
 
 **Depends on:** None
 **Files:**
-- Modify: `cmd/JoyCodeProxy/serve.go:250-355`（requestLogMiddleware 添加计数器）
+- Modify: `cmd/AgnesCodeProxy/serve.go:250-355`（requestLogMiddleware 添加计数器）
 - Modify: `pkg/store/store.go:37-44`（AccountInfo 添加 ActiveSessions 字段）
 - Modify: `pkg/dashboard/handler.go`（列表接口注入 active_sessions）
 - Modify: `web/src/api.ts:1-8`（Account 类型添加 active_sessions）
@@ -83,7 +83,7 @@ Run: `git add web/src/pages/Accounts.tsx web/src/pages/AccountDetail.tsx && git 
 
 - [ ] **Step 1: 在 serve.go 添加全局活跃请求追踪器**
 
-在 `cmd/JoyCodeProxy/serve.go` 文件的 import 块中添加 `"sync"` 和 `"github.com/vibe-coding-labs/JoyCodeProxy/pkg/store"` 已存在。添加一个全局的 SessionTracker：
+在 `cmd/AgnesCodeProxy/serve.go` 文件的 import 块中添加 `"sync"` 和 `"github.com/vibe-coding-labs/AgnesCodeProxy/pkg/store"` 已存在。添加一个全局的 SessionTracker：
 
 在 `var requestCounter uint64` 之后（serve.go:33 附近）添加：
 
@@ -173,7 +173,7 @@ type AccountInfo struct {
 
 在 `accounts, err := h.store.ListAccounts()` 之后、写入 JSON 响应之前，添加遍历逻辑：
 
-在 handler.go 的 import 块中添加 `"github.com/vibe-coding-labs/JoyCodeProxy/cmd/JoyCodeProxy"` — 但这会产生循环依赖（main 包不能被导入）。
+在 handler.go 的 import 块中添加 `"github.com/vibe-coding-labs/AgnesCodeProxy/cmd/AgnesCodeProxy"` — 但这会产生循环依赖（main 包不能被导入）。
 
 **替代方案：** 将 `GetActiveSessions` 放在一个独立的 package 中。创建 `pkg/proxy/sessions.go`：
 
@@ -208,9 +208,9 @@ func GetActiveSessions(apiKey string) int64 {
 }
 ```
 
-然后修改 `cmd/JoyCodeProxy/serve.go` 的 requestLogMiddleware 使用 `proxy.TrackActive` 替代 Step 2 中的内联代码。
+然后修改 `cmd/AgnesCodeProxy/serve.go` 的 requestLogMiddleware 使用 `proxy.TrackActive` 替代 Step 2 中的内联代码。
 
-在 serve.go 的 import 中添加 `"github.com/vibe-coding-labs/JoyCodeProxy/pkg/proxy"`。
+在 serve.go 的 import 中添加 `"github.com/vibe-coding-labs/AgnesCodeProxy/pkg/proxy"`。
 
 将 Step 2 中的内联 activeSessions 追踪代码替换为：
 
@@ -250,7 +250,7 @@ func GetActiveSessions(apiKey string) int64 {
 
 在 `pkg/dashboard/handler.go` 中找到 `handleListAccounts` 函数，在获取 accounts 列表后、写入响应前，注入 active_sessions：
 
-在 handler.go 的 import 块中添加 `"github.com/vibe-coding-labs/JoyCodeProxy/pkg/proxy"`。
+在 handler.go 的 import 块中添加 `"github.com/vibe-coding-labs/AgnesCodeProxy/pkg/proxy"`。
 
 在 `handleListAccounts` 函数中，`json.NewEncoder(w).Encode(...)` 调用之前添加：
 
@@ -292,16 +292,16 @@ export interface Account {
 ```
 
 - [ ] **Step 7: 构建并部署**
-Run: `cd /Users/cc11001100/github/vibe-coding-labs/JoyCodeProxy/web && npm run build && cd /Users/cc11001100/github/vibe-coding-labs/JoyCodeProxy && go build -o joycode_proxy_bin ./cmd/JoyCodeProxy`
+Run: `cd /Users/cc11001100/github/vibe-coding-labs/AgnesCodeProxy/web && npm run build && cd /Users/cc11001100/github/vibe-coding-labs/AgnesCodeProxy && go build -o agnescode_proxy_bin ./cmd/AgnesCodeProxy`
 Expected:
   - Exit code: 0
   - Output does NOT contain: "error" or "undefined"
 
 - [ ] **Step 8: 部署并验证**
-Run: `cp /Users/cc11001100/github/vibe-coding-labs/JoyCodeProxy/joycode_proxy_bin /Users/cc11001100/.joycode-proxy/joycode_proxy_bin && launchctl unload /Users/cc11001100/Library/LaunchAgents/com.joycode.proxy.plist && launchctl load /Users/cc11001100/Library/LaunchAgents/com.joycode.proxy.plist`
+Run: `cp /Users/cc11001100/github/vibe-coding-labs/AgnesCodeProxy/agnescode_proxy_bin /Users/cc11001100/.agnescode-proxy/agnescode_proxy_bin && launchctl unload /Users/cc11001100/Library/LaunchAgents/com.agnescode.proxy.plist && launchctl load /Users/cc11001100/Library/LaunchAgents/com.agnescode.proxy.plist`
 Expected:
   - Exit code: 0
   - Service accessible at http://localhost:34891
 
 - [ ] **Step 9: 提交**
-Run: `git add pkg/proxy/sessions.go cmd/JoyCodeProxy/serve.go pkg/store/store.go pkg/dashboard/handler.go web/src/api.ts web/src/pages/Accounts.tsx web/src/pages/AccountDetail.tsx && git commit -m "feat: add user_id masking and active session counting per account"`
+Run: `git add pkg/proxy/sessions.go cmd/AgnesCodeProxy/serve.go pkg/store/store.go pkg/dashboard/handler.go web/src/api.ts web/src/pages/Accounts.tsx web/src/pages/AccountDetail.tsx && git commit -m "feat: add user_id masking and active session counting per account"`

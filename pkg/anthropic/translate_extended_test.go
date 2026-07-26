@@ -6,7 +6,7 @@ import (
 	"strings"
 	"testing"
 
-	"github.com/vibe-coding-labs/JoyCodeProxy/pkg/joycode"
+	"github.com/vibe-coding-labs/AgnesCode2Api/pkg/agnes"
 )
 
 // ---------------------------------------------------------------------------
@@ -25,16 +25,16 @@ func TestResolveModel_KnownJoyCodePassThrough(t *testing.T) {
 func TestResolveModel_UnknownDefaults(t *testing.T) {
 	// Unknown model with no overrides defaults to JoyAI-Code.
 	got := resolveModel("some-unknown-model-xyz", "", "")
-	if got != joycode.DefaultModel {
-		t.Errorf("resolveModel(unknown) = %q, want %s", got, joycode.DefaultModel)
+	if got != agnescode.DefaultModel {
+		t.Errorf("resolveModel(unknown) = %q, want %s", got, agnescode.DefaultModel)
 	}
 }
 
 func TestResolveModel_EmptyString(t *testing.T) {
 	// Empty string with no overrides defaults to JoyAI-Code.
 	got := resolveModel("", "", "")
-	if got != joycode.DefaultModel {
-		t.Errorf("resolveModel('') = %q, want %s", got, joycode.DefaultModel)
+	if got != agnescode.DefaultModel {
+		t.Errorf("resolveModel('') = %q, want %s", got, agnescode.DefaultModel)
 	}
 }
 
@@ -53,8 +53,8 @@ func TestTranslateRequest_Basic(t *testing.T) {
 	}
 	body := TranslateRequest(req, "", "")
 
-	if body["model"] != joycode.DefaultModel {
-		t.Errorf("model = %v, want %s", body["model"], joycode.DefaultModel)
+	if body["model"] != agnescode.DefaultModel {
+		t.Errorf("model = %v, want %s", body["model"], agnescode.DefaultModel)
 	}
 	if body["max_tokens"] != 1024 {
 		t.Errorf("max_tokens = %v, want 1024", body["max_tokens"])

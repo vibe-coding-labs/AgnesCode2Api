@@ -56,7 +56,7 @@ s.db.QueryRow("SELECT COUNT(*) FROM request_logs WHERE api_key = ? AND status_co
 ```
 
 - [ ] **Step 3: 验证后端编译**
-Run: `cd /Users/cc11001100/github/vibe-coding-labs/JoyCodeProxy && go build ./...`
+Run: `cd /Users/cc11001100/github/vibe-coding-labs/AgnesCodeProxy && go build ./...`
 Expected:
   - Exit code: 0
   - Output does NOT contain: "Error" or "cannot"
@@ -227,13 +227,13 @@ stream_count: number;
 同时删除之前已不再使用的 `successRate` 变量定义（AccountDetail.tsx:177-179），因为面板内已内联计算。如果该变量在后续代码中无引用，直接移除。
 
 - [ ] **Step 3: 构建前端**
-Run: `cd /Users/cc11001100/github/vibe-coding-labs/JoyCodeProxy/web && npm run build`
+Run: `cd /Users/cc11001100/github/vibe-coding-labs/AgnesCodeProxy/web && npm run build`
 Expected:
   - Exit code: 0
   - Output contains: "built in"
 
 - [ ] **Step 4: 构建 Go 二进制并重启服务**
-Run: `cd /Users/cc11001100/github/vibe-coding-labs/JoyCodeProxy && go build -o joycode_proxy_bin ./cmd/JoyCodeProxy/ && launchctl unload ~/Library/LaunchAgents/com.joycode.proxy.plist && launchctl load ~/Library/LaunchAgents/com.joycode.proxy.plist && sleep 1 && curl -s http://localhost:34891/api/health`
+Run: `cd /Users/cc11001100/github/vibe-coding-labs/AgnesCodeProxy && go build -o agnescode_proxy_bin ./cmd/AgnesCodeProxy/ && launchctl unload ~/Library/LaunchAgents/com.agnescode.proxy.plist && launchctl load ~/Library/LaunchAgents/com.agnescode.proxy.plist && sleep 1 && curl -s http://localhost:34891/api/health`
 Expected:
   - Exit code: 0
   - Output contains: `"status":"ok"`

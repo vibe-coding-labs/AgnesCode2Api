@@ -3,9 +3,9 @@
 > **For agentic workers:** REQUIRED SUB-SKILL: `superpowers:subagent-driven-development`
 > Steps use checkbox (`- [ ]`) syntax.
 
-**Goal:** 支持多个 JoyCode 账号凭证同时运行，通过 API Key 路由到对应的 JoyCode 后端账号，同一个 Key 始终命中同一个账号的凭证，实现账号隔离。
+**Goal:** 支持多个 AgnesCode 账号凭证同时运行，通过 API Key 路由到对应的 AgnesCode 后端账号，同一个 Key 始终命中同一个账号的凭证，实现账号隔离。
 
-**Architecture:** 客户端通过 `x-api-key` Header 发送预配置的 key → `CredentialRouter` 根据 key 查找对应的 JoyCode `Client` 实例 → 用该 Client 转发请求。配置通过 JSON 文件（`~/.joycode-proxy/accounts.json`）管理，支持 CLI 添加/删除/列出账号。同一 key 的所有请求始终使用同一个 Client 实例（含相同的 session_id），最大化命中 JoyCode 后端缓存。
+**Architecture:** 客户端通过 `x-api-key` Header 发送预配置的 key → `CredentialRouter` 根据 key 查找对应的 AgnesCode `Client` 实例 → 用该 Client 转发请求。配置通过 JSON 文件（`~/.agnescode-proxy/accounts.json`）管理，支持 CLI 添加/删除/列出账号。同一 key 的所有请求始终使用同一个 Client 实例（含相同的 session_id），最大化命中 AgnesCode 后端缓存。
 
 **Tech Stack:** Python 3.12, FastAPI, Click 8, httpx, JSON 文件存储
 
@@ -20,30 +20,30 @@
 
 **Depends on:** None
 **Files:**
-- Create: `joycode_proxy/credential_router.py`
+- Create: `agnescode_proxy/credential_router.py`
 - Create: `tests/test_credential_router.py`
 
 - [ ] **Step 1: 创建 CredentialRouter — 负责管理多账号凭证到 Client 实例的映射**
 
 ```python
-# joycode_proxy/credential_router.py
+# agnescode_proxy/credential_router.py
 import json
 import logging
 import os
 from pathlib import Path
 from typing import Dict, List, Optional
 
-from joycode_proxy.auth import Credentials
-from joycode_proxy.client import Client
+from agnescode_proxy.auth import Credentials
+from agnescode_proxy.client import Client
 
-log = logging.getLogger("joycode-proxy.router")
+log = logging.getLogger("agnescode-proxy.router")
 
-ACCOUNTS_DIR = Path.home() / ".joycode-proxy"
+ACCOUNTS_DIR = Path.home() / ".agnescode-proxy"
 ACCOUNTS_FILE = ACCOUNTS_DIR / "accounts.json"
 
 
 class CredentialRouter:
-    """Manages multiple JoyCode accounts, routing API keys to Client instances."""
+    """Manages multiple AgnesCode accounts, routing API keys to Client instances."""
 
     def __init__(self):
         self._clients: Dict[str, Client] = {}
@@ -146,7 +146,7 @@ import json
 import tempfile
 from pathlib import Path
 
-from joycode_proxy.credential_router import CredentialRouter
+from agnescode_proxy.credential_router import CredentialRouter
 
 
 def test_add_and_get_account():
@@ -224,13 +224,13 @@ def test_file_permissions():
 ```
 
 - [ ] **Step 3: 验证 CredentialRouter**
-Run: `cd /Users/cc11001100/github/vibe-coding-labs/JoyCodeProxy && python3 -m pytest tests/test_credential_router.py -v`
+Run: `cd /Users/cc11001100/github/vibe-coding-labs/AgnesCodeProxy && python3 -m pytest tests/test_credential_router.py -v`
 Expected:
   - Exit code: 0
   - Output contains: "7 passed"
 
 - [ ] **Step 4: 提交**
-Run: `git add joycode_proxy/credential_router.py tests/test_credential_router.py && git commit -m "feat(auth): add CredentialRouter for multi-account key-based routing"`
+Run: `git add agnescode_proxy/credential_router.py tests/test_credential_router.py && git commit -m "feat(auth): add CredentialRouter for multi-account key-based routing"`
 
 ---
 
@@ -238,29 +238,29 @@ Run: `git add joycode_proxy/credential_router.py tests/test_credential_router.py
 
 **Depends on:** Task 1
 **Files:**
-- Modify: `joycode_proxy/cli.py:1-82`（添加 account 子命令组 + 修改 serve 使用 CredentialRouter）
+- Modify: `agnescode_proxy/cli.py:1-82`（添加 account 子命令组 + 修改 serve 使用 CredentialRouter）
 
 - [ ] **Step 1: 修改 CLI 添加 account 子命令组 — 支持 add/remove/list/validate**
 
-文件: `joycode_proxy/cli.py` — 在文件末尾 `if __name__` 之前添加 account 命令组：
+文件: `agnescode_proxy/cli.py` — 在文件末尾 `if __name__` 之前添加 account 命令组：
 
 ```python
 # 添加到 cli.py 末尾（在 if __name__ == "__main__" 之前）
 
 @cli.group()
 def account():
-    """Manage JoyCode accounts for multi-user routing."""
+    """Manage AgnesCode accounts for multi-user routing."""
     pass
 
 
 @account.command("add")
 @click.argument("api_key")
-@click.option("-k", "--ptkey", required=True, help="JoyCode ptKey")
-@click.option("-u", "--userid", required=True, help="JoyCode userID")
+@click.option("-k", "--ptkey", required=True, help="AgnesCode ptKey")
+@click.option("-u", "--userid", required=True, help="AgnesCode userID")
 @click.option("-d", "--default", is_flag=True, help="Set as default account")
 def account_add(api_key: str, ptkey: str, userid: str, default: bool):
     """Add a new account. API_KEY is the key clients use to route to this account."""
-    from joycode_proxy.credential_router import CredentialRouter
+    from agnescode_proxy.credential_router import CredentialRouter
     router = CredentialRouter.load()
     router.add_account(api_key, ptkey, userid, default=default)
     router.save()
@@ -271,7 +271,7 @@ def account_add(api_key: str, ptkey: str, userid: str, default: bool):
 @click.argument("api_key")
 def account_remove(api_key: str):
     """Remove an account by its API key."""
-    from joycode_proxy.credential_router import CredentialRouter
+    from agnescode_proxy.credential_router import CredentialRouter
     router = CredentialRouter.load()
     if router.remove_account(api_key):
         router.save()
@@ -283,7 +283,7 @@ def account_remove(api_key: str):
 @account.command("list")
 def account_list():
     """List all configured accounts."""
-    from joycode_proxy.credential_router import CredentialRouter
+    from agnescode_proxy.credential_router import CredentialRouter
     router = CredentialRouter.load()
     accounts = router.list_accounts()
     if not accounts:
@@ -291,7 +291,7 @@ def account_list():
         return
     from rich.table import Table
     from rich import box
-    table = Table(title="JoyCode Accounts", box=box.ROUNDED)
+    table = Table(title="AgnesCode Accounts", box=box.ROUNDED)
     table.add_column("API Key", style="cyan")
     table.add_column("User ID", style="green")
     table.add_column("Default", style="yellow")
@@ -304,7 +304,7 @@ def account_list():
 @account.command("validate")
 def account_validate():
     """Validate all configured accounts."""
-    from joycode_proxy.credential_router import CredentialRouter
+    from agnescode_proxy.credential_router import CredentialRouter
     router = CredentialRouter.load()
     if not router.list_accounts():
         print_warning("No accounts configured")
@@ -319,7 +319,7 @@ def account_validate():
 
 - [ ] **Step 2: 修改 serve 命令 — 使用 CredentialRouter 替代单一 Client**
 
-文件: `joycode_proxy/cli.py:69-82`（替换 serve 函数）
+文件: `agnescode_proxy/cli.py:69-82`（替换 serve 函数）
 
 ```python
 # 替换 cli.py 中的 serve 命令（第69-82行）
@@ -329,7 +329,7 @@ def account_validate():
 @click.pass_context
 def serve(ctx, host: str, port: int):
     import uvicorn
-    from joycode_proxy.credential_router import CredentialRouter
+    from agnescode_proxy.credential_router import CredentialRouter
     print_banner()
 
     router = CredentialRouter.load()
@@ -353,7 +353,7 @@ def serve(ctx, host: str, port: int):
                 if not valid:
                     print_warning(f"  Invalid account: {key}")
 
-    from joycode_proxy.server import create_app
+    from agnescode_proxy.server import create_app
     app = create_app(router)
     print_endpoint_tree(host, port)
     console.print()
@@ -362,13 +362,13 @@ def serve(ctx, host: str, port: int):
 ```
 
 - [ ] **Step 3: 验证 CLI account 命令**
-Run: `cd /Users/cc11001100/github/vibe-coding-labs/JoyCodeProxy && python3 -m joycode_proxy.cli account list`
+Run: `cd /Users/cc11001100/github/vibe-coding-labs/AgnesCodeProxy && python3 -m agnescode_proxy.cli account list`
 Expected:
   - Exit code: 0
   - Output contains: "No accounts configured"
 
 - [ ] **Step 4: 提交**
-Run: `git add joycode_proxy/cli.py && git commit -m "feat(cli): add account subcommands for multi-account management"`
+Run: `git add agnescode_proxy/cli.py && git commit -m "feat(cli): add account subcommands for multi-account management"`
 
 ---
 
@@ -376,24 +376,24 @@ Run: `git add joycode_proxy/cli.py && git commit -m "feat(cli): add account subc
 
 **Depends on:** Task 1, Task 2
 **Files:**
-- Modify: `joycode_proxy/server.py:1-19`（接收 CredentialRouter 替代 Client）
-- Modify: `joycode_proxy/anthropic_handler.py`（从 request 提取 key 路由到 Client）
-- Modify: `joycode_proxy/openai_handler.py`（同上）
+- Modify: `agnescode_proxy/server.py:1-19`（接收 CredentialRouter 替代 Client）
+- Modify: `agnescode_proxy/anthropic_handler.py`（从 request 提取 key 路由到 Client）
+- Modify: `agnescode_proxy/openai_handler.py`（同上）
 
 - [ ] **Step 1: 修改 server.py — 传递 CredentialRouter 替代 Client**
 
-文件: `joycode_proxy/server.py`（替换整个文件）
+文件: `agnescode_proxy/server.py`（替换整个文件）
 
 ```python
-from joycode_proxy.credential_router import CredentialRouter
-from joycode_proxy.openai_handler import create_openai_router
-from joycode_proxy.anthropic_handler import create_anthropic_router
+from agnescode_proxy.credential_router import CredentialRouter
+from agnescode_proxy.openai_handler import create_openai_router
+from agnescode_proxy.anthropic_handler import create_anthropic_router
 
 
 def create_app(router: CredentialRouter):
     from fastapi import FastAPI
     from fastapi.middleware.cors import CORSMiddleware
-    app = FastAPI(title="JoyCode Proxy")
+    app = FastAPI(title="AgnesCode Proxy")
     app.add_middleware(
         CORSMiddleware,
         allow_origins=["*"],
@@ -407,15 +407,15 @@ def create_app(router: CredentialRouter):
 
 - [ ] **Step 2: 修改 anthropic_handler.py — 从 x-api-key 提取路由 key**
 
-文件: `joycode_proxy/anthropic_handler.py` — 修改文件头部 import 和 `create_anthropic_router` 函数签名：
+文件: `agnescode_proxy/anthropic_handler.py` — 修改文件头部 import 和 `create_anthropic_router` 函数签名：
 
-将 `from joycode_proxy.client import CHAT_ENDPOINT, Client, MODELS` 中的 `Client` 替换为 `CredentialRouter`，并修改路由函数：
+将 `from agnescode_proxy.client import CHAT_ENDPOINT, Client, MODELS` 中的 `Client` 替换为 `CredentialRouter`，并修改路由函数：
 
 ```python
 # 修改 anthropic_handler.py 的 import 区域
-# 替换: from joycode_proxy.client import CHAT_ENDPOINT, Client, MODELS
-from joycode_proxy.client import CHAT_ENDPOINT, MODELS
-from joycode_proxy.credential_router import CredentialRouter
+# 替换: from agnescode_proxy.client import CHAT_ENDPOINT, Client, MODELS
+from agnescode_proxy.client import CHAT_ENDPOINT, MODELS
+from agnescode_proxy.credential_router import CredentialRouter
 ```
 
 修改 `create_anthropic_router` 函数签名和内部逻辑：
@@ -447,7 +447,7 @@ def create_anthropic_router(router: CredentialRouter) -> APIRouter:
         try:
             jc_resp = client.post(CHAT_ENDPOINT, openai_kwargs)
         except Exception as exc:
-            log.error("JoyCode API error: %s", exc)
+            log.error("AgnesCode API error: %s", exc)
             return _error_response(500, str(exc))
 
         resp = _translate_response(jc_resp, requested_model, tool_name_mapping)
@@ -460,13 +460,13 @@ def create_anthropic_router(router: CredentialRouter) -> APIRouter:
 
 - [ ] **Step 3: 修改 openai_handler.py — 同样从 x-api-key 提取路由 key**
 
-文件: `joycode_proxy/openai_handler.py` — 修改 import 和 `create_openai_router` 函数：
+文件: `agnescode_proxy/openai_handler.py` — 修改 import 和 `create_openai_router` 函数：
 
 替换 import 区域：
 ```python
-# 替换: from joycode_proxy.client import CHAT_ENDPOINT, Client, DEFAULT_MODEL, MODELS
-from joycode_proxy.client import CHAT_ENDPOINT, DEFAULT_MODEL, MODELS
-from joycode_proxy.credential_router import CredentialRouter
+# 替换: from agnescode_proxy.client import CHAT_ENDPOINT, Client, DEFAULT_MODEL, MODELS
+from agnescode_proxy.client import CHAT_ENDPOINT, DEFAULT_MODEL, MODELS
+from agnescode_proxy.credential_router import CredentialRouter
 ```
 
 替换 `create_openai_router` 函数签名（约第 215 行起）：
@@ -559,7 +559,7 @@ def create_openai_router(router: CredentialRouter) -> APIRouter:
         return JSONResponse(
             content={
                 "status": "ok",
-                "service": "joycode-openai-proxy",
+                "service": "agnescode-openai-proxy",
                 "accounts": len(router.list_accounts()),
                 "endpoints": [
                     "/v1/chat/completions",
@@ -574,19 +574,19 @@ def create_openai_router(router: CredentialRouter) -> APIRouter:
 ```
 
 - [ ] **Step 4: 验证 import 和基本启动**
-Run: `cd /Users/cc11001100/github/vibe-coding-labs/JoyCodeProxy && python3 -c "from joycode_proxy.server import create_app; from joycode_proxy.credential_router import CredentialRouter; r = CredentialRouter(); r.add_account('test', 'pk', 'uid'); app = create_app(r); print('OK: routes=', len(app.routes))"`
+Run: `cd /Users/cc11001100/github/vibe-coding-labs/AgnesCodeProxy && python3 -c "from agnescode_proxy.server import create_app; from agnescode_proxy.credential_router import CredentialRouter; r = CredentialRouter(); r.add_account('test', 'pk', 'uid'); app = create_app(r); print('OK: routes=', len(app.routes))"`
 Expected:
   - Exit code: 0
   - Output contains: "OK: routes="
 
 - [ ] **Step 5: 运行全部测试**
-Run: `cd /Users/cc11001100/github/vibe-coding-labs/JoyCodeProxy && python3 -m pytest tests/ -v`
+Run: `cd /Users/cc11001100/github/vibe-coding-labs/AgnesCodeProxy && python3 -m pytest tests/ -v`
 Expected:
   - Exit code: 0
   - Output contains: "passed"
 
 - [ ] **Step 6: 提交**
-Run: `git add joycode_proxy/server.py joycode_proxy/anthropic_handler.py joycode_proxy/openai_handler.py && git commit -m "feat(router): integrate CredentialRouter into server and handlers"`
+Run: `git add agnescode_proxy/server.py agnescode_proxy/anthropic_handler.py agnescode_proxy/openai_handler.py && git commit -m "feat(router): integrate CredentialRouter into server and handlers"`
 
 ---
 
@@ -603,8 +603,8 @@ Run: `git add joycode_proxy/server.py joycode_proxy/anthropic_handler.py joycode
 import json
 from fastapi.testclient import TestClient
 
-from joycode_proxy.credential_router import CredentialRouter
-from joycode_proxy.server import create_app
+from agnescode_proxy.credential_router import CredentialRouter
+from agnescode_proxy.server import create_app
 
 
 def _make_router() -> CredentialRouter:
@@ -674,7 +674,7 @@ def test_empty_router_returns_error():
 ```
 
 - [ ] **Step 2: 运行端到端测试**
-Run: `cd /Users/cc11001100/github/vibe-coding-labs/JoyCodeProxy && python3 -m pytest tests/test_multi_account.py tests/test_credential_router.py -v`
+Run: `cd /Users/cc11001100/github/vibe-coding-labs/AgnesCodeProxy && python3 -m pytest tests/test_multi_account.py tests/test_credential_router.py -v`
 Expected:
   - Exit code: 0
   - Output contains: "12 passed"

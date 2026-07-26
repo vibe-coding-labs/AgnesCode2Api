@@ -325,7 +325,7 @@ const AccountDetail: React.FC = () => {
           </div>
         </div>
         <Space>
-          <Tooltip title="此模型的用途仅限生成下方的快速启动命令。实际请求中的模型由客户端指定（如 ANTHROPIC_MODEL 环境变量），始终优先于本设置。模型列表来自 JoyCode API 支持的模型 + 服务器动态获取的扩展模型。">
+          <Tooltip title="此模型的用途仅限生成下方的快速启动命令。实际请求中的模型由客户端指定（如 ANTHROPIC_MODEL 环境变量），始终优先于本设置。模型列表来自 AgnesCode API 支持的模型 + 服务器动态获取的扩展模型。">
             <QuestionCircleOutlined style={{ color: '#999', cursor: 'help' }} />
           </Tooltip>
           <Select

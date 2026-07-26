@@ -5,7 +5,7 @@
 
 **Goal:** 将 Settings 页面中 4 个未生效的配置项（`default_model`, `request_timeout`, `max_connections`, `log_retention_days`）全部接入后端，使每个配置项保存后立即生效。
 
-**Architecture:** 前端保存设置到 SQLite → 后端读取 settings 表值应用到运行时。`default_model` 通过 `resolveModel()` 参数传递；`request_timeout` 通过 `joycode.Client.SetTimeout()` 注入；`max_connections` 通过共享 `http.Transport` 的 `MaxConnsPerHost` 控制；`log_retention_days` 通过后台 goroutine 定时执行 SQL DELETE 清理。
+**Architecture:** 前端保存设置到 SQLite → 后端读取 settings 表值应用到运行时。`default_model` 通过 `resolveModel()` 参数传递；`request_timeout` 通过 `agnescode.Client.SetTimeout()` 注入；`max_connections` 通过共享 `http.Transport` 的 `MaxConnsPerHost` 控制；`log_retention_days` 通过后台 goroutine 定时执行 SQL DELETE 清理。
 
 **Tech Stack:** Go 1.x, net/http, SQLite, React + Ant Design
 
@@ -32,7 +32,7 @@
 
 ```go
 func resolveModel(model string, accountDefault string, systemDefault string) string {
-	for _, m := range joycode.Models {
+	for _, m := range agnescode.Models {
 		if m == model {
 			return model
 		}
@@ -43,7 +43,7 @@ func resolveModel(model string, accountDefault string, systemDefault string) str
 	if systemDefault != "" {
 		return systemDefault
 	}
-	return joycode.DefaultModel
+	return agnescode.DefaultModel
 }
 ```
 
@@ -101,7 +101,7 @@ func resolveModel(model string, accountDefault string, systemDefault string) str
 
 ```go
 func ResolveModel(model string, accountDefault string, systemDefault string) string {
-	for _, m := range joycode.Models {
+	for _, m := range agnescode.Models {
 		if m == model {
 			return model
 		}
@@ -112,7 +112,7 @@ func ResolveModel(model string, accountDefault string, systemDefault string) str
 	if systemDefault != "" {
 		return systemDefault
 	}
-	return joycode.DefaultModel
+	return agnescode.DefaultModel
 }
 ```
 
@@ -126,12 +126,12 @@ func ResolveModel(model string, accountDefault string, systemDefault string) str
 
 ```go
 type Server struct {
-	Client   *joycode.Client
+	Client   *agnescode.Client
 	Resolver ClientResolver
 	store    *store.Store
 }
 
-func NewServer(c *joycode.Client, s *store.Store) *Server {
+func NewServer(c *agnescode.Client, s *store.Store) *Server {
 	return &Server{Client: c, store: s}
 }
 ```
@@ -148,7 +148,7 @@ func NewServer(c *joycode.Client, s *store.Store) *Server {
 
 - [ ] **Step 6: Update serve.go to pass store to NewServer**
 
-文件: `cmd/JoyCodeProxy/serve.go:79`（替换 NewServer 调用）
+文件: `cmd/AgnesCodeProxy/serve.go:79`（替换 NewServer 调用）
 
 ```go
 			srv := openai.NewServer(client, s)
@@ -164,7 +164,7 @@ tag: '已生效',
 ```
 
 - [ ] **Step 8: Build and verify**
-Run: `go build -o joycode_proxy_bin ./cmd/JoyCodeProxy`
+Run: `go build -o agnescode_proxy_bin ./cmd/AgnesCodeProxy`
 Expected:
   - Exit code: 0
   - No compilation errors
@@ -175,12 +175,12 @@ Expected:
 
 **Depends on:** None
 **Files:**
-- Modify: `pkg/joycode/client.go:43-49` (NewClient and add SetTimeout)
-- Modify: `cmd/JoyCodeProxy/serve.go:84-104` (resolver sets timeout)
+- Modify: `pkg/agnescode/client.go:43-49` (NewClient and add SetTimeout)
+- Modify: `cmd/AgnesCodeProxy/serve.go:84-104` (resolver sets timeout)
 
-- [ ] **Step 1: Add `SetTimeout()` method to joycode.Client — allow external timeout configuration**
+- [ ] **Step 1: Add `SetTimeout()` method to agnescode.Client — allow external timeout configuration**
 
-文件: `pkg/joycode/client.go:43-56`（替换 NewClient 和 SetHTTPClient，添加 SetTimeout）
+文件: `pkg/agnescode/client.go:43-56`（替换 NewClient 和 SetHTTPClient，添加 SetTimeout）
 
 ```go
 func NewClient(ptKey, userID string) *Client {
@@ -203,12 +203,12 @@ func (c *Client) SetTimeout(d time.Duration) {
 
 - [ ] **Step 2: Wire `request_timeout` in resolver — read from settings on each request**
 
-文件: `cmd/JoyCodeProxy/serve.go:84-104`（在 resolver 中，`joycode.NewClient` 之后添加超时设置）
+文件: `cmd/AgnesCodeProxy/serve.go:84-104`（在 resolver 中，`agnescode.NewClient` 之后添加超时设置）
 
-在 `return joycode.NewClient(account.PtKey, account.UserID)` 之前插入超时逻辑:
+在 `return agnescode.NewClient(account.PtKey, account.UserID)` 之前插入超时逻辑:
 
 ```go
-				resolver := func(r *http.Request) *joycode.Client {
+				resolver := func(r *http.Request) *agnescode.Client {
 					// ... existing key resolution logic ...
 					timeout := 120
 					if s != nil {
@@ -217,13 +217,13 @@ func (c *Client) SetTimeout(d time.Duration) {
 					if timeout < 60 {
 						timeout = 60
 					}
-					cl := joycode.NewClient(ptKey, userID)
+					cl := agnescode.NewClient(ptKey, userID)
 					cl.SetTimeout(time.Duration(timeout) * time.Second)
 					return cl
 				}
 ```
 
-具体修改方式：在每个 `return joycode.NewClient(...)` 调用处，改为先创建 client，设置 timeout，再 return。将 resolver 内部的 4 个 return 语句统一处理。
+具体修改方式：在每个 `return agnescode.NewClient(...)` 调用处，改为先创建 client，设置 timeout，再 return。将 resolver 内部的 4 个 return 语句统一处理。
 
 - [ ] **Step 3: Update frontend tooltip — remove "规划中" tag**
 
@@ -233,7 +233,7 @@ func (c *Client) SetTimeout(d time.Duration) {
       {
         key: 'request_timeout',
         label: '请求超时（秒）',
-        tooltip: '与 JoyCode 后端通信的读取超时时间，低于 60 秒会自动调整为 60 秒',
+        tooltip: '与 AgnesCode 后端通信的读取超时时间，低于 60 秒会自动调整为 60 秒',
         placeholder: '120',
         type: 'number' as const,
         suffix: '秒',
@@ -242,7 +242,7 @@ func (c *Client) SetTimeout(d time.Duration) {
 ```
 
 - [ ] **Step 4: Build and verify**
-Run: `go build -o joycode_proxy_bin ./cmd/JoyCodeProxy`
+Run: `go build -o agnescode_proxy_bin ./cmd/AgnesCodeProxy`
 Expected:
   - Exit code: 0
 
@@ -252,12 +252,12 @@ Expected:
 
 **Depends on:** Task 2
 **Files:**
-- Modify: `cmd/JoyCodeProxy/serve.go:79-107` (shared transport, inject into clients)
-- Modify: `pkg/joycode/client.go:53-55` (add SetTransport method)
+- Modify: `cmd/AgnesCodeProxy/serve.go:79-107` (shared transport, inject into clients)
+- Modify: `pkg/agnescode/client.go:53-55` (add SetTransport method)
 
-- [ ] **Step 1: Add `SetTransport()` method to joycode.Client — inject shared transport**
+- [ ] **Step 1: Add `SetTransport()` method to agnescode.Client — inject shared transport**
 
-文件: `pkg/joycode/client.go:53-55`（在 SetHTTPClient 后面添加）
+文件: `pkg/agnescode/client.go:53-55`（在 SetHTTPClient 后面添加）
 
 ```go
 func (c *Client) SetTransport(transport http.RoundTripper) {
@@ -267,7 +267,7 @@ func (c *Client) SetTransport(transport http.RoundTripper) {
 
 - [ ] **Step 2: Create shared transport in serve.go — configure connection limits from settings**
 
-文件: `cmd/JoyCodeProxy/serve.go`（在 `mux := http.NewServeMux()` 之前添加）
+文件: `cmd/AgnesCodeProxy/serve.go`（在 `mux := http.NewServeMux()` 之前添加）
 
 ```go
 			// Shared transport for connection pooling and limits
@@ -299,7 +299,7 @@ func (c *Client) SetTransport(transport http.RoundTripper) {
 
 - [ ] **Step 3: Inject shared transport into resolver clients — ensure all clients share the transport**
 
-在 resolver 中的每个 `cl := joycode.NewClient(...)` 之后添加:
+在 resolver 中的每个 `cl := agnescode.NewClient(...)` 之后添加:
 
 ```go
 					cl.SetTransport(sharedTransport)
@@ -307,7 +307,7 @@ func (c *Client) SetTransport(transport http.RoundTripper) {
 
 - [ ] **Step 4: Also inject transport into the default client**
 
-文件: `cmd/JoyCodeProxy/serve.go`（在 `client, err := resolveClient()` 之后添加）
+文件: `cmd/AgnesCodeProxy/serve.go`（在 `client, err := resolveClient()` 之后添加）
 
 ```go
 			client.SetTransport(sharedTransport)
@@ -321,7 +321,7 @@ func (c *Client) SetTransport(transport http.RoundTripper) {
       {
         key: 'max_connections',
         label: '最大连接数',
-        tooltip: '与 JoyCode 后端的最大并发 HTTP 连接数，修改后 10 秒内自动生效',
+        tooltip: '与 AgnesCode 后端的最大并发 HTTP 连接数，修改后 10 秒内自动生效',
         placeholder: '20',
         type: 'number' as const,
         tag: '已生效',
@@ -329,7 +329,7 @@ func (c *Client) SetTransport(transport http.RoundTripper) {
 ```
 
 - [ ] **Step 6: Build and verify**
-Run: `go build -o joycode_proxy_bin ./cmd/JoyCodeProxy`
+Run: `go build -o agnescode_proxy_bin ./cmd/AgnesCodeProxy`
 Expected:
   - Exit code: 0
 
@@ -340,7 +340,7 @@ Expected:
 **Depends on:** None
 **Files:**
 - Modify: `pkg/store/store.go` (add CleanupOldLogs method)
-- Modify: `cmd/JoyCodeProxy/serve.go` (start background cleanup goroutine)
+- Modify: `cmd/AgnesCodeProxy/serve.go` (start background cleanup goroutine)
 - Modify: `web/src/pages/Settings.tsx:88-109` (update tooltip and tag)
 
 - [ ] **Step 1: Add `CleanupOldLogs()` method to Store — delete logs older than N days**
@@ -372,7 +372,7 @@ func (s *Store) CleanupOldLogs(days int) (int64, error) {
 
 - [ ] **Step 2: Start background cleanup goroutine in serve.go**
 
-文件: `cmd/JoyCodeProxy/serve.go`（在 `mux := http.NewServeMux()` 之前添加）
+文件: `cmd/AgnesCodeProxy/serve.go`（在 `mux := http.NewServeMux()` 之前添加）
 
 ```go
 			// Background log cleanup goroutine
@@ -410,7 +410,7 @@ func (s *Store) CleanupOldLogs(days int) (int64, error) {
 ```
 
 - [ ] **Step 4: Build and verify**
-Run: `go build -o joycode_proxy_bin ./cmd/JoyCodeProxy`
+Run: `go build -o agnescode_proxy_bin ./cmd/AgnesCodeProxy`
 Expected:
   - Exit code: 0
 
@@ -423,16 +423,16 @@ cd web && npm run build
 
 Copy built assets and rebuild Go binary:
 ```bash
-rm -rf cmd/JoyCodeProxy/static/assets && cp -r web/dist/* cmd/JoyCodeProxy/static/ && go build -o joycode_proxy_bin ./cmd/JoyCodeProxy
+rm -rf cmd/AgnesCodeProxy/static/assets && cp -r web/dist/* cmd/AgnesCodeProxy/static/ && go build -o agnescode_proxy_bin ./cmd/AgnesCodeProxy
 ```
 
 Restart service:
 ```bash
-ps aux | grep joycode_proxy_bin | grep -v grep | awk '{print $2}' | xargs kill && sleep 4 && curl -s http://127.0.0.1:34891/api/health
+ps aux | grep agnescode_proxy_bin | grep -v grep | awk '{print $2}' | xargs kill && sleep 4 && curl -s http://127.0.0.1:34891/api/health
 ```
 
 Expected:
   - Output contains: `"status":"ok"`
 
 - [ ] **Step 6: Commit**
-Run: `git add pkg/anthropic/handler.go pkg/anthropic/translate.go pkg/openai/handler.go pkg/openai/chat.go pkg/openai/translate.go pkg/joycode/client.go pkg/store/store.go cmd/JoyCodeProxy/serve.go web/src/pages/Settings.tsx && git commit -m "feat(settings): wire all settings to runtime — default_model, request_timeout, max_connections, log_retention_days"`
+Run: `git add pkg/anthropic/handler.go pkg/anthropic/translate.go pkg/openai/handler.go pkg/openai/chat.go pkg/openai/translate.go pkg/agnescode/client.go pkg/store/store.go cmd/AgnesCodeProxy/serve.go web/src/pages/Settings.tsx && git commit -m "feat(settings): wire all settings to runtime — default_model, request_timeout, max_connections, log_retention_days"`

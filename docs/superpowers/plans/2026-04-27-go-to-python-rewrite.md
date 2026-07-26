@@ -3,7 +3,7 @@
 > **For agentic workers:** REQUIRED SUB-SKILL: `superpowers:subagent-driven-development`
 > Steps use checkbox (`- [ ]`) syntax.
 
-**Goal:** 将 JoyCodeProxy 从 Go 语言完整转换为 Python，保持所有功能不变：CLI 命令、凭证自动检测、OpenAI/Anthropic 兼容代理、tool use、SSE 流式、macOS 服务管理。
+**Goal:** 将 AgnesCodeProxy 从 Go 语言完整转换为 Python，保持所有功能不变：CLI 命令、凭证自动检测、OpenAI/Anthropic 兼容代理、tool use、SSE 流式、macOS 服务管理。
 
 **Architecture:** Go Cobra CLI → Python Click CLI；Go net/http → FastAPI + uvicorn；Go net/http client → httpx；Go sqlite3 → Python sqlite3。功能模块 1:1 对应：auth.py / client.py / openai_handler.py / anthropic_handler.py / cli.py。CLI 入口使用 Click 组命令，复刻 serve/chat/models/whoami/service 子命令。
 
@@ -12,7 +12,7 @@
 **Risks:**
 - Task 4 Anthropic handler 的 tool_use SSE 转换逻辑复杂，是整个转换的难点 → 缓解：直接移植 Go 版已验证的逻辑
 - Task 5 macOS plist 生成需要模板字符串 → 缓解：直接复制 Go 版的 plist 模板
-- JoyCode API 的 gzip 响应需要 httpx 正确处理 → 缓解：httpx 默认处理 gzip
+- AgnesCode API 的 gzip 响应需要 httpx 正确处理 → 缓解：httpx 默认处理 gzip
 
 ---
 
@@ -21,17 +21,17 @@
 **Depends on:** None
 **Files:**
 - Create: `pyproject.toml`
-- Create: `joycode_proxy/__init__.py`
-- Create: `joycode_proxy/auth.py`
+- Create: `agnescode_proxy/__init__.py`
+- Create: `agnescode_proxy/auth.py`
 
 - [ ] **Step 1: Create pyproject.toml — 定义项目依赖和入口**
 
 ```toml
 # pyproject.toml
 [project]
-name = "joycode-proxy"
+name = "agnescode-proxy"
 version = "0.1.0"
-description = "JoyCode API proxy - OpenAI & Anthropic compatible"
+description = "AgnesCode API proxy - OpenAI & Anthropic compatible"
 requires-python = ">=3.12"
 dependencies = [
     "fastapi>=0.115",
@@ -45,23 +45,23 @@ dependencies = [
 dev = ["pytest>=8.3", "pytest-asyncio>=0.24"]
 
 [project.scripts]
-joycode-proxy = "joycode_proxy.cli:cli"
+agnescode-proxy = "agnescode_proxy.cli:cli"
 
 [build-system]
 requires = ["hatchling"]
 build-backend = "hatchling.backends"
 ```
 
-- [ ] **Step 2: Create joycode_proxy/__init__.py — 包标识**
+- [ ] **Step 2: Create agnescode_proxy/__init__.py — 包标识**
 
 ```python
-# joycode_proxy/__init__.py
+# agnescode_proxy/__init__.py
 ```
 
-- [ ] **Step 3: Create joycode_proxy/auth.py — 凭证加载（移植 pkg/auth/credentials.go）**
+- [ ] **Step 3: Create agnescode_proxy/auth.py — 凭证加载（移植 pkg/auth/credentials.go）**
 
 ```python
-# joycode_proxy/auth.py
+# agnescode_proxy/auth.py
 import json
 import os
 import platform
@@ -85,23 +85,23 @@ def load_from_system() -> Credentials:
     db_path = os.path.join(
         home,
         "Library", "Application Support",
-        "JoyCode", "User", "globalStorage", "state.vscdb",
+        "AgnesCode", "User", "globalStorage", "state.vscdb",
     )
     if not os.path.exists(db_path):
         raise FileNotFoundError(
-            f"JoyCode state database not found at {db_path}\n"
-            "  Please install and log in to JoyCode IDE first"
+            f"AgnesCode state database not found at {db_path}\n"
+            "  Please install and log in to AgnesCode IDE first"
         )
     conn = sqlite3.connect(f"file:{db_path}?mode=ro", uri=True)
     try:
         cursor = conn.execute(
-            "SELECT value FROM ItemTable WHERE key='JoyCoder.IDE'"
+            "SELECT value FROM ItemTable WHERE key='AgnesCoder.IDE'"
         )
         row = cursor.fetchone()
         if not row:
             raise ValueError(
                 "login info not found in database\n"
-                "  Please log in to JoyCode IDE first"
+                "  Please log in to AgnesCode IDE first"
             )
         data = json.loads(row[0])
         user = data.get("joyCoderUser", {})
@@ -110,12 +110,12 @@ def load_from_system() -> Credentials:
         if not pt_key:
             raise ValueError(
                 "ptKey is empty in stored credentials\n"
-                "  Please re-login to JoyCode IDE"
+                "  Please re-login to AgnesCode IDE"
             )
         if not user_id:
             raise ValueError(
                 "userId is empty in stored credentials\n"
-                "  Please re-login to JoyCode IDE"
+                "  Please re-login to AgnesCode IDE"
             )
         return Credentials(pt_key=pt_key, user_id=user_id)
     finally:
@@ -123,39 +123,39 @@ def load_from_system() -> Credentials:
 ```
 
 - [ ] **Step 4: 验证 auth 模块**
-Run: `cd /Users/cc11001100/github/vibe-coding-labs/JoyCodeProxy && python3 -c "from joycode_proxy.auth import load_from_system; c = load_from_system(); print(f'userId={c.user_id}')"`
+Run: `cd /Users/cc11001100/github/vibe-coding-labs/AgnesCodeProxy && python3 -c "from agnescode_proxy.auth import load_from_system; c = load_from_system(); print(f'userId={c.user_id}')"`
 Expected:
   - Exit code: 0
   - Output contains: "userId="
 
 - [ ] **Step 5: 提交**
-Run: `git add pyproject.toml joycode_proxy/__init__.py joycode_proxy/auth.py && git commit -m "feat(python): add project scaffolding and auth module"`
+Run: `git add pyproject.toml agnescode_proxy/__init__.py agnescode_proxy/auth.py && git commit -m "feat(python): add project scaffolding and auth module"`
 
 ---
 
-### Task 2: JoyCode API Client
+### Task 2: AgnesCode API Client
 
 **Depends on:** Task 1
 **Files:**
-- Create: `joycode_proxy/client.py`
+- Create: `agnescode_proxy/client.py`
 
-- [ ] **Step 1: Create joycode_proxy/client.py — HTTP 客户端（移植 pkg/joycode/）**
+- [ ] **Step 1: Create agnescode_proxy/client.py — HTTP 客户端（移植 pkg/agnescode/）**
 
 ```python
-# joycode_proxy/client.py
+# agnescode_proxy/client.py
 import os
 import uuid
 from typing import Any
 
 import httpx
 
-BASE_URL = "https://joycode-api.jd.com"
+BASE_URL = "https://agnescode-api.jd.com"
 DEFAULT_MODEL = "JoyAI-Code"
 CLIENT_VERSION = "2.4.5"
 USER_AGENT = (
     "Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) "
     "AppleWebKit/537.36 (KHTML, like Gecko) "
-    "JoyCode/2.4.5 Chrome/133.0.0.0 Electron/35.2.0 Safari/537.36"
+    "AgnesCode/2.4.5 Chrome/133.0.0.0 Electron/35.2.0 Safari/537.36"
 )
 TIMEOUT = 120.0
 
@@ -198,9 +198,9 @@ class Client:
 
     def _prepare_body(self, extra: dict[str, Any] | None = None) -> dict[str, Any]:
         body: dict[str, Any] = {
-            "tenant": "JOYCODE",
+            "tenant": "AGNESCODE",
             "userId": self.user_id,
-            "client": "JoyCode",
+            "client": "AgnesCode",
             "clientVersion": CLIENT_VERSION,
             "sessionId": self.session_id,
         }
@@ -275,13 +275,13 @@ class Client:
 ```
 
 - [ ] **Step 2: 验证 client 模块**
-Run: `python3 -c "from joycode_proxy.auth import load_from_system; from joycode_proxy.client import Client; c = load_from_system(); cl = Client(c.pt_key, c.user_id); cl.validate(); print('OK')"`
+Run: `python3 -c "from agnescode_proxy.auth import load_from_system; from agnescode_proxy.client import Client; c = load_from_system(); cl = Client(c.pt_key, c.user_id); cl.validate(); print('OK')"`
 Expected:
   - Exit code: 0
   - Output contains: "OK"
 
 - [ ] **Step 3: 提交**
-Run: `git add joycode_proxy/client.py && git commit -m "feat(python): add JoyCode API client"`
+Run: `git add agnescode_proxy/client.py && git commit -m "feat(python): add AgnesCode API client"`
 
 ---
 
@@ -289,12 +289,12 @@ Run: `git add joycode_proxy/client.py && git commit -m "feat(python): add JoyCod
 
 **Depends on:** Task 2
 **Files:**
-- Create: `joycode_proxy/openai_handler.py`
+- Create: `agnescode_proxy/openai_handler.py`
 
-- [ ] **Step 1: Create joycode_proxy/openai_handler.py — OpenAI 兼容端点（移植 pkg/openai/）**
+- [ ] **Step 1: Create agnescode_proxy/openai_handler.py — OpenAI 兼容端点（移植 pkg/openai/）**
 
 ```python
-# joycode_proxy/openai_handler.py
+# agnescode_proxy/openai_handler.py
 import json
 import time
 from typing import Any
@@ -303,7 +303,7 @@ from fastapi import Request
 from fastapi.responses import JSONResponse, StreamingResponse
 from sse_starlette.sse import EventSourceResponse
 
-from joycode_proxy.client import CHAT_ENDPOINT, Client, DEFAULT_MODEL, MODELS
+from agnescode_proxy.client import CHAT_ENDPOINT, Client, DEFAULT_MODEL, MODELS
 
 MODEL_CAPABILITIES: dict[str, dict[str, Any]] = {
     "JoyAI-Code": {"vision": False, "reasoning": False, "max_tokens": 64000, "ctx": 200000},
@@ -367,7 +367,7 @@ def translate_models(jc_models: list[dict[str, Any]]) -> dict[str, Any]:
         mid = m.get("modelId") or m.get("label", "")
         entry: dict[str, Any] = {
             "id": mid, "object": "model",
-            "created": 1700000000, "owned_by": "joycode",
+            "created": 1700000000, "owned_by": "agnescode",
         }
         if mid in MODEL_CAPABILITIES:
             entry["capabilities"] = MODEL_CAPABILITIES[mid]
@@ -417,7 +417,7 @@ def create_openai_router(client: Client):
     async def health():
         return JSONResponse({
             "status": "ok",
-            "service": "joycode-openai-proxy",
+            "service": "agnescode-openai-proxy",
             "endpoints": ["/v1/chat/completions", "/v1/models", "/v1/web-search", "/v1/rerank"],
         })
 
@@ -452,13 +452,13 @@ def _stream_chat(client: Client, jc_body: dict[str, Any], model: str):
 ```
 
 - [ ] **Step 2: 验证 OpenAI handler**
-Run: `python3 -c "from joycode_proxy.openai_handler import translate_request, translate_response, translate_models; print('OK')"`
+Run: `python3 -c "from agnescode_proxy.openai_handler import translate_request, translate_response, translate_models; print('OK')"`
 Expected:
   - Exit code: 0
   - Output contains: "OK"
 
 - [ ] **Step 3: 提交**
-Run: `git add joycode_proxy/openai_handler.py && git commit -m "feat(python): add OpenAI-compatible handler"`
+Run: `git add agnescode_proxy/openai_handler.py && git commit -m "feat(python): add OpenAI-compatible handler"`
 
 ---
 
@@ -466,12 +466,12 @@ Run: `git add joycode_proxy/openai_handler.py && git commit -m "feat(python): ad
 
 **Depends on:** Task 2
 **Files:**
-- Create: `joycode_proxy/anthropic_handler.py`
+- Create: `agnescode_proxy/anthropic_handler.py`
 
-- [ ] **Step 1: Create joycode_proxy/anthropic_handler.py — Anthropic 端点含 tool use（移植 pkg/anthropic/）**
+- [ ] **Step 1: Create agnescode_proxy/anthropic_handler.py — Anthropic 端点含 tool use（移植 pkg/anthropic/）**
 
 ```python
-# joycode_proxy/anthropic_handler.py
+# agnescode_proxy/anthropic_handler.py
 import json
 import uuid
 from typing import Any
@@ -479,7 +479,7 @@ from typing import Any
 from fastapi import Request
 from fastapi.responses import JSONResponse, StreamingResponse
 
-from joycode_proxy.client import CHAT_ENDPOINT, Client, MODELS
+from agnescode_proxy.client import CHAT_ENDPOINT, Client, MODELS
 
 MODEL_MAPPING: dict[str, str] = {
     "claude-sonnet-4-20250514": "JoyAI-Code",
@@ -708,13 +708,13 @@ def _handle_stream(client: Client, req: dict[str, Any]):
 ```
 
 - [ ] **Step 2: 验证 Anthropic handler**
-Run: `python3 -c "from joycode_proxy.anthropic_handler import translate_request, translate_response, resolve_model; assert resolve_model('GLM-5.1') == 'GLM-5.1'; print('OK')"`
+Run: `python3 -c "from agnescode_proxy.anthropic_handler import translate_request, translate_response, resolve_model; assert resolve_model('GLM-5.1') == 'GLM-5.1'; print('OK')"`
 Expected:
   - Exit code: 0
   - Output contains: "OK"
 
 - [ ] **Step 3: 提交**
-Run: `git add joycode_proxy/anthropic_handler.py && git commit -m "feat(python): add Anthropic-compatible handler with tool use"`
+Run: `git add agnescode_proxy/anthropic_handler.py && git commit -m "feat(python): add Anthropic-compatible handler with tool use"`
 
 ---
 
@@ -722,23 +722,23 @@ Run: `git add joycode_proxy/anthropic_handler.py && git commit -m "feat(python):
 
 **Depends on:** Task 3, Task 4
 **Files:**
-- Create: `joycode_proxy/cli.py`
-- Create: `joycode_proxy/server.py`
+- Create: `agnescode_proxy/cli.py`
+- Create: `agnescode_proxy/server.py`
 
-- [ ] **Step 1: Create joycode_proxy/server.py — FastAPI 应用组装**
+- [ ] **Step 1: Create agnescode_proxy/server.py — FastAPI 应用组装**
 
 ```python
-# joycode_proxy/server.py
+# agnescode_proxy/server.py
 from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
 
-from joycode_proxy.client import Client
-from joycode_proxy.openai_handler import create_openai_router
-from joycode_proxy.anthropic_handler import create_anthropic_router
+from agnescode_proxy.client import Client
+from agnescode_proxy.openai_handler import create_openai_router
+from agnescode_proxy.anthropic_handler import create_anthropic_router
 
 
 def create_app(client: Client) -> FastAPI:
-    app = FastAPI(title="JoyCode Proxy")
+    app = FastAPI(title="AgnesCode Proxy")
     app.add_middleware(
         CORSMiddleware,
         allow_origins=["*"],
@@ -750,10 +750,10 @@ def create_app(client: Client) -> FastAPI:
     return app
 ```
 
-- [ ] **Step 2: Create joycode_proxy/cli.py — 完整 CLI（移植 cmd/）**
+- [ ] **Step 2: Create agnescode_proxy/cli.py — 完整 CLI（移植 cmd/）**
 
 ```python
-# joycode_proxy/cli.py
+# agnescode_proxy/cli.py
 import logging
 import os
 import subprocess
@@ -762,13 +762,13 @@ from pathlib import Path
 
 import click
 
-from joycode_proxy.auth import Credentials, load_from_system
+from agnescode_proxy.auth import Credentials, load_from_system
 
-log = logging.getLogger("joycode-proxy")
+log = logging.getLogger("agnescode-proxy")
 
 
 def _resolve_client(ptkey: str, userid: str, skip_validation: bool = False):
-    from joycode_proxy.client import Client
+    from agnescode_proxy.client import Client
     creds: Credentials
     source: str
     if ptkey and userid:
@@ -795,8 +795,8 @@ def _resolve_client(ptkey: str, userid: str, skip_validation: bool = False):
 
 
 @click.group()
-@click.option("-k", "--ptkey", default="", help="JoyCode ptKey (auto-detected if empty)")
-@click.option("-u", "--userid", default="", help="JoyCode userID (auto-detected if empty)")
+@click.option("-k", "--ptkey", default="", help="AgnesCode ptKey (auto-detected if empty)")
+@click.option("-u", "--userid", default="", help="AgnesCode userID (auto-detected if empty)")
 @click.option("--skip-validation", is_flag=True, help="Skip credential validation")
 @click.pass_context
 def cli(ctx, ptkey: str, userid: str, skip_validation: bool):
@@ -813,7 +813,7 @@ def cli(ctx, ptkey: str, userid: str, skip_validation: bool):
 def serve(ctx, host: str, port: int):
     import uvicorn
     client = _resolve_client(ctx.obj["ptkey"], ctx.obj["userid"], ctx.obj["skip_validation"])
-    from joycode_proxy.server import create_app
+    from agnescode_proxy.server import create_app
     app = create_app(client)
     click.echo(f"  Endpoints:")
     click.echo(f"    POST /v1/chat/completions  — Chat (OpenAI format)")
@@ -825,7 +825,7 @@ def serve(ctx, host: str, port: int):
     click.echo()
     click.echo(f"  Claude Code setup:")
     click.echo(f"    export ANTHROPIC_BASE_URL=http://{host}:{port}")
-    click.echo(f"    export ANTHROPIC_API_KEY=joycode")
+    click.echo(f"    export ANTHROPIC_API_KEY=agnescode")
     uvicorn.run(app, host=host, port=port, log_level="info")
 
 
@@ -862,7 +862,7 @@ def chat(ctx, message: str, model: str, stream: bool, max_tokens: int):
 @cli.command()
 @click.pass_context
 def models(ctx):
-    from joycode_proxy.client import DEFAULT_MODEL
+    from agnescode_proxy.client import DEFAULT_MODEL
     client = _resolve_client(ctx.obj["ptkey"], ctx.obj["userid"], ctx.obj["skip_validation"])
     model_list = client.list_models()
     for m in model_list:
@@ -899,19 +899,19 @@ def service():
 def service_install(ctx, port: int):
     bin_path = Path(sys.executable).resolve()
     home = Path.home()
-    log_dir = home / ".joycode-proxy" / "logs"
+    log_dir = home / ".agnescode-proxy" / "logs"
     log_dir.mkdir(parents=True, exist_ok=True)
-    plist_path = home / "Library" / "LaunchAgents" / "com.joycode.proxy.plist"
+    plist_path = home / "Library" / "LaunchAgents" / "com.agnescode.proxy.plist"
     plist = f"""<?xml version="1.0" encoding="UTF-8"?>
 <!DOCTYPE plist PUBLIC "-//Apple//DTD PLIST 1.0//EN" "http://www.apple.com/DTDs/PropertyList-1.0.dtd">
 <plist version="1.0">
 <dict>
-    <key>Label</key><string>com.joycode.proxy</string>
+    <key>Label</key><string>com.agnescode.proxy</string>
     <key>ProgramArguments</key>
     <array>
         <string>{bin_path}</string>
         <string>-m</string>
-        <string>joycode_proxy.cli</string>
+        <string>agnescode_proxy.cli</string>
         <string>serve</string>
         <string>--port</string>
         <string>{port}</string>
@@ -927,7 +927,7 @@ def service_install(ctx, port: int):
     plist_path.write_text(plist)
     subprocess.run(["launchctl", "load", str(plist_path)], check=True)
     click.echo(f"Service installed and started.")
-    click.echo(f"  Label:   com.joycode.proxy")
+    click.echo(f"  Label:   com.agnescode.proxy")
     click.echo(f"  Plist:   {plist_path}")
     click.echo(f"  Port:    {port}")
     click.echo(f"  Logs:    {log_dir}/")
@@ -936,7 +936,7 @@ def service_install(ctx, port: int):
 @service.command("uninstall")
 def service_uninstall():
     home = Path.home()
-    plist_path = home / "Library" / "LaunchAgents" / "com.joycode.proxy.plist"
+    plist_path = home / "Library" / "LaunchAgents" / "com.agnescode.proxy.plist"
     subprocess.run(["launchctl", "unload", str(plist_path)], capture_output=True)
     if plist_path.exists():
         plist_path.unlink()
@@ -948,20 +948,20 @@ def service_uninstall():
 @service.command("status")
 def service_status():
     home = Path.home()
-    plist_path = home / "Library" / "LaunchAgents" / "com.joycode.proxy.plist"
+    plist_path = home / "Library" / "LaunchAgents" / "com.agnescode.proxy.plist"
     if not plist_path.exists():
         click.echo("Service not installed.")
         return
     result = subprocess.run(["launchctl", "list"], capture_output=True, text=True)
     found = False
     for line in result.stdout.splitlines():
-        if "com.joycode.proxy" in line:
+        if "com.agnescode.proxy" in line:
             click.echo(f"Service status: {line}")
             found = True
             break
     if not found:
         click.echo("Service installed but not running.")
-    click.echo(f"\nLogs: {home / '.joycode-proxy' / 'logs'}/")
+    click.echo(f"\nLogs: {home / '.agnescode-proxy' / 'logs'}/")
 
 
 if __name__ == "__main__":
@@ -969,13 +969,13 @@ if __name__ == "__main__":
 ```
 
 - [ ] **Step 3: 验证 CLI help**
-Run: `pip install -e . 2>&1 | tail -1 && python3 -m joycode_proxy.cli --help`
+Run: `pip install -e . 2>&1 | tail -1 && python3 -m agnescode_proxy.cli --help`
 Expected:
   - Exit code: 0
   - Output contains: "serve" and "chat" and "models" and "whoami" and "service"
 
 - [ ] **Step 4: 提交**
-Run: `git add joycode_proxy/cli.py joycode_proxy/server.py && git commit -m "feat(python): add CLI commands and FastAPI server assembly"`
+Run: `git add agnescode_proxy/cli.py agnescode_proxy/server.py && git commit -m "feat(python): add CLI commands and FastAPI server assembly"`
 
 ---
 
@@ -997,7 +997,7 @@ import tempfile
 
 import pytest
 
-from joycode_proxy.auth import Credentials, load_from_system
+from agnescode_proxy.auth import Credentials, load_from_system
 
 
 def test_credentials_fields():
@@ -1017,10 +1017,10 @@ def test_load_from_system_integration():
     home = os.path.expanduser("~")
     db_path = os.path.join(
         home, "Library", "Application Support",
-        "JoyCode", "User", "globalStorage", "state.vscdb",
+        "AgnesCode", "User", "globalStorage", "state.vscdb",
     )
     if not os.path.exists(db_path):
-        pytest.skip("JoyCode database not found")
+        pytest.skip("AgnesCode database not found")
     creds = load_from_system()
     assert creds.pt_key
     assert creds.user_id
@@ -1030,7 +1030,7 @@ def test_load_from_system_integration():
 
 ```python
 # tests/test_anthropic.py
-from joycode_proxy.anthropic_handler import (
+from agnescode_proxy.anthropic_handler import (
     convert_tools_to_openai,
     parse_content,
     resolve_model,
@@ -1110,14 +1110,14 @@ FROM python:3.12-slim
 
 WORKDIR /app
 COPY pyproject.toml .
-COPY joycode_proxy/ joycode_proxy/
+COPY agnescode_proxy/ agnescode_proxy/
 RUN pip install --no-cache-dir .
 
 EXPOSE 34891
 HEALTHCHECK --interval=30s --timeout=5s --start-period=5s --retries=3 \
     CMD python -c "import urllib.request; urllib.request.urlopen('http://localhost:34891/health')" || exit 1
 
-ENTRYPOINT ["python", "-m", "joycode_proxy.cli"]
+ENTRYPOINT ["python", "-m", "agnescode_proxy.cli"]
 CMD ["serve"]
 ```
 
@@ -1129,7 +1129,7 @@ Expected:
   - Output does NOT contain: "FAIL"
 
 - [ ] **Step 5: 验证 Python 版 serve 启动**
-Run: `python3 -m joycode_proxy.cli serve --skip-validation --port 34892 &
+Run: `python3 -m agnescode_proxy.cli serve --skip-validation --port 34892 &
 sleep 3 && curl -s http://localhost:34892/health && kill %1 2>/dev/null`
 Expected:
   - Exit code: 0

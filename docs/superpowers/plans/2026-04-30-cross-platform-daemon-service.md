@@ -3,15 +3,15 @@
 > **For agentic workers:** REQUIRED SUB-SKILL: `superpowers:subagent-driven-development`
 > Steps use checkbox (`- [ ]`) syntax.
 
-**Goal:** 为 JoyCode Proxy CLI 添加两种后台运行能力：(1) 系统服务安装（macOS launchd + Linux systemd），开机自启；(2) 通用守护进程模式，崩溃自动重启，无需 root 权限。
+**Goal:** 为 AgnesCode Proxy CLI 添加两种后台运行能力：(1) 系统服务安装（macOS launchd + Linux systemd），开机自启；(2) 通用守护进程模式，崩溃自动重启，无需 root 权限。
 
-**Architecture:** 用户执行 `joycode-proxy service install` → 检测平台 → 生成对应配置文件（macOS: plist → ~/Library/LaunchAgents，Linux: systemd unit → ~/.config/systemd/user）→ 注册并启动。守护进程模式：`joycode-proxy daemon start` → 主进程 fork 子进程运行 `serve` → 主进程成为 supervisor 监控子进程 → 子进程崩溃时自动重启（指数退避）→ PID 文件锁保证唯一实例。
+**Architecture:** 用户执行 `agnescode-proxy service install` → 检测平台 → 生成对应配置文件（macOS: plist → ~/Library/LaunchAgents，Linux: systemd unit → ~/.config/systemd/user）→ 注册并启动。守护进程模式：`agnescode-proxy daemon start` → 主进程 fork 子进程运行 `serve` → 主进程成为 supervisor 监控子进程 → 子进程崩溃时自动重启（指数退避）→ PID 文件锁保证唯一实例。
 
 **Tech Stack:** Go 1.23, Cobra CLI, os/exec, os/signal, build tags (darwin/linux)
 
 **Risks:**
 - Task 1 重构 service.go 不能破坏现有 macOS plist 安装 → 缓解：保持 plist 生成逻辑不变，只抽离平台检测
-- Task 2 Daemon supervisor 的 re-exec 模式需要传递状态 → 缓解：通过环境变量 `_JOYCODE_DAEMON_CHILD=1` 标识子进程
+- Task 2 Daemon supervisor 的 re-exec 模式需要传递状态 → 缓解：通过环境变量 `_AGNESCODE_DAEMON_CHILD=1` 标识子进程
 - Task 3 Linux systemd 需要不同的路径和命令 → 缓解：使用 build tags 编译平台特定代码
 
 ---
@@ -20,14 +20,14 @@
 
 **Depends on:** None
 **Files:**
-- Create: `cmd/JoyCodeProxy/service_linux.go`
-- Modify: `cmd/JoyCodeProxy/service.go:35-125`（install 命令改为平台分发）
-- Modify: `cmd/JoyCodeProxy/service.go:127-149`（uninstall 命令改为平台分发）
+- Create: `cmd/AgnesCodeProxy/service_linux.go`
+- Modify: `cmd/AgnesCodeProxy/service.go:35-125`（install 命令改为平台分发）
+- Modify: `cmd/AgnesCodeProxy/service.go:127-149`（uninstall 命令改为平台分发）
 
 - [ ] **Step 1: 创建 service_linux.go — Linux systemd user service 安装/卸载**
 
 ```go
-// cmd/JoyCodeProxy/service_linux.go
+// cmd/AgnesCodeProxy/service_linux.go
 //go:build linux
 
 package main
@@ -60,7 +60,7 @@ func installService(port int) error {
 		BinaryPath  string
 		Port        int
 	}{
-		Description: "JoyCode API Proxy",
+		Description: "AgnesCode API Proxy",
 		BinaryPath:  binPath,
 		Port:        port,
 	}
@@ -156,7 +156,7 @@ func serviceStatus() error {
 将当前 `service.go` 中的平台特定逻辑提取到 `service_darwin.go`。
 
 ```go
-// cmd/JoyCodeProxy/service_darwin.go
+// cmd/AgnesCodeProxy/service_darwin.go
 //go:build darwin
 
 package main
@@ -303,7 +303,7 @@ func serviceStatus() error {
 	}
 	if !found {
 		fmt.Println("Service installed but not running (plist exists, not in launchctl).")
-		fmt.Println("Run 'joycode-proxy service install' to start it.")
+		fmt.Println("Run 'agnescode-proxy service install' to start it.")
 	}
 
 	fmt.Printf("\nLogs: %s/\n", filepath.Join(home, logDir))
@@ -313,10 +313,10 @@ func serviceStatus() error {
 
 - [ ] **Step 3: 重写 service.go — 平台无关的命令注册，调用平台函数**
 
-文件: `cmd/JoyCodeProxy/service.go`（替换整个文件）
+文件: `cmd/AgnesCodeProxy/service.go`（替换整个文件）
 
 ```go
-// cmd/JoyCodeProxy/service.go
+// cmd/AgnesCodeProxy/service.go
 
 package main
 
@@ -325,15 +325,15 @@ import (
 )
 
 const (
-	serviceLabel = "com.joycode.proxy"
+	serviceLabel = "com.agnescode.proxy"
 	plistName    = serviceLabel + ".plist"
-	logDir       = ".joycode-proxy/logs"
+	logDir       = ".agnescode-proxy/logs"
 )
 
 var serviceCmd = &cobra.Command{
 	Use:     "service",
 	Short:   "管理后台服务（安装/卸载/状态）",
-	Long:    "将 JoyCode Proxy 安装为系统后台服务，支持开机自启和崩溃自动重启。自动适配 macOS (launchd) 和 Linux (systemd)。",
+	Long:    "将 AgnesCode Proxy 安装为系统后台服务，支持开机自启和崩溃自动重启。自动适配 macOS (launchd) 和 Linux (systemd)。",
 	GroupID: "service",
 }
 
@@ -342,10 +342,10 @@ var serviceInstallCmd = &cobra.Command{
 	Short: "安装并启动后台服务",
 	Long:  "将代理安装为系统后台服务。安装后自动启动，支持开机自启和崩溃自动重启。",
 	Example: `  # 使用默认端口 34891 安装
-  joycode-proxy service install
+  agnescode-proxy service install
 
   # 指定端口
-  joycode-proxy service install -p 8080`,
+  agnescode-proxy service install -p 8080`,
 	RunE: func(cmd *cobra.Command, args []string) error {
 		return installService(servePort)
 	},
@@ -354,7 +354,7 @@ var serviceInstallCmd = &cobra.Command{
 var serviceUninstallCmd = &cobra.Command{
 	Use:     "uninstall",
 	Short:   "停止并移除后台服务",
-	Example: `  joycode-proxy service uninstall`,
+	Example: `  agnescode-proxy service uninstall`,
 	RunE: func(cmd *cobra.Command, args []string) error {
 		return uninstallService()
 	},
@@ -363,7 +363,7 @@ var serviceUninstallCmd = &cobra.Command{
 var serviceStatusCmd = &cobra.Command{
 	Use:     "status",
 	Short:   "查看服务运行状态",
-	Example: `  joycode-proxy service status`,
+	Example: `  agnescode-proxy service status`,
 	RunE: func(cmd *cobra.Command, args []string) error {
 		return serviceStatus()
 	},
@@ -408,7 +408,7 @@ func containsStr(s, sub string) bool {
 
 - [ ] **Step 4: 验证 Task 1 — 编译 + macOS 功能不退化**
 
-Run: `go build -o /tmp/joycode-test ./cmd/JoyCodeProxy/ && /tmp/joycode-test service --help`
+Run: `go build -o /tmp/agnescode-test ./cmd/AgnesCodeProxy/ && /tmp/agnescode-test service --help`
 Expected:
   - Exit code: 0
   - Output contains: "install" and "uninstall" and "status"
@@ -416,7 +416,7 @@ Expected:
 
 - [ ] **Step 5: 提交**
 
-Run: `git add cmd/JoyCodeProxy/service.go cmd/JoyCodeProxy/service_darwin.go cmd/JoyCodeProxy/service_linux.go && git commit -m "refactor(cli): extract platform-specific service install to build-tagged files"`
+Run: `git add cmd/AgnesCodeProxy/service.go cmd/AgnesCodeProxy/service_darwin.go cmd/AgnesCodeProxy/service_linux.go && git commit -m "refactor(cli): extract platform-specific service install to build-tagged files"`
 
 ---
 
@@ -424,15 +424,15 @@ Run: `git add cmd/JoyCodeProxy/service.go cmd/JoyCodeProxy/service_darwin.go cmd
 
 **Depends on:** None
 **Files:**
-- Create: `cmd/JoyCodeProxy/daemon.go`
-- Create: `cmd/JoyCodeProxy/daemon_test.go`
+- Create: `cmd/AgnesCodeProxy/daemon.go`
+- Create: `cmd/AgnesCodeProxy/daemon_test.go`
 
 - [ ] **Step 1: 创建 daemon.go — Supervisor 进程管理器 + CLI 命令**
 
 守护进程模式使用 supervisor re-exec 模式：主进程 fork 自己作为子进程运行 `serve`，主进程监控子进程，崩溃时指数退避重启。PID 文件保证唯一实例。
 
 ```go
-// cmd/JoyCodeProxy/daemon.go
+// cmd/AgnesCodeProxy/daemon.go
 
 package main
 
@@ -453,9 +453,9 @@ import (
 )
 
 const (
-	daemonEnvKey    = "_JOYCODE_DAEMON_CHILD"
-	pidFileName     = ".joycode-proxy/daemon.pid"
-	logFileName     = ".joycode-proxy/logs/daemon.log"
+	daemonEnvKey    = "_AGNESCODE_DAEMON_CHILD"
+	pidFileName     = ".agnescode-proxy/daemon.pid"
+	logFileName     = ".agnescode-proxy/logs/daemon.log"
 	maxRestartDelay = 30 * time.Second
 	baseRestartDelay = 1 * time.Second
 )
@@ -475,13 +475,13 @@ var daemonCmd = &cobra.Command{
 var daemonStartCmd = &cobra.Command{
 	Use:   "start",
 	Short: "启动守护进程",
-	Long: "启动 JoyCode Proxy 守护进程。主进程作为 supervisor 监控子进程，" +
+	Long: "启动 AgnesCode Proxy 守护进程。主进程作为 supervisor 监控子进程，" +
 		"子进程崩溃时自动重启（1s → 2s → 4s → ... → 30s 指数退避）。",
 	Example: `  # 使用默认端口启动
-  joycode-proxy daemon start
+  agnescode-proxy daemon start
 
   # 指定端口
-  joycode-proxy daemon start -p 8080`,
+  agnescode-proxy daemon start -p 8080`,
 	RunE: func(cmd *cobra.Command, args []string) error {
 		return startDaemon()
 	},
@@ -490,7 +490,7 @@ var daemonStartCmd = &cobra.Command{
 var daemonStopCmd = &cobra.Command{
 	Use:     "stop",
 	Short:   "停止守护进程",
-	Example: `  joycode-proxy daemon stop`,
+	Example: `  agnescode-proxy daemon stop`,
 	RunE: func(cmd *cobra.Command, args []string) error {
 		return stopDaemon()
 	},
@@ -499,7 +499,7 @@ var daemonStopCmd = &cobra.Command{
 var daemonRestartCmd = &cobra.Command{
 	Use:     "restart",
 	Short:   "重启守护进程",
-	Example: `  joycode-proxy daemon restart`,
+	Example: `  agnescode-proxy daemon restart`,
 	RunE: func(cmd *cobra.Command, args []string) error {
 		if err := stopDaemon(); err != nil {
 			log.Printf("stop warning: %v", err)
@@ -512,7 +512,7 @@ var daemonRestartCmd = &cobra.Command{
 var daemonStatusCmd = &cobra.Command{
 	Use:     "status",
 	Short:   "查看守护进程状态",
-	Example: `  joycode-proxy daemon status`,
+	Example: `  agnescode-proxy daemon status`,
 	RunE: func(cmd *cobra.Command, args []string) error {
 		return daemonStatus()
 	},
@@ -521,8 +521,8 @@ var daemonStatusCmd = &cobra.Command{
 var daemonLogsCmd = &cobra.Command{
 	Use:     "logs",
 	Short:   "查看守护进程日志（最后 N 行）",
-	Example: `  joycode-proxy daemon logs
-  joycode-proxy daemon logs -n 50`,
+	Example: `  agnescode-proxy daemon logs
+  agnescode-proxy daemon logs -n 50`,
 	RunE: func(cmd *cobra.Command, args []string) error {
 		return tailDaemonLogs(daemonLines)
 	},
@@ -606,7 +606,7 @@ func startDaemon() error {
 	return nil
 }
 
-// runAsDaemonChild is called from serve.go when _JOYCODE_DAEMON_CHILD=1.
+// runAsDaemonChild is called from serve.go when _AGNESCODE_DAEMON_CHILD=1.
 // It wraps the actual serve with crash logging and restart signaling.
 // The parent (supervisor) is the process that called startDaemon — but since
 // we detached, the child IS the actual server process. The supervisor role
@@ -755,7 +755,7 @@ func checkRunningDaemon() (int, bool) {
 // --- Supervisor mode ---
 
 // RunSupervisor starts a supervisor loop that spawns and monitors the child process.
-// Called when the binary is invoked with _JOYCODE_DAEMON_SUPERVISOR=1.
+// Called when the binary is invoked with _AGNESCODE_DAEMON_SUPERVISOR=1.
 func RunSupervisor(port int) {
 	home, _ := os.UserHomeDir()
 	logPath := filepath.Join(home, logFileName)
@@ -840,7 +840,7 @@ func RunSupervisor(port int) {
 - [ ] **Step 2: 创建 daemon_test.go — 守护进程核心逻辑单元测试**
 
 ```go
-// cmd/JoyCodeProxy/daemon_test.go
+// cmd/AgnesCodeProxy/daemon_test.go
 
 package main
 
@@ -947,10 +947,10 @@ func TestContainsStr(t *testing.T) {
 
 - [ ] **Step 3: 修改 main.go — 注册 daemon 命令组**
 
-文件: `cmd/JoyCodeProxy/main.go`（替换整个文件）
+文件: `cmd/AgnesCodeProxy/main.go`（替换整个文件）
 
 ```go
-// cmd/JoyCodeProxy/main.go
+// cmd/AgnesCodeProxy/main.go
 
 package main
 
@@ -963,8 +963,8 @@ import (
 
 func main() {
 	// Check if we're being invoked as daemon supervisor
-	if os.Getenv("_JOYCODE_DAEMON_SUPERVISOR") == "1" {
-		port, _ := strconv.Atoi(os.Getenv("_JOYCODE_DAEMON_PORT"))
+	if os.Getenv("_AGNESCODE_DAEMON_SUPERVISOR") == "1" {
+		port, _ := strconv.Atoi(os.Getenv("_AGNESCODE_DAEMON_PORT"))
 		if port == 0 {
 			port = 34891
 		}
@@ -985,15 +985,15 @@ func main() {
 
 - [ ] **Step 4: 修改 serve.go — 检测 daemon child 模式并配置日志**
 
-文件: `cmd/JoyCodeProxy/serve.go:39-43`（在 `RunE` 函数体开头插入 daemon 检测）
+文件: `cmd/AgnesCodeProxy/serve.go:39-43`（在 `RunE` 函数体开头插入 daemon 检测）
 
 在 `resolveClient()` 调用之前添加：
 
 ```go
-// cmd/JoyCodeProxy/serve.go — RunE 函数体开头（第 40 行之后）
+// cmd/AgnesCodeProxy/serve.go — RunE 函数体开头（第 40 行之后）
 
 // If running as daemon child, redirect logs to daemon log file
-if os.Getenv("_JOYCODE_DAEMON_CHILD") == "1" {
+if os.Getenv("_AGNESCODE_DAEMON_CHILD") == "1" {
     runAsDaemonChild()
 }
 ```
@@ -1002,12 +1002,12 @@ if os.Getenv("_JOYCODE_DAEMON_CHILD") == "1" {
 
 替换 `startDaemon` 函数中直接 fork 子进程的方式，改为 fork 一个 supervisor 进程：
 
-文件: `cmd/JoyCodeProxy/daemon.go` — `startDaemon` 函数（替换整个函数）
+文件: `cmd/AgnesCodeProxy/daemon.go` — `startDaemon` 函数（替换整个函数）
 
 ```go
 // startDaemon forks a supervisor process that monitors the server child.
 func startDaemon() error {
-	if os.Getenv(daemonEnvKey) != "" || os.Getenv("_JOYCODE_DAEMON_SUPERVISOR") == "1" {
+	if os.Getenv(daemonEnvKey) != "" || os.Getenv("_AGNESCODE_DAEMON_SUPERVISOR") == "1" {
 		return fmt.Errorf("already running as daemon (nested start not allowed)")
 	}
 
@@ -1027,14 +1027,14 @@ func startDaemon() error {
 	// Start supervisor process
 	cmd := exec.Command(binPath)
 	cmd.Env = append(os.Environ(),
-		"_JOYCODE_DAEMON_SUPERVISOR=1",
-		"_JOYCODE_DAEMON_PORT="+strconv.Itoa(servePort),
+		"_AGNESCODE_DAEMON_SUPERVISOR=1",
+		"_AGNESCODE_DAEMON_PORT="+strconv.Itoa(servePort),
 	)
 	if verbose {
-		cmd.Env = append(cmd.Env, "_JOYCODE_DAEMON_VERBOSE=1")
+		cmd.Env = append(cmd.Env, "_AGNESCODE_DAEMON_VERBOSE=1")
 	}
 	if skipValidation {
-		cmd.Env = append(cmd.Env, "_JOYCODE_DAEMON_SKIP_VALIDATION=1")
+		cmd.Env = append(cmd.Env, "_AGNESCODE_DAEMON_SKIP_VALIDATION=1")
 	}
 	cmd.Stdin = nil
 	cmd.Stdout = nil
@@ -1063,35 +1063,35 @@ func startDaemon() error {
 
 同步修改 `RunSupervisor` 中的 args 构造，读取环境变量传递 verbose 和 skip-validation：
 
-文件: `cmd/JoyCodeProxy/daemon.go` — `RunSupervisor` 函数中的 args 构造部分
+文件: `cmd/AgnesCodeProxy/daemon.go` — `RunSupervisor` 函数中的 args 构造部分
 
 ```go
 // 在 RunSupervisor 函数中，构建 args 的部分替换为：
 
 args := []string{"serve", "--port", strconv.Itoa(port)}
-if os.Getenv("_JOYCODE_DAEMON_VERBOSE") == "1" {
+if os.Getenv("_AGNESCODE_DAEMON_VERBOSE") == "1" {
     args = append(args, "-v")
 }
-if os.Getenv("_JOYCODE_DAEMON_SKIP_VALIDATION") == "1" {
+if os.Getenv("_AGNESCODE_DAEMON_SKIP_VALIDATION") == "1" {
     args = append(args, "--skip-validation")
 }
 ```
 
 - [ ] **Step 6: 验证 Task 2 — 编译 + 单元测试**
 
-Run: `go build -o /tmp/joycode-test ./cmd/JoyCodeProxy/ && /tmp/joycode-test daemon --help`
+Run: `go build -o /tmp/agnescode-test ./cmd/AgnesCodeProxy/ && /tmp/agnescode-test daemon --help`
 Expected:
   - Exit code: 0
   - Output contains: "start" and "stop" and "restart" and "status" and "logs"
 
-Run: `go test ./cmd/JoyCodeProxy/ -v -count=1`
+Run: `go test ./cmd/AgnesCodeProxy/ -v -count=1`
 Expected:
   - Exit code: 0
   - Output contains: "PASS" for all tests
 
 - [ ] **Step 7: 提交**
 
-Run: `git add cmd/JoyCodeProxy/daemon.go cmd/JoyCodeProxy/daemon_test.go cmd/JoyCodeProxy/main.go cmd/JoyCodeProxy/serve.go && git commit -m "feat(cli): add daemon mode with supervisor, crash recovery and PID management"`
+Run: `git add cmd/AgnesCodeProxy/daemon.go cmd/AgnesCodeProxy/daemon_test.go cmd/AgnesCodeProxy/main.go cmd/AgnesCodeProxy/serve.go && git commit -m "feat(cli): add daemon mode with supervisor, crash recovery and PID management"`
 
 ---
 
@@ -1099,12 +1099,12 @@ Run: `git add cmd/JoyCodeProxy/daemon.go cmd/JoyCodeProxy/daemon_test.go cmd/Joy
 
 **Depends on:** Task 1, Task 2
 **Files:**
-- Create: `cmd/JoyCodeProxy/integration_test.go`
+- Create: `cmd/AgnesCodeProxy/integration_test.go`
 
 - [ ] **Step 1: 创建集成测试 — 验证 daemon start/stop/status 完整流程**
 
 ```go
-// cmd/JoyCodeProxy/integration_test.go
+// cmd/AgnesCodeProxy/integration_test.go
 
 package main
 
@@ -1118,8 +1118,8 @@ import (
 
 func buildTestBinary(t *testing.T) string {
 	t.Helper()
-	binPath := filepath.Join(t.TempDir(), "joycode-proxy-test")
-	cmd := exec.Command("go", "build", "-o", binPath, "./cmd/JoyCodeProxy/")
+	binPath := filepath.Join(t.TempDir(), "agnescode-proxy-test")
+	cmd := exec.Command("go", "build", "-o", binPath, "./cmd/AgnesCodeProxy/")
 	if output, err := cmd.CombinedOutput(); err != nil {
 		t.Fatalf("build failed: %s: %v", string(output), err)
 	}
@@ -1243,14 +1243,14 @@ func TestDaemonDoubleStart(t *testing.T) {
 
 - [ ] **Step 2: 验证 Task 3 — 运行集成测试**
 
-Run: `go test ./cmd/JoyCodeProxy/ -v -run TestServiceHelpOutput -count=1`
+Run: `go test ./cmd/AgnesCodeProxy/ -v -run TestServiceHelpOutput -count=1`
 Expected:
   - Exit code: 0
   - Output contains: "PASS" for all help tests
 
 - [ ] **Step 3: 提交**
 
-Run: `git add cmd/JoyCodeProxy/integration_test.go && git commit -m "test(cli): add integration tests for daemon start/stop and service help"`
+Run: `git add cmd/AgnesCodeProxy/integration_test.go && git commit -m "test(cli): add integration tests for daemon start/stop and service help"`
 
 ---
 
@@ -1269,7 +1269,7 @@ Expected:
 
 - [ ] **Step 2: 构建正式二进制并验证 daemon 命令**
 
-Run: `go build -o joycode_proxy_bin ./cmd/JoyCodeProxy/ && ./joycode_proxy_bin daemon --help`
+Run: `go build -o agnescode_proxy_bin ./cmd/AgnesCodeProxy/ && ./agnescode_proxy_bin daemon --help`
 Expected:
   - Exit code: 0
   - Output contains: "start", "stop", "restart", "status", "logs"
@@ -1277,14 +1277,14 @@ Expected:
 
 - [ ] **Step 3: 验证 service 命令不退化**
 
-Run: `./joycode_proxy_bin service --help`
+Run: `./agnescode_proxy_bin service --help`
 Expected:
   - Exit code: 0
   - Output contains: "install", "uninstall", "status"
 
 - [ ] **Step 4: 验证 macOS 当前服务不受影响**
 
-Run: `./joycode_proxy_bin service status`
+Run: `./agnescode_proxy_bin service status`
 Expected:
   - Exit code: 0
   - Shows current service status (running or not)

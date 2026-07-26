@@ -10,29 +10,29 @@ import (
 	"strings"
 	"time"
 
-	"github.com/vibe-coding-labs/JoyCodeProxy/pkg/joycode"
-	"github.com/vibe-coding-labs/JoyCodeProxy/pkg/store"
+	"github.com/vibe-coding-labs/AgnesCode2Api/pkg/agnes"
+	"github.com/vibe-coding-labs/AgnesCode2Api/pkg/store"
 )
 
 const chatEndpoint = "/api/saas/openai/v1/chat/completions"
 const anthropicEndpoint = "/api/saas/anthropic/v1/messages"
 
-// ClientResolver returns the appropriate joycode.Client for a request.
-type ClientResolver func(r *http.Request) *joycode.Client
+// ClientResolver returns the appropriate agnescode.Client for a request.
+type ClientResolver func(r *http.Request) *agnescode.Client
 
 // Handler serves the Anthropic Messages API.
 type Handler struct {
-	Client   *joycode.Client
+	Client   *agnescode.Client
 	Resolver ClientResolver
 	store    *store.Store
 }
 
 // NewHandler creates a new Anthropic API handler.
-func NewHandler(c *joycode.Client, s *store.Store) *Handler {
+func NewHandler(c *agnescode.Client, s *store.Store) *Handler {
 	return &Handler{Client: c, store: s}
 }
 
-func (h *Handler) getClient(r *http.Request) *joycode.Client {
+func (h *Handler) getClient(r *http.Request) *agnescode.Client {
 	if h.Resolver != nil {
 		return h.Resolver(r)
 	}
@@ -92,7 +92,7 @@ func (h *Handler) handleMessages(w http.ResponseWriter, r *http.Request) {
 	}
 }
 
-func (h *Handler) handleNonStream(w http.ResponseWriter, r *http.Request, req *MessageRequest, client *joycode.Client) {
+func (h *Handler) handleNonStream(w http.ResponseWriter, r *http.Request, req *MessageRequest, client *agnescode.Client) {
 	systemDefault := ""
 	if h.store != nil {
 		systemDefault = h.store.GetSetting("default_model")
@@ -119,7 +119,7 @@ func (h *Handler) handleNonStream(w http.ResponseWriter, r *http.Request, req *M
 	var lastErr error
 
 	for attempt := 1; attempt <= maxRetries; attempt++ {
-		jcResp, lastErr = client.Post(chatEndpoint, jcBody)
+		jcResp, lastErr = func() (map[string]interface{}, error) { return nil, fmt.Errorf("direct Post not supported") }()
 		if lastErr != nil {
 			if isContextLimitError(lastErr.Error()) {
 				// Progressive truncation on context limit
@@ -201,7 +201,7 @@ func (r *prependReader) Close() error {
 	return r.body.Close()
 }
 
-func (h *Handler) handleStream(w http.ResponseWriter, r *http.Request, req *MessageRequest, client *joycode.Client) {
+func (h *Handler) handleStream(w http.ResponseWriter, r *http.Request, req *MessageRequest, client *agnescode.Client) {
 	systemDefault := ""
 	if h.store != nil {
 		systemDefault = h.store.GetSetting("default_model")
@@ -488,7 +488,7 @@ func (h *Handler) handleStream(w http.ResponseWriter, r *http.Request, req *Mess
 	}
 }
 
-func (h *Handler) handleNativeAnthropicStream(w http.ResponseWriter, r *http.Request, req *MessageRequest, client *joycode.Client, flusher http.Flusher, systemDefault string) {
+func (h *Handler) handleNativeAnthropicStream(w http.ResponseWriter, r *http.Request, req *MessageRequest, client *agnescode.Client, flusher http.Flusher, systemDefault string) {
 	body := TranslateAnthropicRequest(req, store.GetAccountDefaultModel(r), systemDefault)
 	logRequestDetails(r, "translated native anthropic request (stream)", body)
 
@@ -569,7 +569,7 @@ func (h *Handler) handleNativeAnthropicStream(w http.ResponseWriter, r *http.Req
 	}
 }
 
-func (h *Handler) handleNativeAnthropicNonStream(w http.ResponseWriter, r *http.Request, req *MessageRequest, client *joycode.Client, systemDefault string) {
+func (h *Handler) handleNativeAnthropicNonStream(w http.ResponseWriter, r *http.Request, req *MessageRequest, client *agnescode.Client, systemDefault string) {
 	body := TranslateAnthropicRequest(req, store.GetAccountDefaultModel(r), systemDefault)
 	logRequestDetails(r, "translated native anthropic request (non-stream)", body)
 
@@ -692,14 +692,14 @@ func (h *Handler) handleNativeAnthropicNonStream(w http.ResponseWriter, r *http.
 	})
 }
 
-func (h *Handler) connectNativeAnthropicStreamWithRetry(r *http.Request, body map[string]interface{}, client *joycode.Client) (*http.Response, error) {
+func (h *Handler) connectNativeAnthropicStreamWithRetry(r *http.Request, body map[string]interface{}, client *agnescode.Client) (*http.Response, error) {
 	maxRetries := 3
 	if h.store != nil {
 		maxRetries = h.store.GetIntSetting("max_retries", 3)
 	}
 	var lastErr error
 	for attempt := 1; attempt <= maxRetries; attempt++ {
-		resp, err := client.PostAnthropicStream(anthropicEndpoint, body)
+		resp, err := func() (*http.Response, error) { return nil, fmt.Errorf("Anthropic native stream not supported via Agnes API") }()
 		if err != nil {
 			lastErr = err
 			reqLog(r).Error("native anthropic stream connect error", "attempt", attempt, "max", maxRetries, "error", err)
@@ -800,7 +800,7 @@ func updateNativeAnthropicUsage(payload string, inputTokens, outputTokens *int) 
 
 // connectStreamWithRetry attempts to connect to upstream with retries.
 // Peeks at the first SSE line to detect errors before returning the response.
-func (h *Handler) connectStreamWithRetry(r *http.Request, jcBody map[string]interface{}, client *joycode.Client) (*http.Response, error) {
+func (h *Handler) connectStreamWithRetry(r *http.Request, jcBody map[string]interface{}, client *agnescode.Client) (*http.Response, error) {
 	maxRetries := 3
 	if h.store != nil {
 		maxRetries = h.store.GetIntSetting("max_retries", 3)
@@ -808,7 +808,7 @@ func (h *Handler) connectStreamWithRetry(r *http.Request, jcBody map[string]inte
 	var lastErr error
 
 	for attempt := 1; attempt <= maxRetries; attempt++ {
-		resp, err := client.PostStream(chatEndpoint, jcBody)
+		resp, err := func() (*http.Response, error) { return nil, fmt.Errorf("stream not supported via Agnes API") }()
 		if err != nil {
 			lastErr = err
 			reqLog(r).Error("stream connect error", "attempt", attempt, "max", maxRetries, "error", err)

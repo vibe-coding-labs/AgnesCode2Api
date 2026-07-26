@@ -356,7 +356,7 @@ func buildLoginResult(ptKey, ptPin string) (*QRLoginResult, error) {
 
 	if userID == "" {
 		slog.Error("qr-login: userId not found in userInfo response")
-		return nil, fmt.Errorf("无法从 JoyCode API 获取用户ID")
+		return nil, fmt.Errorf("无法从 AgnesCode API 获取用户ID")
 	}
 
 	return &QRLoginResult{PtKey: ptKey, PtPin: ptPin, UserID: userID, RealName: realName}, nil
@@ -364,12 +364,12 @@ func buildLoginResult(ptKey, ptPin string) (*QRLoginResult, error) {
 
 func fetchUserInfoWithPtKey(ptKey string) (map[string]interface{}, error) {
 	body := map[string]interface{}{
-		"tenant": "JOYCODE", "userId": "",
-		"client": "JoyCode", "clientVersion": "2.4.5",
+		"tenant": "AGNESCODE", "userId": "",
+		"client": "AgnesCode", "clientVersion": "2.4.5",
 		"sessionId": "qr-login-session",
 	}
 	data, _ := json.Marshal(body)
-	req, err := http.NewRequest("POST", "https://joycode-api.jd.com/api/saas/user/v1/userInfo", strings.NewReader(string(data)))
+	req, err := http.NewRequest("POST", "https://agnescode-api.jd.com/api/saas/user/v1/userInfo", strings.NewReader(string(data)))
 	if err != nil {
 		return nil, err
 	}
@@ -377,7 +377,7 @@ func fetchUserInfoWithPtKey(ptKey string) (map[string]interface{}, error) {
 		"Content-Type": {"application/json; charset=UTF-8"},
 		"ptKey":        {ptKey},
 		"loginType":    {"N_PIN_PC"},
-		"User-Agent":   {"Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) JoyCode/2.4.5 Chrome/133.0.0.0 Electron/35.2.0 Safari/537.36"},
+		"User-Agent":   {"Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) AgnesCode/2.4.5 Chrome/133.0.0.0 Electron/35.2.0 Safari/537.36"},
 	}
 	resp, err := http.DefaultClient.Do(req)
 	if err != nil {

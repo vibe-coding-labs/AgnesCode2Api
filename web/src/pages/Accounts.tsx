@@ -50,11 +50,11 @@ const isClaudeModel = (model?: string) => model === 'Claude-Opus-4.7';
 
 const claudeDockerHint = [
   `docker run -d \\`,
-  `  --name joycode-proxy \\`,
+  `  --name agnescode-proxy \\`,
   `  -p 34891:34891 \\`,
-  `  -v "$HOME/.joycode-proxy:/root/.joycode-proxy" \\`,
-  `  -v "$HOME/Library/Application Support/JoyCode/User/globalStorage/state.vscdb:/root/.joycode-ide/state.vscdb:ro" \\`,
-  `  joycode-proxy --skip-validation serve`,
+  `  -v "$HOME/.agnescode-proxy:/root/.agnescode-proxy" \\`,
+  `  -v "$HOME/Library/Application Support/AgnesCode/User/globalStorage/state.vscdb:/root/.agnescode-ide/state.vscdb:ro" \\`,
+  `  agnescode-proxy --skip-validation serve`,
 ].join('\n');
 
 const getBaseURL = () => `${window.location.protocol}//${window.location.host}`;
@@ -528,22 +528,22 @@ const Accounts: React.FC = () => {
             loading={autoLogging}
             icon={<SafetyCertificateOutlined />}
           >
-            一键导入本地JoyCode已登录账户
+            一键导入本地AgnesCode已登录账户
           </Button>
           <Popconfirm
-            title="确定要清空本地 JoyCode IDE 的登录会话吗？"
-            description="清除后 JoyCode IDE 将需要重新登录，此操作不影响已导入的账号"
+            title="确定要清空本地 AgnesCode IDE 的登录会话吗？"
+            description="清除后 AgnesCode IDE 将需要重新登录，此操作不影响已导入的账号"
             onConfirm={async () => {
               try {
-                const result = await api.clearJoyCodeSession();
-                message.success(result.message || 'JoyCode 本地会话已清除');
+                const result = await api.clearAgnesCodeSession();
+                message.success(result.message || 'AgnesCode 本地会话已清除');
               } catch (e: unknown) {
                 message.error(e instanceof Error ? e.message : '清除会话失败');
               }
             }}
           >
             <Button danger icon={<ClearOutlined />}>
-              清空本地JoyCode会话
+              清空本地AgnesCode会话
             </Button>
           </Popconfirm>
           <Button
@@ -558,7 +558,7 @@ const Accounts: React.FC = () => {
                 const url = URL.createObjectURL(blob);
                 const a = document.createElement('a');
                 a.href = url;
-                a.download = `joycode-accounts-${new Date().toISOString().slice(0, 10)}.json`;
+                a.download = `agnescode-accounts-${new Date().toISOString().slice(0, 10)}.json`;
                 a.click();
                 URL.revokeObjectURL(url);
                 message.success(`已导出 ${result.count} 个账号`);
@@ -613,7 +613,7 @@ const Accounts: React.FC = () => {
         type="info"
         showIcon
         message="多账号路由说明"
-        description="每个账号对应一个 JoyCode 后端凭证。客户端通过 API Token 来指定使用哪个账号。配置 Claude Code 时，将 API Token 填入 ANTHROPIC_API_KEY 环境变量即可。拖动行左侧手柄可调整排序。"
+        description="每个账号对应一个 AgnesCode 后端凭证。客户端通过 API Token 来指定使用哪个账号。配置 Claude Code 时，将 API Token 填入 ANTHROPIC_API_KEY 环境变量即可。拖动行左侧手柄可调整排序。"
         style={{ marginBottom: 16 }}
       />
 
@@ -641,13 +641,13 @@ const Accounts: React.FC = () => {
               onClick: () => navigate(`/accounts/${encodeURIComponent(record.user_id)}`),
               style: { cursor: 'pointer' },
             })}
-            locale={{ emptyText: '暂无账号，请点击「一键导入」或「OAuth授权登录」按钮配置您的第一个 JoyCode 账号' }}
+            locale={{ emptyText: '暂无账号，请点击「一键导入」或「OAuth授权登录」按钮配置您的第一个 AgnesCode 账号' }}
           />
         </SortableContext>
       </DndContext>
 
       <Modal
-        title="手动添加 JoyCode 账号"
+        title="手动添加 AgnesCode 账号"
         open={modalOpen}
         onCancel={() => { setModalOpen(false); form.resetFields(); }}
         onOk={() => form.submit()}
@@ -659,17 +659,17 @@ const Accounts: React.FC = () => {
           type="info"
           showIcon
           message="手动添加账号"
-          description="普通模型使用网页 OAuth 登录得到的账号凭证。选择 Claude 模型时，服务端还需要读取本机 JoyCode IDE 登录状态中的短 ptKey。"
+          description="普通模型使用网页 OAuth 登录得到的账号凭证。选择 Claude 模型时，服务端还需要读取本机 AgnesCode IDE 登录状态中的短 ptKey。"
           style={{ marginBottom: 16 }}
         />
         {isClaudeModel(selectedModel) && (
           <Alert
             type="warning"
             showIcon
-            message="Claude 模型需要 JoyCode IDE 已登录"
+            message="Claude 模型需要 AgnesCode IDE 已登录"
             description={(
               <div>
-                <div>请先在本机 JoyCode IDE 客户端完成登录。Docker 启动时还需要挂载 JoyCode IDE 的本地状态文件，代理会从该文件自动读取 Claude 所需的短 ptKey。</div>
+                <div>请先在本机 AgnesCode IDE 客户端完成登录。Docker 启动时还需要挂载 AgnesCode IDE 的本地状态文件，代理会从该文件自动读取 Claude 所需的短 ptKey。</div>
                 <pre style={{ margin: '8px 0 0', whiteSpace: 'pre-wrap', fontSize: 12 }}>{claudeDockerHint}</pre>
               </div>
             )}
@@ -681,36 +681,36 @@ const Accounts: React.FC = () => {
             name="pt_key"
             label={
               <Space size={4}>
-                JoyCode ptKey 凭证
-                <Tooltip title="普通模型使用网页 OAuth 登录得到的长 ptKey。Claude 模型还会从本机 JoyCode IDE 状态文件读取短 ptKey，不会覆盖这里保存的普通账号凭证。">
+                AgnesCode ptKey 凭证
+                <Tooltip title="普通模型使用网页 OAuth 登录得到的长 ptKey。Claude 模型还会从本机 AgnesCode IDE 状态文件读取短 ptKey，不会覆盖这里保存的普通账号凭证。">
                   <QuestionCircleOutlined style={{ color: '#999' }} />
                 </Tooltip>
               </Space>
             }
             rules={[{ required: true, message: '请输入 ptKey' }]}
           >
-            <Input.Password placeholder="粘贴网页 OAuth 或 JoyCode 普通接口可用的 ptKey" />
+            <Input.Password placeholder="粘贴网页 OAuth 或 AgnesCode 普通接口可用的 ptKey" />
           </Form.Item>
           <Form.Item
             name="user_id"
             label={
               <Space size={4}>
-                JoyCode 用户 ID
-                <Tooltip title="与 ptKey 对应的用户 ID。获取方式：打开 JoyCode 桌面客户端 → 设置 → 个人信息 → 复制用户 ID">
+                AgnesCode 用户 ID
+                <Tooltip title="与 ptKey 对应的用户 ID。获取方式：打开 AgnesCode 桌面客户端 → 设置 → 个人信息 → 复制用户 ID">
                   <QuestionCircleOutlined style={{ color: '#999' }} />
                 </Tooltip>
               </Space>
             }
             rules={[{ required: true, message: '请输入用户 ID' }]}
           >
-            <Input placeholder="例如：user-12345 或从 JoyCode 客户端复制" />
+            <Input placeholder="例如：user-12345 或从 AgnesCode 客户端复制" />
           </Form.Item>
           <Form.Item
             name="default_model"
             label={
               <Space size={4}>
                 默认模型
-                <Tooltip title="选择 Claude-Opus-4.7 时，请确保本机 JoyCode IDE 已登录，并按提示挂载 state.vscdb。非 Claude 模型继续使用网页 OAuth 凭证。">
+                <Tooltip title="选择 Claude-Opus-4.7 时，请确保本机 AgnesCode IDE 已登录，并按提示挂载 state.vscdb。非 Claude 模型继续使用网页 OAuth 凭证。">
                   <QuestionCircleOutlined style={{ color: '#999' }} />
                 </Tooltip>
               </Space>

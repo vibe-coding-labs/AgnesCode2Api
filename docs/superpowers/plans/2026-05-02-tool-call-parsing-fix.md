@@ -108,7 +108,7 @@ With:
 ```
 
 - [ ] **Step 5: Build and verify**
-Run: `go build -o joycode_proxy_bin ./cmd/JoyCodeProxy`
+Run: `go build -o agnescode_proxy_bin ./cmd/AgnesCodeProxy`
 Expected:
   - Exit code: 0
   - No compilation errors
@@ -145,7 +145,7 @@ Expected:
 ```
 
 - [ ] **Step 2: Build and verify**
-Run: `go build -o joycode_proxy_bin ./cmd/JoyCodeProxy`
+Run: `go build -o agnescode_proxy_bin ./cmd/AgnesCodeProxy`
 Expected:
   - Exit code: 0
 
@@ -157,7 +157,7 @@ Expected:
 **Files:** None
 
 - [ ] **Step 1: Kill old process and restart**
-Run: `ps aux | grep joycode_proxy_bin | grep -v grep | awk '{print $2}' | xargs kill && sleep 4 && curl -s http://127.0.0.1:34891/api/health`
+Run: `ps aux | grep agnescode_proxy_bin | grep -v grep | awk '{print $2}' | xargs kill && sleep 4 && curl -s http://127.0.0.1:34891/api/health`
 Expected:
   - Output contains: `"status":"ok"`
 

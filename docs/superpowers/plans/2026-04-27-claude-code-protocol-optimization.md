@@ -3,15 +3,15 @@
 > **For agentic workers:** REQUIRED SUB-SKILL: `superpowers:subagent-driven-development`
 > Steps use checkbox (`- [ ]`) syntax.
 
-**Goal:** 优化 JoyCodeProxy 的 Anthropic 协议兼容性，修复 tool_result 内容丢失、添加 thinking 推理过程支持、增强 HTTP 客户端稳定性、添加调试日志，确保 Claude Code 完整工作流无异常。
+**Goal:** 优化 AgnesCodeProxy 的 Anthropic 协议兼容性，修复 tool_result 内容丢失、添加 thinking 推理过程支持、增强 HTTP 客户端稳定性、添加调试日志，确保 Claude Code 完整工作流无异常。
 
-**Architecture:** Claude Code 发送请求 → anthropic_handler 解析多类型 content blocks（text/tool_result/image/tool_use）→ 构建 OpenAI 格式消息 → Client 带重试发送到 JoyCode → 响应中 reasoning_content 转换为 Anthropic thinking block → SSE 流式返回。每层独立修改，向后兼容。
+**Architecture:** Claude Code 发送请求 → anthropic_handler 解析多类型 content blocks（text/tool_result/image/tool_use）→ 构建 OpenAI 格式消息 → Client 带重试发送到 AgnesCode → 响应中 reasoning_content 转换为 Anthropic thinking block → SSE 流式返回。每层独立修改，向后兼容。
 
 **Tech Stack:** Python 3.9+, FastAPI 0.115+, httpx 0.28+, pytest 8.3+
 
 **Risks:**
 - Task 1 修改 parse_content 和 translate_request 影响所有消息处理路径 → 缓解：纯文本输入保持原行为，新增逻辑只在 content 是 list 时触发
-- Task 2 依赖 JoyCode 的 reasoning_content SSE 格式 → 缓解：已通过实际 API 抓包确认格式为 `delta.reasoning_content` 流式文本片段
+- Task 2 依赖 AgnesCode 的 reasoning_content SSE 格式 → 缓解：已通过实际 API 抓包确认格式为 `delta.reasoning_content` 流式文本片段
 - Task 3 修改 Client 初始化可能影响现有连接行为 → 缓解：httpx 默认值不变，只新增重试和池化
 
 ---
@@ -20,12 +20,12 @@
 
 **Depends on:** None
 **Files:**
-- Modify: `joycode_proxy/anthropic_handler.py:57-78`（parse_content 函数）
-- Modify: `joycode_proxy/anthropic_handler.py:106-149`（translate_request 函数）
+- Modify: `agnescode_proxy/anthropic_handler.py:57-78`（parse_content 函数）
+- Modify: `agnescode_proxy/anthropic_handler.py:106-149`（translate_request 函数）
 
 - [ ] **Step 1: 重写 parse_content 为 translate_content_blocks — 支持多类型 content block 转换**
 
-文件: `joycode_proxy/anthropic_handler.py:57-78`（替换整个 parse_content 函数及其后空行）
+文件: `agnescode_proxy/anthropic_handler.py:57-78`（替换整个 parse_content 函数及其后空行）
 
 重写原因：原函数只能提取 text，丢失 tool_result/image/tool_use 等结构化内容。Claude Code 多轮对话中会发送包含 tool_result 的 content blocks，必须正确转换为 OpenAI 格式的 tool message。
 
@@ -132,13 +132,13 @@ def _translate_content_blocks(content: Any) -> Any:
 
 - [ ] **Step 2: 修改 translate_request 以支持多 content block 和 tool_result 消息**
 
-文件: `joycode_proxy/anthropic_handler.py:106-149`（替换整个 translate_request 函数）
+文件: `agnescode_proxy/anthropic_handler.py:106-149`（替换整个 translate_request 函数）
 
 重写原因：原函数把所有 content 合并成纯字符串，丢失了 tool_result 关联的 tool_use_id 信息。Claude Code 的多轮 tool 对话需要把 assistant 的 tool_use 转为 OpenAI 的 assistant tool_calls，把 user 的 tool_result 转为 OpenAI 的 tool message。
 
 ```python
 def translate_request(req: Dict[str, Any]) -> Dict[str, Any]:
-    """Convert an Anthropic Messages API request body to a JoyCode/OpenAI body."""
+    """Convert an Anthropic Messages API request body to a AgnesCode/OpenAI body."""
     model = resolve_model(req.get("model", ""))
 
     messages: List[Dict[str, Any]] = []
@@ -256,7 +256,7 @@ def _build_tool_message(tool_result: Dict[str, Any]) -> Dict[str, Any]:
 - [ ] **Step 3: 验证消息内容处理**
 
 Run: `python3 -c "
-from joycode_proxy.anthropic_handler import parse_content, _translate_content_blocks, translate_request
+from agnescode_proxy.anthropic_handler import parse_content, _translate_content_blocks, translate_request
 
 # Test parse_content backward compat
 assert parse_content('hello') == 'hello'
@@ -308,26 +308,26 @@ Expected:
   - Output contains: "All content translation tests passed!"
 
 - [ ] **Step 4: 提交**
-Run: `git add joycode_proxy/anthropic_handler.py && git commit -m "fix(anthropic): support multi-type content blocks including tool_result, image, and tool_use"`
+Run: `git add agnescode_proxy/anthropic_handler.py && git commit -m "fix(anthropic): support multi-type content blocks including tool_result, image, and tool_use"`
 
 ---
 
-### Task 2: 添加 Thinking/Reasoning 支持 — 将 JoyCode reasoning_content 转换为 Anthropic thinking block
+### Task 2: 添加 Thinking/Reasoning 支持 — 将 AgnesCode reasoning_content 转换为 Anthropic thinking block
 
 **Depends on:** Task 1
 **Files:**
-- Modify: `joycode_proxy/anthropic_handler.py:152-214`（translate_response 函数 — reasoning 非流式）
-- Modify: `joycode_proxy/anthropic_handler.py:232-400`（_handle_stream 函数 — reasoning 流式）
+- Modify: `agnescode_proxy/anthropic_handler.py:152-214`（translate_response 函数 — reasoning 非流式）
+- Modify: `agnescode_proxy/anthropic_handler.py:232-400`（_handle_stream 函数 — reasoning 流式）
 
 - [ ] **Step 1: 修改 translate_response — 将 reasoning_content 转换为 thinking content block**
 
-文件: `joycode_proxy/anthropic_handler.py:152-214`（替换整个 translate_response 函数）
+文件: `agnescode_proxy/anthropic_handler.py:152-214`（替换整个 translate_response 函数）
 
-重写原因：JoyCode 的 reasoning_content 在非流式响应中位于 `message.reasoning_content`，需要转为 Anthropic 的 `thinking` content block 放在 text block 之前，让 Claude Code 能看到推理过程。
+重写原因：AgnesCode 的 reasoning_content 在非流式响应中位于 `message.reasoning_content`，需要转为 Anthropic 的 `thinking` content block 放在 text block 之前，让 Claude Code 能看到推理过程。
 
 ```python
 def translate_response(jc_resp: Dict[str, Any], req_model: str) -> Dict[str, Any]:
-    """Convert a JoyCode API response to Anthropic Messages format."""
+    """Convert a AgnesCode API response to Anthropic Messages format."""
     msg_id = _new_message_id()
 
     usage_info = jc_resp.get("usage") or {}
@@ -396,9 +396,9 @@ def translate_response(jc_resp: Dict[str, Any], req_model: str) -> Dict[str, Any
 
 - [ ] **Step 2: 修改 _handle_stream — 在 SSE 流中输出 thinking block**
 
-文件: `joycode_proxy/anthropic_handler.py`（替换 _handle_stream 函数内的 `_generator` 内部函数，从 `async def _generator():` 到 `resp.close()` 为止，即原文件约第 235-390 行）
+文件: `agnescode_proxy/anthropic_handler.py`（替换 _handle_stream 函数内的 `_generator` 内部函数，从 `async def _generator():` 到 `resp.close()` 为止，即原文件约第 235-390 行）
 
-重写原因：JoyCode 流式返回的 `delta.reasoning_content` 需要先作为 Anthropic `thinking` content block 输出，然后才是 `text` content block。当前代码完全忽略 reasoning_content。
+重写原因：AgnesCode 流式返回的 `delta.reasoning_content` 需要先作为 Anthropic `thinking` content block 输出，然后才是 `text` content block。当前代码完全忽略 reasoning_content。
 
 ```python
     async def _generator():
@@ -606,7 +606,7 @@ def translate_response(jc_resp: Dict[str, Any], req_model: str) -> Dict[str, Any
 
 Run: `curl -s -N -X POST http://localhost:34891/v1/messages \
   -H "Content-Type: application/json" \
-  -H "x-api-key: joycode" \
+  -H "x-api-key: agnescode" \
   -H "anthropic-version: 2023-06-01" \
   -d '{
     "model": "GLM-5.1",
@@ -619,7 +619,7 @@ Expected:
   - Output contains: `"type":"text"` (text block 在 thinking 之后)
 
 - [ ] **Step 4: 提交**
-Run: `git add joycode_proxy/anthropic_handler.py && git commit -m "feat(anthropic): add thinking/reasoning support for extended thinking models"`
+Run: `git add agnescode_proxy/anthropic_handler.py && git commit -m "feat(anthropic): add thinking/reasoning support for extended thinking models"`
 
 ---
 
@@ -627,11 +627,11 @@ Run: `git add joycode_proxy/anthropic_handler.py && git commit -m "feat(anthropi
 
 **Depends on:** None
 **Files:**
-- Modify: `joycode_proxy/client.py:1-39`（imports 和 Client.__init__）
+- Modify: `agnescode_proxy/client.py:1-39`（imports 和 Client.__init__）
 
 - [ ] **Step 1: 修改 Client.__init__ — 添加连接池、分层超时、重试传输**
 
-文件: `joycode_proxy/client.py:1-39`（替换文件头部 imports 和 Client 类的 __init__ 方法）
+文件: `agnescode_proxy/client.py:1-39`（替换文件头部 imports 和 Client 类的 __init__ 方法）
 
 重写原因：当前 httpx.Client 只有单一 120s 超时，无连接池限制、无重试。高并发或网络抖动时容易失败。添加分层超时（connect 10s, read 120s, write 30s, pool 10s）和最多 3 次重试。
 
@@ -641,13 +641,13 @@ from typing import Any, Dict, List, Optional
 
 import httpx
 
-BASE_URL = "https://joycode-api.jd.com"
+BASE_URL = "https://agnescode-api.jd.com"
 DEFAULT_MODEL = "JoyAI-Code"
 CLIENT_VERSION = "2.4.5"
 USER_AGENT = (
     "Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) "
     "AppleWebKit/537.36 (KHTML, like Gecko) "
-    "JoyCode/2.4.5 Chrome/133.0.0.0 Electron/35.2.0 Safari/537.36"
+    "AgnesCode/2.4.5 Chrome/133.0.0.0 Electron/35.2.0 Safari/537.36"
 )
 TIMEOUT = httpx.Timeout(connect=10.0, read=120.0, write=30.0, pool=10.0)
 MAX_RETRIES = 3
@@ -695,7 +695,7 @@ class Client:
 - [ ] **Step 2: 验证 HTTP 客户端增强**
 
 Run: `python3 -c "
-from joycode_proxy.client import Client, TIMEOUT, MAX_RETRIES
+from agnescode_proxy.client import Client, TIMEOUT, MAX_RETRIES
 
 assert MAX_RETRIES == 3
 assert TIMEOUT.connect == 10.0
@@ -714,7 +714,7 @@ Expected:
   - Output contains: "HTTP client enhancement verified!"
 
 - [ ] **Step 3: 提交**
-Run: `git add joycode_proxy/client.py && git commit -m "feat(client): add connection pooling, layered timeouts, and auto-retry"`
+Run: `git add agnescode_proxy/client.py && git commit -m "feat(client): add connection pooling, layered timeouts, and auto-retry"`
 
 ---
 
@@ -722,19 +722,19 @@ Run: `git add joycode_proxy/client.py && git commit -m "feat(client): add connec
 
 **Depends on:** None
 **Files:**
-- Modify: `joycode_proxy/cli.py:39-48`（cli 命令 — 添加 --verbose 选项）
-- Modify: `joycode_proxy/cli.py:55-71`（serve 命令 — 传递 log_level）
-- Modify: `joycode_proxy/anthropic_handler.py:1-3`（添加 logging import）
-- Modify: `joycode_proxy/anthropic_handler.py:428-449`（handle_messages — 添加日志）
+- Modify: `agnescode_proxy/cli.py:39-48`（cli 命令 — 添加 --verbose 选项）
+- Modify: `agnescode_proxy/cli.py:55-71`（serve 命令 — 传递 log_level）
+- Modify: `agnescode_proxy/anthropic_handler.py:1-3`（添加 logging import）
+- Modify: `agnescode_proxy/anthropic_handler.py:428-449`（handle_messages — 添加日志）
 
 - [ ] **Step 1: 修改 CLI — 添加 --verbose 选项控制日志级别**
 
-文件: `joycode_proxy/cli.py:39-48`（替换 cli 命令）
+文件: `agnescode_proxy/cli.py:39-48`（替换 cli 命令）
 
 ```python
 @cli.group()
-@click.option("-k", "--ptkey", default="", help="JoyCode ptKey (auto-detected if empty)")
-@click.option("-u", "--userid", default="", help="JoyCode userID (auto-detected if empty)")
+@click.option("-k", "--ptkey", default="", help="AgnesCode ptKey (auto-detected if empty)")
+@click.option("-u", "--userid", default="", help="AgnesCode userID (auto-detected if empty)")
 @click.option("--skip-validation", is_flag=True, help="Skip credential validation")
 @click.option("-v", "--verbose", is_flag=True, help="Enable debug logging")
 @click.pass_context
@@ -750,7 +750,7 @@ def cli(ctx, ptkey: str, userid: str, skip_validation: bool, verbose: bool):
 
 - [ ] **Step 2: 修改 serve 命令 — 使用 verbose 控制日志级别**
 
-文件: `joycode_proxy/cli.py:51-71`（替换 serve 命令，在 `@cli.command()` 和 `uvicorn.run` 之间）
+文件: `agnescode_proxy/cli.py:51-71`（替换 serve 命令，在 `@cli.command()` 和 `uvicorn.run` 之间）
 
 ```python
 @cli.command()
@@ -760,7 +760,7 @@ def cli(ctx, ptkey: str, userid: str, skip_validation: bool, verbose: bool):
 def serve(ctx, host: str, port: int):
     import uvicorn
     client = _resolve_client(ctx.obj["ptkey"], ctx.obj["userid"], ctx.obj["skip_validation"])
-    from joycode_proxy.server import create_app
+    from agnescode_proxy.server import create_app
     app = create_app(client)
     click.echo("  Endpoints:")
     click.echo("    POST /v1/chat/completions  - Chat (OpenAI format)")
@@ -772,14 +772,14 @@ def serve(ctx, host: str, port: int):
     click.echo()
     click.echo("  Claude Code setup:")
     click.echo(f"    export ANTHROPIC_BASE_URL=http://{host}:{port}")
-    click.echo("    export ANTHROPIC_API_KEY=joycode")
+    click.echo("    export ANTHROPIC_API_KEY=agnescode")
     log_level = "debug" if ctx.obj.get("verbose") else "info"
     uvicorn.run(app, host=host, port=port, log_level=log_level)
 ```
 
 - [ ] **Step 3: 在 anthropic_handler 添加请求/响应日志**
 
-文件: `joycode_proxy/anthropic_handler.py:1-3`（在现有 import 区域后添加 logging）
+文件: `agnescode_proxy/anthropic_handler.py:1-3`（在现有 import 区域后添加 logging）
 
 在文件顶部的 import 区域（第 1-3 行）之后添加 logging 初始化：
 
@@ -792,14 +792,14 @@ import logging
 from fastapi import APIRouter, Request
 from fastapi.responses import JSONResponse, StreamingResponse
 
-from joycode_proxy.client import CHAT_ENDPOINT, Client, MODELS
+from agnescode_proxy.client import CHAT_ENDPOINT, Client, MODELS
 
-log = logging.getLogger("joycode-proxy.anthropic")
+log = logging.getLogger("agnescode-proxy.anthropic")
 ```
 
 然后修改 `handle_messages` 端点函数（`create_anthropic_router` 内部的 `handle_messages`）添加日志：
 
-文件: `joycode_proxy/anthropic_handler.py`（在 `create_anthropic_router` 内部的 `handle_messages` 函数中添加日志行）
+文件: `agnescode_proxy/anthropic_handler.py`（在 `create_anthropic_router` 内部的 `handle_messages` 函数中添加日志行）
 
 ```python
     @router.post("/v1/messages")
@@ -818,7 +818,7 @@ log = logging.getLogger("joycode-proxy.anthropic")
         try:
             jc_resp = client.post(CHAT_ENDPOINT, jc_body)
         except Exception as exc:
-            log.error("JoyCode API error: %s", exc)
+            log.error("AgnesCode API error: %s", exc)
             return _error_response(500, str(exc))
 
         resp = translate_response(jc_resp, body.get("model", ""))
@@ -830,7 +830,7 @@ log = logging.getLogger("joycode-proxy.anthropic")
 - [ ] **Step 4: 验证调试日志**
 
 Run: `python3 -c "
-from joycode_proxy.cli import cli
+from agnescode_proxy.cli import cli
 # Verify verbose option exists
 import click
 params = {p.name for p in cli.params}
@@ -842,7 +842,7 @@ Expected:
   - Output contains: "Debug logging option verified!"
 
 - [ ] **Step 5: 提交**
-Run: `git add joycode_proxy/cli.py joycode_proxy/anthropic_handler.py && git commit -m "feat: add --verbose debug logging with request/response tracing"`
+Run: `git add agnescode_proxy/cli.py agnescode_proxy/anthropic_handler.py && git commit -m "feat: add --verbose debug logging with request/response tracing"`
 
 ---
 
@@ -857,7 +857,7 @@ Run: `git add joycode_proxy/cli.py joycode_proxy/anthropic_handler.py && git com
 文件: `tests/test_anthropic.py`（替换整个文件）
 
 ```python
-from joycode_proxy.anthropic_handler import (
+from agnescode_proxy.anthropic_handler import (
     _translate_content_blocks,
     convert_tools_to_openai,
     parse_content,

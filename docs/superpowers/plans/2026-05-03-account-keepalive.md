@@ -3,14 +3,14 @@
 > **For agentic workers:** REQUIRED SUB-SKILL: `superpowers:subagent-driven-development`
 > Steps use checkbox (`- [ ]`) syntax.
 
-**Goal:** 为所有已导入的 JoyCode 账号实现自动保活机制：定期调用 UserInfo API 刷新 pt_key 凭证，防止会话过期，并在前端展示每个账号的凭证健康状态。
+**Goal:** 为所有已导入的 AgnesCode 账号实现自动保活机制：定期调用 UserInfo API 刷新 pt_key 凭证，防止会话过期，并在前端展示每个账号的凭证健康状态。
 
-**Architecture:** 后台保活 goroutine 定时（默认每 10 小时）遍历所有账号 → 解密 pt_key → 调用 JoyCode UserInfo API → 验证凭证有效性 → 如果响应包含新的 ptKey 则加密后写回 SQLite → 更新内存中的凭证状态缓存 → Dashboard API 读取缓存状态 → 前端展示凭证状态 Tag（有效/过期/未知）。
+**Architecture:** 后台保活 goroutine 定时（默认每 10 小时）遍历所有账号 → 解密 pt_key → 调用 AgnesCode UserInfo API → 验证凭证有效性 → 如果响应包含新的 ptKey 则加密后写回 SQLite → 更新内存中的凭证状态缓存 → Dashboard API 读取缓存状态 → 前端展示凭证状态 Tag（有效/过期/未知）。
 
 **Tech Stack:** Go 1.22+, SQLite (mattn/go-sqlite3), React 19, Ant Design 6, TypeScript
 
 **Risks:**
-- Task 2 修改 `pkg/joycode/client.go` 新增方法，不影响现有 `Validate()` → 缓解：纯新增方法，不改已有代码
+- Task 2 修改 `pkg/agnescode/client.go` 新增方法，不影响现有 `Validate()` → 缓解：纯新增方法，不改已有代码
 - Task 3 保活 goroutine 中批量验证可能触发上游限流 → 缓解：账号间增加 5 秒间隔
 - UserInfo 返回的 data.ptKey 可能为空或与当前相同 → 缓解：仅在非空且不同时才更新数据库
 - Task 4 修改前端 Account 接口，可能影响现有展示 → 缓解：新字段均为 optional，无破坏性变更
@@ -83,22 +83,22 @@ func (s *Store) ListAllAccountsWithCredentials() ([]Account, error) {
 
 - [ ] **Step 3: 验证编译通过**
 
-Run: `cd /Users/cc11001100/github/vibe-coding-labs/JoyCodeProxy && go build ./pkg/store/`
+Run: `cd /Users/cc11001100/github/vibe-coding-labs/AgnesCodeProxy && go build ./pkg/store/`
 Expected:
   - Exit code: 0
   - Output does NOT contain: "Error" or "undefined"
 
 ---
 
-### Task 2: JoyCode Client — 添加 UserInfoWithRefresh 方法
+### Task 2: AgnesCode Client — 添加 UserInfoWithRefresh 方法
 
 **Depends on:** Task 1
 **Files:**
-- Modify: `pkg/joycode/client.go:213-231`（在 `UserInfo()` 和 `Validate()` 方法后）
+- Modify: `pkg/agnescode/client.go:213-231`（在 `UserInfo()` 和 `Validate()` 方法后）
 
 - [ ] **Step 1: 添加 UserInfoWithRefresh 方法 — 调用 UserInfo 并返回刷新后的 ptKey**
 
-文件: `pkg/joycode/client.go`（在 `Validate()` 方法后，约第 232 行）
+文件: `pkg/agnescode/client.go`（在 `Validate()` 方法后，约第 232 行）
 
 ```go
 // UserInfoWithRefresh calls the UserInfo API and returns the refreshed ptKey
@@ -129,7 +129,7 @@ func (c *Client) UserInfoWithRefresh() (string, error) {
 
 - [ ] **Step 2: 验证编译通过**
 
-Run: `cd /Users/cc11001100/github/vibe-coding-labs/JoyCodeProxy && go build ./pkg/joycode/`
+Run: `cd /Users/cc11001100/github/vibe-coding-labs/AgnesCodeProxy && go build ./pkg/agnescode/`
 Expected:
   - Exit code: 0
   - Output does NOT contain: "Error" or "undefined"
@@ -152,8 +152,8 @@ import (
 	"sync"
 	"time"
 
-	"github.com/vibe-coding-labs/JoyCodeProxy/pkg/joycode"
-	"github.com/vibe-coding-labs/JoyCodeProxy/pkg/store"
+	"github.com/vibe-coding-labs/AgnesCodeProxy/pkg/agnescode"
+	"github.com/vibe-coding-labs/AgnesCodeProxy/pkg/store"
 )
 
 // CredentialStatus represents the health of an account's credentials.
@@ -258,7 +258,7 @@ func (k *Keeper) checkAll() {
 
 // checkOne validates a single account and refreshes pt_key if possible.
 func (k *Keeper) checkOne(apiKey, ptKey, userID string) {
-	client := joycode.NewClient(ptKey, userID)
+	client := agnescode.NewClient(ptKey, userID)
 	client.SetTimeout(30 * time.Second)
 
 	refreshedPtKey, err := client.UserInfoWithRefresh()
@@ -303,7 +303,7 @@ func (k *Keeper) checkOne(apiKey, ptKey, userID string) {
 
 - [ ] **Step 2: 验证编译通过**
 
-Run: `cd /Users/cc11001100/github/vibe-coding-labs/JoyCodeProxy && go build ./pkg/keepalive/`
+Run: `cd /Users/cc11001100/github/vibe-coding-labs/AgnesCodeProxy && go build ./pkg/keepalive/`
 Expected:
   - Exit code: 0
   - Output does NOT contain: "Error" or "undefined"
@@ -314,19 +314,19 @@ Expected:
 
 **Depends on:** Task 3
 **Files:**
-- Modify: `cmd/JoyCodeProxy/serve.go:80-81`（store 初始化后启动 keepalive）
-- Modify: `cmd/JoyCodeProxy/serve.go:228-230`（shutdown 时停止 keepalive）
+- Modify: `cmd/AgnesCodeProxy/serve.go:80-81`（store 初始化后启动 keepalive）
+- Modify: `cmd/AgnesCodeProxy/serve.go:228-230`（shutdown 时停止 keepalive）
 - Modify: `pkg/dashboard/handler.go`（注入凭证状态到账号列表响应）
 - Modify: `web/src/api.ts`（Account 接口添加凭证状态字段）
 - Modify: `web/src/pages/Accounts.tsx`（展示凭证状态 Tag）
 
 - [ ] **Step 1: 修改 serve.go 启动 keepalive goroutine — 在 store 初始化后创建并启动 Keeper**
 
-文件: `cmd/JoyCodeProxy/serve.go`
+文件: `cmd/AgnesCodeProxy/serve.go`
 
 添加 import（在现有 import 块中）:
 ```go
-"github.com/vibe-coding-labs/JoyCodeProxy/pkg/keepalive"
+"github.com/vibe-coding-labs/AgnesCodeProxy/pkg/keepalive"
 ```
 
 在 store 初始化代码块后（约第 80 行 `s.MigrateTokenLogs()` 之后），添加 keepalive 启动代码:
@@ -342,7 +342,7 @@ Expected:
 
 - [ ] **Step 2: 修改 serve.go — shutdown 时停止 Keeper**
 
-文件: `cmd/JoyCodeProxy/serve.go`（约第 228-230 行，`s.Close()` 之前）
+文件: `cmd/AgnesCodeProxy/serve.go`（约第 228-230 行，`s.Close()` 之前）
 
 ```go
 			if keeper != nil {
@@ -387,7 +387,7 @@ keeper *keepalive.Keeper
 
 - [ ] **Step 4: 修改 serve.go 中 NewHandler 调用 — 传入 keeper**
 
-文件: `cmd/JoyCodeProxy/serve.go`（约第 168 行）
+文件: `cmd/AgnesCodeProxy/serve.go`（约第 168 行）
 
 将:
 ```go
@@ -453,14 +453,14 @@ keeper *keepalive.Keeper
 
 - [ ] **Step 8: 构建前端**
 
-Run: `cd /Users/cc11001100/github/vibe-coding-labs/JoyCodeProxy/web && npm run build`
+Run: `cd /Users/cc11001100/github/vibe-coding-labs/AgnesCodeProxy/web && npm run build`
 Expected:
   - Exit code: 0
   - Output contains: "built in"
 
 - [ ] **Step 9: 构建后端并验证编译**
 
-Run: `cd /Users/cc11001100/github/vibe-coding-labs/JoyCodeProxy && go build -o cmd/JoyCodeProxy/JoyCodeProxy ./cmd/JoyCodeProxy/`
+Run: `cd /Users/cc11001100/github/vibe-coding-labs/AgnesCodeProxy && go build -o cmd/AgnesCodeProxy/AgnesCodeProxy ./cmd/AgnesCodeProxy/`
 Expected:
   - Exit code: 0
   - Output does NOT contain: "Error" or "undefined"
@@ -475,7 +475,7 @@ Expected:
 
 - [ ] **Step 1: 重启服务**
 
-Run: `launchctl unload ~/Library/LaunchAgents/com.joycode.proxy.plist && launchctl load ~/Library/LaunchAgents/com.joycode.proxy.plist`
+Run: `launchctl unload ~/Library/LaunchAgents/com.agnescode.proxy.plist && launchctl load ~/Library/LaunchAgents/com.agnescode.proxy.plist`
 Expected:
   - Exit code: 0
 
@@ -488,4 +488,4 @@ Expected:
 
 - [ ] **Step 3: 提交所有变更**
 
-Run: `cd /Users/cc11001100/github/vibe-coding-labs/JoyCodeProxy && git add pkg/keepalive/keepalive.go pkg/store/store.go pkg/joycode/client.go cmd/JoyCodeProxy/serve.go pkg/dashboard/handler.go web/src/api.ts web/src/pages/Accounts.tsx cmd/JoyCodeProxy/static/ && git commit -m "feat(keepalive): add automatic credential keep-alive mechanism with pt_key refresh"`
+Run: `cd /Users/cc11001100/github/vibe-coding-labs/AgnesCodeProxy && git add pkg/keepalive/keepalive.go pkg/store/store.go pkg/agnescode/client.go cmd/AgnesCodeProxy/serve.go pkg/dashboard/handler.go web/src/api.ts web/src/pages/Accounts.tsx cmd/AgnesCodeProxy/static/ && git commit -m "feat(keepalive): add automatic credential keep-alive mechanism with pt_key refresh"`

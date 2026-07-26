@@ -3,15 +3,15 @@
 > **For agentic workers:** REQUIRED SUB-SKILL: `superpowers:subagent-driven-development`
 > Steps use checkbox (`- [ ]`) syntax.
 
-**Goal:** 集成京东账号 QR 码扫码登录流程，让用户无需安装 JoyCode IDE 即可通过 CLI 登录获取凭据。
+**Goal:** 集成京东账号 QR 码扫码登录流程，让用户无需安装 AgnesCode IDE 即可通过 CLI 登录获取凭据。
 
-**Architecture:** 用户执行 `joycode-proxy login` → CLI 调用 `qr.m.jd.com/show` 获取 QR 码并显示在终端 → 用户用京东 APP 扫码 → CLI 轮询 `qr.m.jd.com/check` 等待确认 → 确认后调用 `passport.jd.com/uc/qrCodeTicketValidation` 验证 ticket → 从重定向中捕获 `pt_key` cookie → 调用 JoyCode `/api/saas/user/v1/userInfo` 获取 `userId` → 将凭据持久化到 `~/.joycode-proxy/credentials.json`。`resolveClient` 优先从本地文件加载凭据，不再依赖 JoyCode IDE 安装。
+**Architecture:** 用户执行 `agnescode-proxy login` → CLI 调用 `qr.m.jd.com/show` 获取 QR 码并显示在终端 → 用户用京东 APP 扫码 → CLI 轮询 `qr.m.jd.com/check` 等待确认 → 确认后调用 `passport.jd.com/uc/qrCodeTicketValidation` 验证 ticket → 从重定向中捕获 `pt_key` cookie → 调用 AgnesCode `/api/saas/user/v1/userInfo` 获取 `userId` → 将凭据持久化到 `~/.agnescode-proxy/credentials.json`。`resolveClient` 优先从本地文件加载凭据，不再依赖 AgnesCode IDE 安装。
 
 **Tech Stack:** Go 1.23, `net/http/cookiejar` (cookie 管理), `github.com/mdp/qrterminal/v3` (终端 QR 码显示), `encoding/json` (凭据序列化), `os` (文件存储)
 
 **调研来源:**
-- JoyCode-RE 文档 #02（API 端点与认证机制）确认 ptKey 来自 JD SSO (`N_PIN_PC`)
-- JoyCode-RE 文档 #40（认证生命周期）确认 ptKey 有效期 14+ 小时，4 层存储架构
+- AgnesCode-RE 文档 #02（API 端点与认证机制）确认 ptKey 来自 JD SSO (`N_PIN_PC`)
+- AgnesCode-RE 文档 #40（认证生命周期）确认 ptKey 有效期 14+ 小时，4 层存储架构
 - JDHGPT 内部端点：`/login/pluginlogin`、`/login/loginResultCheck`、`/pollLoginInfo`（备选路径）
 - codegeex-proxy `auth.py` — 邮箱/密码登录 + 浏览器登录服务器参考实现
 - iflycode-RE `docs/08-auth-flow.md` — QR 码 OAuth WebView 流程参考
@@ -35,7 +35,7 @@
 
 - [ ] **Step 1: 安装 qrterminal 依赖 — 终端 QR 码显示**
 
-Run: `cd /Users/cc11001100/github/vibe-coding-labs/JoyCodeProxy && go get github.com/mdp/qrterminal/v3`
+Run: `cd /Users/cc11001100/github/vibe-coding-labs/AgnesCodeProxy && go get github.com/mdp/qrterminal/v3`
 Expected:
   - Exit code: 0
   - go.mod contains `github.com/mdp/qrterminal/v3`
@@ -80,7 +80,7 @@ type LoginResult struct {
 // 2. Display QR code in terminal
 // 3. Poll scan status until confirmed or timeout
 // 4. Validate ticket to obtain pt_key cookie
-// 5. Fetch userId from JoyCode API
+// 5. Fetch userId from AgnesCode API
 func QRLogin() (*LoginResult, error) {
 	jar, err := cookiejar.New(nil)
 	if err != nil {
@@ -282,16 +282,16 @@ func validateTicket(client *http.Client, ticket string) (string, string, error) 
 	return ptKey, ptPin, nil
 }
 
-// fetchUserID calls JoyCode userInfo API to get userId from ptKey.
+// fetchUserID calls AgnesCode userInfo API to get userId from ptKey.
 func fetchUserID(ptKey string) (string, error) {
 	body := map[string]interface{}{
-		"tenant": "JOYCODE", "userId": "",
-		"client": "JoyCode", "clientVersion": "2.4.5",
+		"tenant": "AGNESCODE", "userId": "",
+		"client": "AgnesCode", "clientVersion": "2.4.5",
 		"sessionId": "login-session",
 	}
 	data, _ := json.Marshal(body)
 	req, err := http.NewRequest("POST",
-		"https://joycode-api.jd.com/api/saas/user/v1/userInfo",
+		"https://agnescode-api.jd.com/api/saas/user/v1/userInfo",
 		strings.NewReader(string(data)))
 	if err != nil {
 		return "", err
@@ -300,7 +300,7 @@ func fetchUserID(ptKey string) (string, error) {
 		"Content-Type": {"application/json; charset=UTF-8"},
 		"ptKey":        {ptKey},
 		"loginType":    {"N_PIN_PC"},
-		"User-Agent":   {"Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) JoyCode/2.4.5 Chrome/133.0.0.0 Electron/35.2.0 Safari/537.36"},
+		"User-Agent":   {"Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) AgnesCode/2.4.5 Chrome/133.0.0.0 Electron/35.2.0 Safari/537.36"},
 		"Accept":       {"*/*"},
 		"Connection":   {"keep-alive"},
 	}
@@ -333,7 +333,7 @@ func fetchUserID(ptKey string) (string, error) {
 
 - [ ] **Step 3: 验证编译**
 
-Run: `cd /Users/cc11001100/github/vibe-coding-labs/JoyCodeProxy && go build ./pkg/auth/`
+Run: `cd /Users/cc11001100/github/vibe-coding-labs/AgnesCodeProxy && go build ./pkg/auth/`
 Expected:
   - Exit code: 0
 
@@ -363,7 +363,7 @@ import (
 )
 
 const (
-	configDir  = ".joycode-proxy"
+	configDir  = ".agnescode-proxy"
 	credFile   = "credentials.json"
 )
 
@@ -384,7 +384,7 @@ func configPath() (string, error) {
 	return filepath.Join(home, configDir), nil
 }
 
-// SaveCredentials persists credentials to ~/.joycode-proxy/credentials.json.
+// SaveCredentials persists credentials to ~/.agnescode-proxy/credentials.json.
 func SaveCredentials(ptKey, ptPin, userID string) error {
 	dir, err := configPath()
 	if err != nil {
@@ -412,7 +412,7 @@ func SaveCredentials(ptKey, ptPin, userID string) error {
 	return nil
 }
 
-// LoadFromFile loads credentials from ~/.joycode-proxy/credentials.json.
+// LoadFromFile loads credentials from ~/.agnescode-proxy/credentials.json.
 // Returns nil, nil if file does not exist.
 func LoadFromFile() (*Credentials, error) {
 	dir, err := configPath()
@@ -468,7 +468,7 @@ func HasStoredCredentials() bool {
 
 - [ ] **Step 2: 验证编译**
 
-Run: `cd /Users/cc11001100/github/vibe-coding-labs/JoyCodeProxy && go build ./pkg/auth/`
+Run: `cd /Users/cc11001100/github/vibe-coding-labs/AgnesCodeProxy && go build ./pkg/auth/`
 Expected:
   - Exit code: 0
 
@@ -482,13 +482,13 @@ Run: `git add pkg/auth/storage.go && git commit -m "feat(auth): add credential f
 
 **Depends on:** Task 1, Task 2
 **Files:**
-- Create: `cmd/JoyCodeProxy/login.go`
-- Create: `cmd/JoyCodeProxy/logout.go`
+- Create: `cmd/AgnesCodeProxy/login.go`
+- Create: `cmd/AgnesCodeProxy/logout.go`
 
 - [ ] **Step 1: 创建 login.go — CLI 登录命令**
 
 ```go
-// cmd/JoyCodeProxy/login.go
+// cmd/AgnesCodeProxy/login.go
 package main
 
 import (
@@ -496,15 +496,15 @@ import (
 	"log"
 
 	"github.com/spf13/cobra"
-	"github.com/vibe-coding-labs/JoyCodeProxy/pkg/auth"
+	"github.com/vibe-coding-labs/AgnesCodeProxy/pkg/auth"
 )
 
 var loginCmd = &cobra.Command{
 	Use:     "login",
 	Short:   "京东账号扫码登录",
-	Long:    "通过京东 APP 扫描二维码登录，获取 JoyCode API 凭据并保存到本地。登录后无需安装 JoyCode IDE 即可使用代理服务。",
+	Long:    "通过京东 APP 扫描二维码登录，获取 AgnesCode API 凭据并保存到本地。登录后无需安装 AgnesCode IDE 即可使用代理服务。",
 	GroupID: "core",
-	Example: `  joycode-proxy login`,
+	Example: `  agnescode-proxy login`,
 	RunE: func(cmd *cobra.Command, args []string) error {
 		if !verbose {
 			log.SetFlags(0)
@@ -527,7 +527,7 @@ var loginCmd = &cobra.Command{
 		fmt.Printf("  用户 ID: %s\n", result.UserID)
 		fmt.Println()
 		fmt.Println("现在可以使用以下命令启动代理:")
-		fmt.Println("  joycode-proxy serve")
+		fmt.Println("  agnescode-proxy serve")
 		return nil
 	},
 }
@@ -540,22 +540,22 @@ func init() {
 - [ ] **Step 2: 创建 logout.go — CLI 登出命令**
 
 ```go
-// cmd/JoyCodeProxy/logout.go
+// cmd/AgnesCodeProxy/logout.go
 package main
 
 import (
 	"fmt"
 
 	"github.com/spf13/cobra"
-	"github.com/vibe-coding-labs/JoyCodeProxy/pkg/auth"
+	"github.com/vibe-coding-labs/AgnesCodeProxy/pkg/auth"
 )
 
 var logoutCmd = &cobra.Command{
 	Use:     "logout",
 	Short:   "退出登录并清除本地凭据",
-	Long:    "删除本地保存的 JoyCode 凭据文件。退出后需要重新登录才能使用代理服务。",
+	Long:    "删除本地保存的 AgnesCode 凭据文件。退出后需要重新登录才能使用代理服务。",
 	GroupID: "core",
-	Example: `  joycode-proxy logout`,
+	Example: `  agnescode-proxy logout`,
 	RunE: func(cmd *cobra.Command, args []string) error {
 		if !auth.HasStoredCredentials() {
 			fmt.Println("当前没有保存的凭据。")
@@ -578,13 +578,13 @@ func init() {
 
 - [ ] **Step 3: 验证编译**
 
-Run: `cd /Users/cc11001100/github/vibe-coding-labs/JoyCodeProxy && go build ./cmd/JoyCodeProxy/`
+Run: `cd /Users/cc11001100/github/vibe-coding-labs/AgnesCodeProxy && go build ./cmd/AgnesCodeProxy/`
 Expected:
   - Exit code: 0
 
 - [ ] **Step 4: 提交**
 
-Run: `git add cmd/JoyCodeProxy/login.go cmd/JoyCodeProxy/logout.go && git commit -m "feat(cli): add login/logout commands with QR code support"`
+Run: `git add cmd/AgnesCodeProxy/login.go cmd/AgnesCodeProxy/logout.go && git commit -m "feat(cli): add login/logout commands with QR code support"`
 
 ---
 
@@ -592,15 +592,15 @@ Run: `git add cmd/JoyCodeProxy/login.go cmd/JoyCodeProxy/logout.go && git commit
 
 **Depends on:** Task 2
 **Files:**
-- Modify: `cmd/JoyCodeProxy/root.go:46-85`（resolveClient 函数）
-- Modify: `cmd/JoyCodeProxy/config.go`（显示凭据来源）
+- Modify: `cmd/AgnesCodeProxy/root.go:46-85`（resolveClient 函数）
+- Modify: `cmd/AgnesCodeProxy/config.go`（显示凭据来源）
 
 - [ ] **Step 1: 修改 resolveClient — 优先从本地文件加载凭据**
 
-文件: `cmd/JoyCodeProxy/root.go:46-85`（替换整个 resolveClient 函数）
+文件: `cmd/AgnesCodeProxy/root.go:46-85`（替换整个 resolveClient 函数）
 
 ```go
-func resolveClient() (*joycode.Client, error) {
+func resolveClient() (*agnescode.Client, error) {
 	var creds *auth.Credentials
 	var source string
 
@@ -621,11 +621,11 @@ func resolveClient() (*joycode.Client, error) {
 		}
 	}
 
-	// Priority 3: Auto-detect from JoyCode IDE
+	// Priority 3: Auto-detect from AgnesCode IDE
 	if creds == nil {
 		detected, err := auth.LoadFromSystem()
 		if err != nil {
-			return nil, fmt.Errorf("无法获取凭据:\n  %w\n\n请先运行 'joycode-proxy login' 登录，或提供 --ptkey 和 --userid 参数", err)
+			return nil, fmt.Errorf("无法获取凭据:\n  %w\n\n请先运行 'agnescode-proxy login' 登录，或提供 --ptkey 和 --userid 参数", err)
 		}
 		creds = detected
 		source = "auto-detected (IDE)"
@@ -642,7 +642,7 @@ func resolveClient() (*joycode.Client, error) {
 	}
 
 	log.Printf("Credentials source: %s (userId=%s)", source, creds.UserID)
-	client := joycode.NewClient(creds.PtKey, creds.UserID)
+	client := agnescode.NewClient(creds.PtKey, creds.UserID)
 
 	if skipValidation {
 		log.Printf("Credential validation skipped (--skip-validation)")
@@ -651,7 +651,7 @@ func resolveClient() (*joycode.Client, error) {
 
 	log.Printf("Validating credentials...")
 	if err := client.Validate(); err != nil {
-		return nil, fmt.Errorf("%w\n\n凭据可能已过期，请运行 'joycode-proxy login' 重新登录", err)
+		return nil, fmt.Errorf("%w\n\n凭据可能已过期，请运行 'agnescode-proxy login' 重新登录", err)
 	}
 	log.Printf("Credentials validated successfully")
 	return client, nil
@@ -660,7 +660,7 @@ func resolveClient() (*joycode.Client, error) {
 
 - [ ] **Step 2: 修改 config.go — 显示凭据存储信息**
 
-文件: `cmd/JoyCodeProxy/config.go`（在显示凭据来源时添加存储状态信息）
+文件: `cmd/AgnesCodeProxy/config.go`（在显示凭据来源时添加存储状态信息）
 
 找到显示凭据来源的代码段，在 `source` 判断之后添加：
 
@@ -669,26 +669,26 @@ func resolveClient() (*joycode.Client, error) {
 	if auth.HasStoredCredentials() {
 		fmt.Println("  Stored:  ✓ 已保存 (通过 login 命令)")
 	} else {
-		fmt.Println("  Stored:  ✗ 未保存 (运行 'joycode-proxy login' 可登录)")
+		fmt.Println("  Stored:  ✗ 未保存 (运行 'agnescode-proxy login' 可登录)")
 	}
 ```
 
 - [ ] **Step 3: 验证编译**
 
-Run: `cd /Users/cc11001100/github/vibe-coding-labs/JoyCodeProxy && go build ./cmd/JoyCodeProxy/`
+Run: `cd /Users/cc11001100/github/vibe-coding-labs/AgnesCodeProxy && go build ./cmd/AgnesCodeProxy/`
 Expected:
   - Exit code: 0
 
 - [ ] **Step 4: 验证 CLI 帮助输出**
 
-Run: `cd /Users/cc11001100/github/vibe-coding-labs/JoyCodeProxy && go run ./cmd/JoyCodeProxy/ --help`
+Run: `cd /Users/cc11001100/github/vibe-coding-labs/AgnesCodeProxy && go run ./cmd/AgnesCodeProxy/ --help`
 Expected:
   - Exit code: 0
   - Output contains: "login" and "logout"
 
 - [ ] **Step 5: 提交**
 
-Run: `git add cmd/JoyCodeProxy/root.go cmd/JoyCodeProxy/config.go && git commit -m "feat(cli): prioritize stored credentials, improve login flow integration"`
+Run: `git add cmd/AgnesCodeProxy/root.go cmd/AgnesCodeProxy/config.go && git commit -m "feat(cli): prioritize stored credentials, improve login flow integration"`
 
 ---
 
@@ -1028,14 +1028,14 @@ func TestStoredCredentials_JSONRoundTrip(t *testing.T) {
 
 - [ ] **Step 3: 运行测试**
 
-Run: `cd /Users/cc11001100/github/vibe-coding-labs/JoyCodeProxy && go test ./pkg/auth/ -v`
+Run: `cd /Users/cc11001100/github/vibe-coding-labs/AgnesCodeProxy && go test ./pkg/auth/ -v`
 Expected:
   - Exit code: 0
   - Output contains: "PASS"
 
 - [ ] **Step 4: 运行全部测试确认无回归**
 
-Run: `cd /Users/cc11001100/github/vibe-coding-labs/JoyCodeProxy && go test ./pkg/...`
+Run: `cd /Users/cc11001100/github/vibe-coding-labs/AgnesCodeProxy && go test ./pkg/...`
 Expected:
   - Exit code: 0
   - All packages show "ok"

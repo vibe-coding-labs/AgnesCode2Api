@@ -1,17 +1,17 @@
-# Feature: JoyCode 浏览器 OAuth 回调登录 — 构建多账号池
+# Feature: AgnesCode 浏览器 OAuth 回调登录 — 构建多账号池
 
 > **For agentic workers:** REQUIRED SUB-SKILL: `superpowers:subagent-driven-development`
 > Steps use checkbox (`- [ ]`) syntax.
 
-**Goal:** 实现基于 JoyCode 官方登录页的浏览器回调登录，支持多个不同 JD 账号通过浏览器扫码登录，构建账号池。替换当前不可用的 QR 登录（JD 已不再通过 HTTP Set-Cookie 返回 pt_key）。
+**Goal:** 实现基于 AgnesCode 官方登录页的浏览器回调登录，支持多个不同 JD 账号通过浏览器扫码登录，构建账号池。替换当前不可用的 QR 登录（JD 已不再通过 HTTP Set-Cookie 返回 pt_key）。
 
-**Architecture:** 用户点击"浏览器登录" → 后端构造 JoyCode 登录 URL（含 authPort 回调参数）→ 前端在浏览器新标签页中打开 `https://joycode.jd.com/login?authPort={port}&fromIde=true&loginType=PIN` → 用户在浏览器中完成 JD 扫码登录 → JoyCode 登录页自动回调 `http://127.0.0.1:{port}/api/oauth-callback?pt_key=xxx&login_type=PIN&tenant=JOYCODE` → 后端接收 pt_key → 调用 JoyCode API 验证 → 保存账号到数据库 → 前端轮询检测新账号完成登录。这是 JoyCode IDE 使用的完全相同的登录机制。
+**Architecture:** 用户点击"浏览器登录" → 后端构造 AgnesCode 登录 URL（含 authPort 回调参数）→ 前端在浏览器新标签页中打开 `https://agnescode.jd.com/login?authPort={port}&fromIde=true&loginType=PIN` → 用户在浏览器中完成 JD 扫码登录 → AgnesCode 登录页自动回调 `http://127.0.0.1:{port}/api/oauth-callback?pt_key=xxx&login_type=PIN&tenant=AGNESCODE` → 后端接收 pt_key → 调用 AgnesCode API 验证 → 保存账号到数据库 → 前端轮询检测新账号完成登录。这是 AgnesCode IDE 使用的完全相同的登录机制。
 
-**Tech Stack:** Go 1.23, React 19, Ant Design 6, JoyCode SSO API
+**Tech Stack:** Go 1.23, React 19, Ant Design 6, AgnesCode SSO API
 
 **Risks:**
-- JoyCode 登录页可能校验 `ideAppName` 参数限制来源 → 缓解：使用 `JoyCode` 作为 ideAppName，与 JoyCode IDE 一致
-- 回调 URL 使用 HTTP（非 HTTPS），浏览器安全策略可能阻止 → 缓解：JoyCode 登录页当前使用 `http://127.0.0.1` 回调（已在生产验证）
+- AgnesCode 登录页可能校验 `ideAppName` 参数限制来源 → 缓解：使用 `AgnesCode` 作为 ideAppName，与 AgnesCode IDE 一致
+- 回调 URL 使用 HTTP（非 HTTPS），浏览器安全策略可能阻止 → 缓解：AgnesCode 登录页当前使用 `http://127.0.0.1` 回调（已在生产验证）
 - 多用户同时登录时回调冲突 → 缓解：使用一次性 token 关联回调与登录会话
 
 ---
@@ -25,12 +25,12 @@
 
 - [ ] **Step 1: 添加 OAuth 登录发起端点 — `/api/browser-login`**
 
-用户调用此端点获取 JoyCode 登录 URL，然后在浏览器中打开。
+用户调用此端点获取 AgnesCode 登录 URL，然后在浏览器中打开。
 
 文件: `pkg/dashboard/handler.go`（在 `handleAutoLogin` 函数之后添加）
 
 ```go
-// handleBrowserLogin returns a JoyCode login URL for browser-based OAuth flow.
+// handleBrowserLogin returns a AgnesCode login URL for browser-based OAuth flow.
 func (h *Handler) handleBrowserLogin(w http.ResponseWriter, r *http.Request) {
 	setCors(w)
 	if r.Method == http.MethodOptions {
@@ -58,7 +58,7 @@ func (h *Handler) handleBrowserLogin(w http.ResponseWriter, r *http.Request) {
 	token := fmt.Sprintf("bl_%d", time.Now().UnixNano())
 
 	loginURL := fmt.Sprintf(
-		"https://joycode.jd.com/login?authPort=%s&fromIde=true&ideAppName=JoyCode&loginType=PIN&authKey=%s",
+		"https://agnescode.jd.com/login?authPort=%s&fromIde=true&ideAppName=AgnesCode&loginType=PIN&authKey=%s",
 		port, token,
 	)
 
@@ -76,12 +76,12 @@ func (h *Handler) handleBrowserLogin(w http.ResponseWriter, r *http.Request) {
 
 - [ ] **Step 2: 添加 OAuth 回调接收端点 — `/api/oauth-callback`**
 
-JoyCode 登录页完成登录后回调此端点，传入 pt_key。
+AgnesCode 登录页完成登录后回调此端点，传入 pt_key。
 
 文件: `pkg/dashboard/handler.go`（在 `handleBrowserLogin` 函数之后添加）
 
 ```go
-// handleOAuthCallback receives the pt_key callback from JoyCode login page.
+// handleOAuthCallback receives the pt_key callback from AgnesCode login page.
 func (h *Handler) handleOAuthCallback(w http.ResponseWriter, r *http.Request) {
 	setCors(w)
 
@@ -97,8 +97,8 @@ func (h *Handler) handleOAuthCallback(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	// Validate ptKey with JoyCode API
-	client := joycode.NewClient(ptKey, "")
+	// Validate ptKey with AgnesCode API
+	client := agnescode.NewClient(ptKey, "")
 	userInfo, err := client.UserInfo()
 	if err != nil {
 		slog.Error("oauth-callback: userInfo validation failed", "error", err)
@@ -162,7 +162,7 @@ func (h *Handler) handleOAuthCallback(w http.ResponseWriter, r *http.Request) {
 ```
 
 - [ ] **Step 4: 验证编译**
-Run: `cd /Users/cc11001100/github/vibe-coding-labs/JoyCodeProxy && go build ./...`
+Run: `cd /Users/cc11001100/github/vibe-coding-labs/AgnesCodeProxy && go build ./...`
 Expected:
   - Exit code: 0
 
@@ -248,7 +248,7 @@ Expected:
 ```
 
 - [ ] **Step 4: 验证前端构建**
-Run: `cd /Users/cc11001100/github/vibe-coding-labs/JoyCodeProxy/web && npm run build`
+Run: `cd /Users/cc11001100/github/vibe-coding-labs/AgnesCodeProxy/web && npm run build`
 Expected:
   - Exit code: 0
 
@@ -261,12 +261,12 @@ Expected:
 - Modify: (binary output)
 
 - [ ] **Step 1: 构建 Go 二进制文件**
-Run: `cd /Users/cc11001100/github/vibe-coding-labs/JoyCodeProxy && go build -o joycode_proxy_bin ./cmd/JoyCodeProxy/`
+Run: `cd /Users/cc11001100/github/vibe-coding-labs/AgnesCodeProxy && go build -o agnescode_proxy_bin ./cmd/AgnesCodeProxy/`
 Expected:
   - Exit code: 0
 
 - [ ] **Step 2: 重新加载服务**
-Run: `launchctl unload ~/Library/LaunchAgents/com.joycode.proxy.plist && launchctl load ~/Library/LaunchAgents/com.joycode.proxy.plist`
+Run: `launchctl unload ~/Library/LaunchAgents/com.agnescode.proxy.plist && launchctl load ~/Library/LaunchAgents/com.agnescode.proxy.plist`
 Expected:
   - Exit code: 0
 

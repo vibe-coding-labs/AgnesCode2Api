@@ -101,7 +101,7 @@ export interface RequestLog {
   created_at: string;
 }
 
-const TOKEN_KEY = 'joycode_jwt';
+const TOKEN_KEY = 'agnescode_jwt';
 
 function getToken(): string | null {
   return localStorage.getItem(TOKEN_KEY);
@@ -217,8 +217,8 @@ export const api = {
     request<{ stars: number }>('/api/github-stars').then(r => r.stars),
   clearAllAccounts: () =>
     request<{ ok: boolean; count: number }>('/api/accounts-clear-all', { method: 'POST' }),
-  clearJoyCodeSession: () =>
-    request<{ ok: boolean; message: string }>('/api/clear-joycode-session', { method: 'POST' }),
+  clearAgnesCodeSession: () =>
+    request<{ ok: boolean; message: string }>('/api/clear-agnescode-session', { method: 'POST' }),
   updateRemark: (userId: string, remark: string) =>
     request<{ ok: boolean }>(`/api/accounts/${encodeURIComponent(userId)}/remark`, { method: 'PUT', body: JSON.stringify({ remark }) }),
   reorderAccounts: (userIds: string[]) =>

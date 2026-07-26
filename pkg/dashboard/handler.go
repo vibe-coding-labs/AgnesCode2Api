@@ -21,11 +21,11 @@ import (
 	"time"
 
 	_ "github.com/mattn/go-sqlite3"
-	"github.com/vibe-coding-labs/JoyCodeProxy/pkg/auth"
-	"github.com/vibe-coding-labs/JoyCodeProxy/pkg/joycode"
-	"github.com/vibe-coding-labs/JoyCodeProxy/pkg/keepalive"
-	"github.com/vibe-coding-labs/JoyCodeProxy/pkg/proxy"
-	"github.com/vibe-coding-labs/JoyCodeProxy/pkg/store"
+	"github.com/vibe-coding-labs/AgnesCode2Api/pkg/auth"
+	"github.com/vibe-coding-labs/AgnesCode2Api/pkg/agnes"
+	"github.com/vibe-coding-labs/AgnesCode2Api/pkg/keepalive"
+	"github.com/vibe-coding-labs/AgnesCode2Api/pkg/proxy"
+	"github.com/vibe-coding-labs/AgnesCode2Api/pkg/store"
 )
 
 type Handler struct {
@@ -42,7 +42,7 @@ func NewHandler(s *store.Store, staticFS fs.FS, k *keepalive.Keeper) *Handler {
 	return &Handler{
 		store:     s,
 		staticFS:  staticFS,
-		modelList: joycode.Models,
+		modelList: nil,
 		keeper:    k,
 	}
 }
@@ -576,42 +576,20 @@ func (h *Handler) handleAutoLogin(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	client := joycode.NewClient(creds.PtKey, creds.UserID)
-	client.SetColorContext(creds.ColorBaseURL, creds.MasterBaseURL, creds.Tenant, creds.LoginType, creds.OrgFullName)
-	userInfo, err := client.UserInfo()
+	client := agnescode.NewClient(creds.PtKey)
+	client.Authenticate()
+	ui, err := client.GetUserInfo()
 	if err != nil {
 		slog.Error("auto-login: userInfo request failed", "user_id", creds.UserID, "error", err)
-		writeError(w, http.StatusUnauthorized, "凭据验证失败，请先在 JoyCode IDE 中登录: "+err.Error())
+		writeError(w, http.StatusUnauthorized, "凭据验证失败，请先在 AgnesCode IDE 中登录: "+err.Error())
 		return
 	}
-
-	code, ok := userInfo["code"].(float64)
-	if !ok || code != 0 {
-		msg := "未知错误"
-		if m, ok := userInfo["msg"].(string); ok && m != "" {
-			msg = m
-		}
-		slog.Error("auto-login: credentials invalid", "user_id", creds.UserID, "code", code, "msg", msg)
-		writeError(w, http.StatusUnauthorized, "凭据已过期或无效: "+msg)
-		return
+	userID := ui.Username
+	if userID == "" {
+		userID = creds.UserID
 	}
-
-	// Extract userID from data.userId (more reliable than system creds)
-	userID := creds.UserID
-	nickname := userID
-	realName := ""
-	if data, ok := userInfo["data"].(map[string]interface{}); ok {
-		if id, ok := data["userId"].(string); ok && id != "" {
-			userID = id
-		}
-		if name, ok := data["realName"].(string); ok && name != "" {
-			nickname = name
-			realName = name
-		}
-	}
-	if nickname == "" {
-		nickname = userID
-	}
+	nickname := ui.Username
+	realName := ui.Username
 
 	if userID == "" {
 		slog.Error("auto-login: userId not found from system or API", "creds_user_id", creds.UserID)
@@ -759,7 +737,7 @@ func (h *Handler) handleBrowserLogin(w http.ResponseWriter, r *http.Request) {
 	token := hex.EncodeToString(b)
 
 	loginURL := fmt.Sprintf(
-		"https://joycode.jd.com/login/?ideAppName=JoyCode&fromIde=ide&redirect=0&authPort=%s&authKey=%s",
+		"https://agnescode.jd.com/login/?ideAppName=JoyCode&fromIde=ide&redirect=0&authPort=%s&authKey=%s",
 		url.QueryEscape(port), url.QueryEscape(token),
 	)
 
@@ -779,26 +757,16 @@ func (h *Handler) validateAndSavePtKey(ptKey string) (userID, nickname string, e
 		return "", "", fmt.Errorf("missing pt_key")
 	}
 
-	client := joycode.NewClient(ptKey, "")
-	userInfo, apiErr := client.UserInfo()
+	client := agnescode.NewClient(ptKey)
+	ui, apiErr := client.GetUserInfo()
 	if apiErr != nil {
 		return "", "", fmt.Errorf("userInfo validation failed: %w", apiErr)
 	}
-
-	code, _ := userInfo["code"].(float64)
-	if code != 0 {
-		msg, _ := userInfo["msg"].(string)
-		return "", "", fmt.Errorf("userInfo API error (code=%.0f): %s", code, msg)
+	userID = ui.Username
+	if userID == "" {
+		userID = ptKey
 	}
-
-	if data, ok := userInfo["data"].(map[string]interface{}); ok {
-		if id, ok := data["userId"].(string); ok && id != "" {
-			userID = id
-		}
-		if name, ok := data["realName"].(string); ok && name != "" {
-			nickname = name
-		}
-	}
+	nickname = ui.Username
 	if nickname == "" {
 		nickname = userID
 	}
@@ -1100,9 +1068,9 @@ func (h *Handler) validateAccount(w http.ResponseWriter, r *http.Request, apiKey
 		return
 	}
 
-	client := joycode.NewClient(account.PtKey, account.UserID)
+	client := agnescode.NewClient(account.PtKey)
 	valid := true
-	if err := client.Validate(); err != nil {
+	if err := client.Authenticate(); err != nil {
 		valid = false
 		slog.Error("validate account", "api_key", apiKey, "error", err)
 	}
@@ -1137,7 +1105,7 @@ func (h *Handler) listAccountModels(w http.ResponseWriter, r *http.Request, apiK
 		return
 	}
 
-	client := joycode.NewClient(account.PtKey, account.UserID)
+	client := agnescode.NewClient(account.PtKey)
 	models, err := client.ListModels()
 	if err != nil {
 		slog.Error("list account models", "api_key", apiKey, "error", err)
@@ -1243,7 +1211,7 @@ func (h *Handler) handleClearJoyCodeSession(w http.ResponseWriter, r *http.Reque
 	}
 	defer db.Close()
 
-	result, err := db.Exec("DELETE FROM ItemTable WHERE key IN ('JoyCoder.IDE', 'joycode.storageUser')")
+	result, err := db.Exec("DELETE FROM ItemTable WHERE key IN ('JoyCoder.IDE', 'agnescode.storageUser')")
 	if err != nil {
 		writeError(w, http.StatusInternalServerError, "清除会话失败: "+err.Error())
 		return

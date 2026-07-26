@@ -2,12 +2,12 @@
 
 **Goal:** 清理 Python 遗留、补全关键测试、确保前后端对接正确，交付可直接使用的单 Go 后端。
 
-**Architecture:** Go 后端 (`cmd/JoyCodeProxy/`) 嵌入 React 前端 (`cmd/JoyCodeProxy/static/`)，通过 SQLite (`pkg/store/`) 提供账户/设置管理，Dashboard API (`pkg/dashboard/`) 服务 `/api/*` 端点。
+**Architecture:** Go 后端 (`cmd/AgnesCodeProxy/`) 嵌入 React 前端 (`cmd/AgnesCodeProxy/static/`)，通过 SQLite (`pkg/store/`) 提供账户/设置管理，Dashboard API (`pkg/dashboard/`) 服务 `/api/*` 端点。
 
 **Tech Stack:** Go 1.23, SQLite (go-sqlite3), React 19 + Ant Design 6 + Vite
 
 **Risks:**
-- Python 目录 `joycode_proxy/` 需用户手动 `rm -rf`（沙箱限制）
+- Python 目录 `agnescode_proxy/` 需用户手动 `rm -rf`（沙箱限制）
 - 新测试可能暴露 store/dashboard 隐藏 bug
 
 ---
@@ -18,11 +18,11 @@
 **Files:**
 - Delete: `pyproject.toml`
 - Delete: `tests/` (Python 测试)
-- Delete: `joycode_proxy/` (需用户手动)
+- Delete: `agnescode_proxy/` (需用户手动)
 
 - [ ] **Step 1: 删除 pyproject.toml**
 - [ ] **Step 2: 删除 tests/ 目录**
-- [ ] **Step 3: 提示用户手动 rm -rf joycode_proxy/**
+- [ ] **Step 3: 提示用户手动 rm -rf agnescode_proxy/**
 
 ---
 
@@ -50,7 +50,7 @@
 
 **Depends on:** Task 2, Task 3
 **Files:**
-- Create: `cmd/JoyCodeProxy/dashboard_test.go`
+- Create: `cmd/AgnesCodeProxy/dashboard_test.go`
 
 测试：构建二进制 → 启动 → 测试 `/api/health`、`/api/accounts` CRUD、前端 HTML 返回、SPA fallback。
 

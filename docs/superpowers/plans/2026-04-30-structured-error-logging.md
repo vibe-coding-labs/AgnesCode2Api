@@ -5,7 +5,7 @@
 
 **Goal:** 在后端所有关键路径添加结构化错误日志（使用 Go 标准库 `log/slog`），确保任何错误发生时日志包含足够的上下文（模型、账号、端点、错误详情）用于自动诊断。
 
-**Architecture:** 使用 `log/slog` 结构化日志替代裸 `log.Printf`。三层改进：上游客户端层（joycode/client.go）→ 代理处理层（anthropic + openai handlers）→ 管理层（dashboard + middleware）。每层独立添加日志，不引入新依赖，不改业务逻辑。
+**Architecture:** 使用 `log/slog` 结构化日志替代裸 `log.Printf`。三层改进：上游客户端层（agnescode/client.go）→ 代理处理层（anthropic + openai handlers）→ 管理层（dashboard + middleware）。每层独立添加日志，不引入新依赖，不改业务逻辑。
 
 **Tech Stack:** Go 1.23, log/slog (标准库), 现有项目结构
 
@@ -15,22 +15,22 @@
 
 ---
 
-### Task 1: Add structured logging to joycode client — 上游 HTTP 错误可见性
+### Task 1: Add structured logging to agnescode client — 上游 HTTP 错误可见性
 
 **Depends on:** None
 **Files:**
-- Modify: `pkg/joycode/client.go:93-150`
+- Modify: `pkg/agnescode/client.go:93-150`
 
 `client.go` 是所有上游 API 调用的底层，当前零日志。上游返回错误时（如凭证过期、限流、服务不可用），调用者只拿到一个 error 字符串，无法区分错误类型。添加 slog 后，所有上游 HTTP 错误自动记录到日志文件。
 
 - [ ] **Step 1: 修改 client.go 添加 slog 导入和日志语句**
 
-文件: `pkg/joycode/client.go:1-13`（import 区域）和 `:93-150`（doPost/Post/PostStream 方法）
+文件: `pkg/agnescode/client.go:1-13`（import 区域）和 `:93-150`（doPost/Post/PostStream 方法）
 
 在 import 中添加 `"log/slog"`，然后修改三个方法：
 
 ```go
-// 替换 pkg/joycode/client.go:93-104 的 doPost 方法
+// 替换 pkg/agnescode/client.go:93-104 的 doPost 方法
 func (c *Client) doPost(endpoint string, body map[string]interface{}) (*http.Response, error) {
 	data, err := json.Marshal(body)
 	if err != nil {
@@ -48,7 +48,7 @@ func (c *Client) doPost(endpoint string, body map[string]interface{}) (*http.Res
 ```
 
 ```go
-// 替换 pkg/joycode/client.go:120-137 的 Post 方法
+// 替换 pkg/agnescode/client.go:120-137 的 Post 方法
 func (c *Client) Post(endpoint string, body map[string]interface{}) (map[string]interface{}, error) {
 	resp, err := c.doPost(endpoint, c.prepareBody(body))
 	if err != nil {
@@ -74,7 +74,7 @@ func (c *Client) Post(endpoint string, body map[string]interface{}) (map[string]
 ```
 
 ```go
-// 替换 pkg/joycode/client.go:139-150 的 PostStream 方法
+// 替换 pkg/agnescode/client.go:139-150 的 PostStream 方法
 func (c *Client) PostStream(endpoint string, body map[string]interface{}) (*http.Response, error) {
 	resp, err := c.doPost(endpoint, c.prepareBody(body))
 	if err != nil {
@@ -93,7 +93,7 @@ func (c *Client) PostStream(endpoint string, body map[string]interface{}) (*http
 
 - [ ] **Step 2: 添加 truncate 辅助函数**
 
-在 `pkg/joycode/client.go` 文件末尾添加：
+在 `pkg/agnescode/client.go` 文件末尾添加：
 
 ```go
 // 文件末尾追加
@@ -106,13 +106,13 @@ func truncate(s string, maxLen int) string {
 ```
 
 - [ ] **Step 3: 验证编译**
-Run: `cd /Users/cc11001100/github/vibe-coding-labs/JoyCodeProxy && go build ./pkg/joycode/`
+Run: `cd /Users/cc11001100/github/vibe-coding-labs/AgnesCodeProxy && go build ./pkg/agnescode/`
 Expected:
   - Exit code: 0
   - No output
 
 - [ ] **Step 4: 提交**
-Run: `git add pkg/joycode/client.go && git commit -m "feat(logging): add structured error logging to joycode upstream client"`
+Run: `git add pkg/agnescode/client.go && git commit -m "feat(logging): add structured error logging to agnescode upstream client"`
 
 ---
 
@@ -139,7 +139,7 @@ import (
 	"log/slog"
 	"net/http"
 
-	"github.com/vibe-coding-labs/JoyCodeProxy/pkg/joycode"
+	"github.com/vibe-coding-labs/AgnesCodeProxy/pkg/agnescode"
 )
 
 func (s *Server) handleChat(w http.ResponseWriter, r *http.Request) {
@@ -162,7 +162,7 @@ func (s *Server) handleChat(w http.ResponseWriter, r *http.Request) {
 	}
 }
 
-func (s *Server) handleNonStreamChat(w http.ResponseWriter, client *joycode.Client, jcBody map[string]interface{}, model string) {
+func (s *Server) handleNonStreamChat(w http.ResponseWriter, client *agnescode.Client, jcBody map[string]interface{}, model string) {
 	resp, err := client.Post("/api/saas/openai/v1/chat/completions", jcBody)
 	if err != nil {
 		slog.Error("chat non-stream upstream error", "model", model, "error", err)
@@ -172,7 +172,7 @@ func (s *Server) handleNonStreamChat(w http.ResponseWriter, client *joycode.Clie
 	writeJSON(w, 200, TranslateResponse(resp, model))
 }
 
-func (s *Server) handleStreamChat(w http.ResponseWriter, client *joycode.Client, jcBody map[string]interface{}, model string) {
+func (s *Server) handleStreamChat(w http.ResponseWriter, client *agnescode.Client, jcBody map[string]interface{}, model string) {
 	flusher, ok := w.(http.Flusher)
 	if !ok {
 		slog.Error("streaming not supported by response writer")
@@ -341,7 +341,7 @@ slog.Error("stream scanner error", "error", err)
 ```
 
 - [ ] **Step 5: 验证编译**
-Run: `cd /Users/cc11001100/github/vibe-coding-labs/JoyCodeProxy && go build ./pkg/...`
+Run: `cd /Users/cc11001100/github/vibe-coding-labs/AgnesCodeProxy && go build ./pkg/...`
 Expected:
   - Exit code: 0
   - No output
@@ -356,7 +356,7 @@ Run: `git add pkg/openai/chat.go pkg/openai/search.go pkg/openai/handler.go pkg/
 **Depends on:** Task 1
 **Files:**
 - Modify: `pkg/dashboard/handler.go:126-327`
-- Modify: `cmd/JoyCodeProxy/serve.go:152-230`
+- Modify: `cmd/AgnesCodeProxy/serve.go:152-230`
 
 Dashboard handler 大部分数据库错误未记录。Middleware 检测到错误响应时不记录详情。
 
@@ -548,16 +548,16 @@ func requestLogMiddleware(next http.Handler, s *store.Store) http.Handler {
 ```
 
 - [ ] **Step 3: 验证编译**
-Run: `cd /Users/cc11001100/github/vibe-coding-labs/JoyCodeProxy && go build ./...`
+Run: `cd /Users/cc11001100/github/vibe-coding-labs/AgnesCodeProxy && go build ./...`
 Expected:
   - Exit code: 0
   - No output
 
 - [ ] **Step 4: 验证完整构建**
-Run: `cd /Users/cc11001100/github/vibe-coding-labs/JoyCodeProxy && go build -o joycode_proxy_bin ./cmd/JoyCodeProxy/`
+Run: `cd /Users/cc11001100/github/vibe-coding-labs/AgnesCodeProxy && go build -o agnescode_proxy_bin ./cmd/AgnesCodeProxy/`
 Expected:
   - Exit code: 0
   - No output
 
 - [ ] **Step 5: 提交**
-Run: `git add pkg/dashboard/handler.go cmd/JoyCodeProxy/serve.go && git commit -m "feat(logging): add structured error logging to dashboard handlers and middleware"`
+Run: `git add pkg/dashboard/handler.go cmd/AgnesCodeProxy/serve.go && git commit -m "feat(logging): add structured error logging to dashboard handlers and middleware"`

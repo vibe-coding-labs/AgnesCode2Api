@@ -25,8 +25,8 @@
 - Modify: `pkg/anthropic/handler.go:64-65`（default_max_tokens 从设置读取）
 - Modify: `pkg/anthropic/handler.go:87`（max_retries 从设置读取）
 - Modify: `pkg/anthropic/handler.go:381`（stream max_retries 从设置读取）
-- Modify: `cmd/JoyCodeProxy/serve.go:80-81`（传 store 给 handler）
-- Modify: `cmd/JoyCodeProxy/serve.go:248-294`（enable_request_logging 检查）
+- Modify: `cmd/AgnesCodeProxy/serve.go:80-81`（传 store 给 handler）
+- Modify: `cmd/AgnesCodeProxy/serve.go:248-294`（enable_request_logging 检查）
 - Modify: `pkg/dashboard/handler_test.go`（如有 NewHandler 调用需更新）
 
 - [ ] **Step 1: 新增 Store.GetSetting 和 GetIntSetting 方法 — 提供带缓存的设置读取**
@@ -61,17 +61,17 @@ func (s *Store) GetIntSetting(key string, defaultVal int) int {
 
 ```go
 type Handler struct {
-	client  *joycode.Client
-	Resolver func(r *http.Request) *joycode.Client
+	client  *agnescode.Client
+	Resolver func(r *http.Request) *agnescode.Client
 	store   *store.Store
 }
 
-func NewHandler(client *joycode.Client, s *store.Store) *Handler {
+func NewHandler(client *agnescode.Client, s *store.Store) *Handler {
 	return &Handler{client: client, store: s}
 }
 ```
 
-确认 import 中添加 `"github.com/vibe-coding-labs/JoyCodeProxy/pkg/store"`。
+确认 import 中添加 `"github.com/vibe-coding-labs/AgnesCodeProxy/pkg/store"`。
 
 - [ ] **Step 3: 替换硬编码 default_max_tokens 为设置值**
 文件: `pkg/anthropic/handler.go:64-65`
@@ -109,14 +109,14 @@ func NewHandler(client *joycode.Client, s *store.Store) *Handler {
 ```
 
 - [ ] **Step 6: 修改 serve.go 传递 store 给 anthropic handler**
-文件: `cmd/JoyCodeProxy/serve.go:80`
+文件: `cmd/AgnesCodeProxy/serve.go:80`
 
 ```go
 anth := anthropic.NewHandler(client, s)
 ```
 
 - [ ] **Step 7: 在 requestLogMiddleware 中检查 enable_request_logging**
-文件: `cmd/JoyCodeProxy/serve.go:248-294`
+文件: `cmd/AgnesCodeProxy/serve.go:248-294`
 
 在 `requestLogMiddleware` 函数体开头（`start := time.Now()` 之前），检查是否需要记录请求日志。在写日志到 DB 的部分（`go s.LogRequest(...)` 调用处），添加条件判断：
 
@@ -135,7 +135,7 @@ Expected:
   - Output does NOT contain: "cannot" or "undefined" or "not used"
 
 - [ ] **Step 9: 提交**
-Run: `git add pkg/store/store.go pkg/anthropic/handler.go cmd/JoyCodeProxy/serve.go && git commit -m "feat(settings): wire up default_max_tokens, max_retries, enable_request_logging to runtime"`
+Run: `git add pkg/store/store.go pkg/anthropic/handler.go cmd/AgnesCodeProxy/serve.go && git commit -m "feat(settings): wire up default_max_tokens, max_retries, enable_request_logging to runtime"`
 
 ---
 
@@ -181,7 +181,7 @@ const FIELD_GROUPS = [
       {
         key: 'default_model',
         label: '默认模型',
-        tooltip: '当客户端未指定模型，且账号未配置默认模型时使用的 JoyCode 模型',
+        tooltip: '当客户端未指定模型，且账号未配置默认模型时使用的 AgnesCode 模型',
         placeholder: 'JoyAI-Code',
         type: 'select' as const,
         options: [
@@ -219,7 +219,7 @@ const FIELD_GROUPS = [
       {
         key: 'request_timeout',
         label: '请求超时（秒）',
-        tooltip: '与 JoyCode 后端通信的读取超时时间。流式对话可能需要较长时间，建议不低于 60 秒',
+        tooltip: '与 AgnesCode 后端通信的读取超时时间。流式对话可能需要较长时间，建议不低于 60 秒',
         placeholder: '120',
         type: 'number' as const,
         suffix: '秒',
@@ -228,7 +228,7 @@ const FIELD_GROUPS = [
       {
         key: 'max_connections',
         label: '最大连接数',
-        tooltip: '与 JoyCode 后端的最大并发 HTTP 连接数。多账号场景下可适当增加',
+        tooltip: '与 AgnesCode 后端的最大并发 HTTP 连接数。多账号场景下可适当增加',
         placeholder: '20',
         type: 'number' as const,
         tag: '规划中',
@@ -353,7 +353,7 @@ const SettingsPage: React.FC = () => {
         <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
           <div>
             <Text style={{ color: 'rgba(255,255,255,0.85)', fontSize: 13 }}>
-              JoyCode API 代理服务 · 系统设置
+              AgnesCode API 代理服务 · 系统设置
             </Text>
             <div style={{ color: '#fff', fontSize: 22, fontWeight: 700, marginTop: 4 }}>
               代理配置管理
@@ -439,13 +439,13 @@ Expected:
   - Output contains: "dist"
 
 - [ ] **Step 2: 构建后端二进制**
-Run: `cd /Users/cc11001100/github/vibe-coding-labs/JoyCodeProxy && go build -o joycode_proxy_bin ./cmd/JoyCodeProxy`
+Run: `cd /Users/cc11001100/github/vibe-coding-labs/AgnesCodeProxy && go build -o agnescode_proxy_bin ./cmd/AgnesCodeProxy`
 Expected:
   - Exit code: 0
-  - Binary exists at `joycode_proxy_bin`
+  - Binary exists at `agnescode_proxy_bin`
 
 - [ ] **Step 3: 重启服务**
-Run: `ps aux | grep joycode_proxy_bin | grep -v grep | awk '{print $2}' | xargs kill`
+Run: `ps aux | grep agnescode_proxy_bin | grep -v grep | awk '{print $2}' | xargs kill`
 Expected:
   - Process killed
   - launchd auto-restarts with new binary

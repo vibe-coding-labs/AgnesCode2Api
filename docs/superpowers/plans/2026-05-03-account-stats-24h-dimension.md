@@ -55,7 +55,7 @@ type AccountStats struct {
 ```
 
 - [ ] **Step 3: 验证后端编译**
-Run: `cd /Users/cc11001100/github/vibe-coding-labs/JoyCodeProxy && go build ./...`
+Run: `cd /Users/cc11001100/github/vibe-coding-labs/AgnesCodeProxy && go build ./...`
 Expected:
   - Exit code: 0
   - No output
@@ -179,16 +179,16 @@ export interface AccountStats {
 ```
 
 - [ ] **Step 3: 构建前端并验证**
-Run: `cd /Users/cc11001100/github/vibe-coding-labs/JoyCodeProxy/web && npm run build`
+Run: `cd /Users/cc11001100/github/vibe-coding-labs/AgnesCodeProxy/web && npm run build`
 Expected:
   - Exit code: 0
   - Output contains: "built in"
 
 - [ ] **Step 4: 构建后端并重启服务**
-Run: `cd /Users/cc11001100/github/vibe-coding-labs/JoyCodeProxy && go build -o cmd/JoyCodeProxy/JoyCodeProxy ./cmd/JoyCodeProxy && lsof -ti:34891 | xargs kill 2>/dev/null; sleep 1; nohup cmd/JoyCodeProxy/JoyCodeProxy > /dev/null 2>> ~/.joycode-proxy/logs/stderr.log &`
+Run: `cd /Users/cc11001100/github/vibe-coding-labs/AgnesCodeProxy && go build -o cmd/AgnesCodeProxy/AgnesCodeProxy ./cmd/AgnesCodeProxy && lsof -ti:34891 | xargs kill 2>/dev/null; sleep 1; nohup cmd/AgnesCodeProxy/AgnesCodeProxy > /dev/null 2>> ~/.agnescode-proxy/logs/stderr.log &`
 Expected:
   - Exit code: 0
   - Service responds to health check
 
 - [ ] **Step 5: 提交**
-Run: `git add web/src/api.ts web/src/pages/AccountDetail.tsx cmd/JoyCodeProxy/static/ && git commit -m "feat(ui): show 24h and all-time stats dimensions on account detail page"`
+Run: `git add web/src/api.ts web/src/pages/AccountDetail.tsx cmd/AgnesCodeProxy/static/ && git commit -m "feat(ui): show 24h and all-time stats dimensions on account detail page"`

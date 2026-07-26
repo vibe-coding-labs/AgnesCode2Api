@@ -1,7 +1,7 @@
 #!/usr/bin/env bash
 set -euo pipefail
 
-# ── JoyCodeProxy Release Script ──────────────────────────────────────
+# ── AgnesCodeProxy Release Script ──────────────────────────────────────
 # Usage: ./scripts/release.sh <version>
 # Example: ./scripts/release.sh v0.3.0
 #
@@ -20,8 +20,8 @@ set -euo pipefail
 
 ROOT_DIR="$(cd "$(dirname "$0")/.." && pwd)"
 DIST_DIR="$ROOT_DIR/dist"
-VERSION_FILE="$ROOT_DIR/cmd/JoyCodeProxy/version.go"
-BINARY_NAME="JoyCodeProxy"
+VERSION_FILE="$ROOT_DIR/cmd/AgnesCodeProxy/version.go"
+BINARY_NAME="AgnesCodeProxy"
 
 # ── Validate input ───────────────────────────────────────────────────
 
@@ -36,7 +36,7 @@ fi
 VERSION_NUM="${VERSION#v}"
 
 echo "=========================================="
-echo "  JoyCodeProxy Release: $VERSION"
+echo "  AgnesCodeProxy Release: $VERSION"
 echo "=========================================="
 
 # ── Step 1: Build frontend ───────────────────────────────────────────
@@ -47,7 +47,7 @@ cd "$ROOT_DIR/web"
 npm install --silent
 npm run build
 
-if [[ ! -f "$ROOT_DIR/cmd/JoyCodeProxy/static/index.html" ]]; then
+if [[ ! -f "$ROOT_DIR/cmd/AgnesCodeProxy/static/index.html" ]]; then
     echo "ERROR: Frontend build failed - index.html not found"
     exit 1
 fi
@@ -84,7 +84,7 @@ cd "$ROOT_DIR"
 CGO_ENABLED=1 GOOS=darwin GOARCH=arm64 \
     go build -trimpath -ldflags "-s -w" \
     -o "$DIST_DIR/${BINARY_NAME}-darwin-arm64" \
-    ./cmd/JoyCodeProxy/
+    ./cmd/AgnesCodeProxy/
 
 echo "  Built: ${BINARY_NAME}-darwin-arm64 ($(du -h "$DIST_DIR/${BINARY_NAME}-darwin-arm64" | cut -f1))"
 
@@ -111,21 +111,21 @@ COPY . .
 
 ARG VERSION=dev
 RUN CGO_ENABLED=1 go build -trimpath -ldflags "-s -w -X main.Version=${VERSION}" \
-    -o /JoyCodeProxy ./cmd/JoyCodeProxy/
+    -o /AgnesCodeProxy ./cmd/AgnesCodeProxy/
 
 FROM alpine:3.21
-COPY --from=builder /JoyCodeProxy /JoyCodeProxy
+COPY --from=builder /AgnesCodeProxy /AgnesCodeProxy
 DOCKERFILE
 
 docker build --platform linux/amd64 \
     --build-arg VERSION="$VERSION_NUM" \
     -f "$ROOT_DIR/Dockerfile.build" \
-    -t joycode-build:"$VERSION_NUM" \
+    -t agnescode-build:"$VERSION_NUM" \
     "$ROOT_DIR"
 
 # Extract binary from Docker image
-CONTAINER_ID=$(docker create "joycode-build:$VERSION_NUM")
-docker cp "$CONTAINER_ID:/JoyCodeProxy" "$DIST_DIR/${BINARY_NAME}-linux-amd64"
+CONTAINER_ID=$(docker create "agnescode-build:$VERSION_NUM")
+docker cp "$CONTAINER_ID:/AgnesCodeProxy" "$DIST_DIR/${BINARY_NAME}-linux-amd64"
 docker rm "$CONTAINER_ID" > /dev/null
 
 # Clean up
@@ -142,7 +142,7 @@ echo ""
 echo "[6/6] Creating GitHub Release..."
 
 # Commit version change
-git add "$VERSION_FILE" "$ROOT_DIR/Dockerfile" "$ROOT_DIR/cmd/JoyCodeProxy/static/"
+git add "$VERSION_FILE" "$ROOT_DIR/Dockerfile" "$ROOT_DIR/cmd/AgnesCodeProxy/static/"
 git commit -m "release: $VERSION" || echo "  Nothing new to commit"
 
 # Create git tag
@@ -162,22 +162,22 @@ gh release create "$VERSION" \
     "$DIST_DIR/${BINARY_NAME}-darwin-arm64" \
     "$DIST_DIR/${BINARY_NAME}-linux-amd64" \
     "$DIST_DIR/checksums-sha256.txt" \
-    --title "JoyCodeProxy $VERSION" \
-    --notes "## JoyCodeProxy $VERSION
+    --title "AgnesCodeProxy $VERSION" \
+    --notes "## AgnesCodeProxy $VERSION
 
 ### Downloads
-- \`JoyCodeProxy-darwin-arm64\` — macOS (Apple Silicon)
-- \`JoyCodeProxy-linux-amd64\` — Linux (x86_64)
+- \`AgnesCodeProxy-darwin-arm64\` — macOS (Apple Silicon)
+- \`AgnesCodeProxy-linux-amd64\` — Linux (x86_64)
 
 ### Quick Start
 \`\`\`bash
 # macOS
-chmod +x JoyCodeProxy-darwin-arm64
-./JoyCodeProxy-darwin-arm64 serve
+chmod +x AgnesCodeProxy-darwin-arm64
+./AgnesCodeProxy-darwin-arm64 serve
 
 # Linux
-chmod +x JoyCodeProxy-linux-amd64
-./JoyCodeProxy-linux-amd64 serve
+chmod +x AgnesCodeProxy-linux-amd64
+./AgnesCodeProxy-linux-amd64 serve
 \`\`\`
 
 ### Verify checksum
@@ -191,4 +191,4 @@ echo "  Release $VERSION published successfully!"
 echo "=========================================="
 
 # Clean up Docker image
-docker rmi "joycode-build:$VERSION_NUM" > /dev/null 2>&1 || true
+docker rmi "agnescode-build:$VERSION_NUM" > /dev/null 2>&1 || true

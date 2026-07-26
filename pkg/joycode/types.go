@@ -1,6 +1,6 @@
-package joycode
+package agnescode
 
-// ModelInfo describes a JoyCode AI model.
+// ModelInfo describes a AgnesCode AI model.
 type ModelInfo struct {
 	Label              string   `json:"label"`
 	ChatAPIModel       string   `json:"chatApiModel"`

@@ -5,7 +5,7 @@
 
 **Goal:** 补全 Go CLI 缺失的命令（config、check、search）和 --verbose 调试日志，使 Go 二进制成为功能完整的 CLI 工具，覆盖 README 中已文档化的所有命令。
 
-**Architecture:** 用户输入 → cobra 解析子命令 → resolveClient 获取凭证 → joycode.Client 调用 API → 格式化输出。新增命令与现有命令模式一致：每个命令一个独立 .go 文件，在 init() 中注册到 rootCmd。--verbose 作为全局 flag 影响 Client 的日志输出行为。
+**Architecture:** 用户输入 → cobra 解析子命令 → resolveClient 获取凭证 → agnescode.Client 调用 API → 格式化输出。新增命令与现有命令模式一致：每个命令一个独立 .go 文件，在 init() 中注册到 rootCmd。--verbose 作为全局 flag 影响 Client 的日志输出行为。
 
 **Tech Stack:** Go 1.23, spf13/cobra v1.10.2, mattn/go-sqlite3 v1.14.24, net/http 标准库
 
@@ -19,12 +19,12 @@
 
 **Depends on:** None
 **Files:**
-- Create: `cmd/JoyCodeProxy/config.go`
+- Create: `cmd/AgnesCodeProxy/config.go`
 
 - [ ] **Step 1: 创建 config.go — 显示凭证来源、默认模型、API 地址、服务安装状态**
 
 ```go
-// cmd/JoyCodeProxy/config.go
+// cmd/AgnesCodeProxy/config.go
 package main
 
 import (
@@ -33,8 +33,8 @@ import (
 	"path/filepath"
 
 	"github.com/spf13/cobra"
-	"github.com/vibe-coding-labs/JoyCodeProxy/pkg/auth"
-	"github.com/vibe-coding-labs/JoyCodeProxy/pkg/joycode"
+	"github.com/vibe-coding-labs/AgnesCodeProxy/pkg/auth"
+	"github.com/vibe-coding-labs/AgnesCodeProxy/pkg/agnescode"
 )
 
 var configCmd = &cobra.Command{
@@ -42,7 +42,7 @@ var configCmd = &cobra.Command{
 	Short: "Display current configuration",
 	Long:  "Show resolved credentials, default settings, and service status.",
 	RunE: func(cmd *cobra.Command, args []string) error {
-		fmt.Println("JoyCode Proxy Configuration")
+		fmt.Println("AgnesCode Proxy Configuration")
 		fmt.Println("============================")
 
 		// Credentials
@@ -66,8 +66,8 @@ var configCmd = &cobra.Command{
 		// API
 		fmt.Println()
 		fmt.Println("  API:")
-		fmt.Printf("    Base URL:  %s\n", joycode.BaseURL)
-		fmt.Printf("    Default Model: %s\n", joycode.DefaultModel)
+		fmt.Printf("    Base URL:  %s\n", agnescode.BaseURL)
+		fmt.Printf("    Default Model: %s\n", agnescode.DefaultModel)
 
 		// Server
 		fmt.Println()
@@ -90,9 +90,9 @@ var configCmd = &cobra.Command{
 		// Models
 		fmt.Println()
 		fmt.Println("  Available Models:")
-		for _, m := range joycode.Models {
+		for _, m := range agnescode.Models {
 			suffix := ""
-			if m == joycode.DefaultModel {
+			if m == agnescode.DefaultModel {
 				suffix = " (default)"
 			}
 			fmt.Printf("    - %s%s\n", m, suffix)
@@ -108,15 +108,15 @@ func init() {
 ```
 
 - [ ] **Step 2: 验证 config 命令**
-Run: `go build -o joycode_proxy_bin ./cmd/JoyCodeProxy/ && ./joycode_proxy_bin config`
+Run: `go build -o agnescode_proxy_bin ./cmd/AgnesCodeProxy/ && ./agnescode_proxy_bin config`
 Expected:
   - Exit code: 0
-  - Output contains: "JoyCode Proxy Configuration"
+  - Output contains: "AgnesCode Proxy Configuration"
   - Output contains: "auto-detected"
   - Output contains: "Available Models"
 
 - [ ] **Step 3: 提交**
-Run: `git add cmd/JoyCodeProxy/config.go && git commit -m "feat(cli): add config command to display resolved configuration"`
+Run: `git add cmd/AgnesCodeProxy/config.go && git commit -m "feat(cli): add config command to display resolved configuration"`
 
 ---
 
@@ -124,12 +124,12 @@ Run: `git add cmd/JoyCodeProxy/config.go && git commit -m "feat(cli): add config
 
 **Depends on:** None
 **Files:**
-- Create: `cmd/JoyCodeProxy/check.go`
+- Create: `cmd/AgnesCodeProxy/check.go`
 
 - [ ] **Step 1: 创建 check.go — 对本地代理做健康检查，不依赖凭证**
 
 ```go
-// cmd/JoyCodeProxy/check.go
+// cmd/AgnesCodeProxy/check.go
 package main
 
 import (
@@ -157,8 +157,8 @@ var checkCmd = &cobra.Command{
 			fmt.Printf("  Address:  localhost:%d\n", checkPort)
 			fmt.Printf("  Error:    %s\n", err)
 			fmt.Println()
-			fmt.Println("  Start the proxy with: JoyCodeProxy serve")
-			fmt.Println("  Or install as service: JoyCodeProxy service install")
+			fmt.Println("  Start the proxy with: AgnesCodeProxy serve")
+			fmt.Println("  Or install as service: AgnesCodeProxy service install")
 			return nil
 		}
 		defer resp.Body.Close()
@@ -196,14 +196,14 @@ func init() {
 ```
 
 - [ ] **Step 2: 验证 check 命令**
-Run: `go build -o joycode_proxy_bin ./cmd/JoyCodeProxy/ && ./joycode_proxy_bin check`
+Run: `go build -o agnescode_proxy_bin ./cmd/AgnesCodeProxy/ && ./agnescode_proxy_bin check`
 Expected:
   - Exit code: 0
   - Output contains: "online" or "offline" (取决于 proxy 是否运行)
   - 输出格式化的状态信息
 
 - [ ] **Step 3: 提交**
-Run: `git add cmd/JoyCodeProxy/check.go && git commit -m "feat(cli): add check command for proxy health check"`
+Run: `git add cmd/AgnesCodeProxy/check.go && git commit -m "feat(cli): add check command for proxy health check"`
 
 ---
 
@@ -211,12 +211,12 @@ Run: `git add cmd/JoyCodeProxy/check.go && git commit -m "feat(cli): add check c
 
 **Depends on:** None
 **Files:**
-- Create: `cmd/JoyCodeProxy/search.go`
+- Create: `cmd/AgnesCodeProxy/search.go`
 
-- [ ] **Step 1: 创建 search.go — 从 CLI 直接调用 JoyCode 网页搜索 API**
+- [ ] **Step 1: 创建 search.go — 从 CLI 直接调用 AgnesCode 网页搜索 API**
 
 ```go
-// cmd/JoyCodeProxy/search.go
+// cmd/AgnesCodeProxy/search.go
 package main
 
 import (
@@ -228,7 +228,7 @@ import (
 var searchCmd = &cobra.Command{
 	Use:   "search [query]",
 	Short: "Perform a web search",
-	Long:  "Search the web using JoyCode's built-in search API.",
+	Long:  "Search the web using AgnesCode's built-in search API.",
 	Args:  cobra.MinimumNArgs(1),
 	RunE: func(cmd *cobra.Command, args []string) error {
 		client, err := resolveClient()
@@ -271,14 +271,14 @@ func init() {
 ```
 
 - [ ] **Step 2: 验证 search 命令编译**
-Run: `go build -o joycode_proxy_bin ./cmd/JoyCodeProxy/ && ./joycode_proxy_bin search --help`
+Run: `go build -o agnescode_proxy_bin ./cmd/AgnesCodeProxy/ && ./agnescode_proxy_bin search --help`
 Expected:
   - Exit code: 0
   - Output contains: "Perform a web search"
   - Output contains: "[query]"
 
 - [ ] **Step 3: 提交**
-Run: `git add cmd/JoyCodeProxy/search.go && git commit -m "feat(cli): add search command for web search"`
+Run: `git add cmd/AgnesCodeProxy/search.go && git commit -m "feat(cli): add search command for web search"`
 
 ---
 
@@ -286,14 +286,14 @@ Run: `git add cmd/JoyCodeProxy/search.go && git commit -m "feat(cli): add search
 
 **Depends on:** Task 1, Task 2, Task 3
 **Files:**
-- Modify: `cmd/JoyCodeProxy/root.go:1-70`（添加 --verbose flag）
-- Modify: `cmd/JoyCodeProxy/serve.go:1-82`（添加请求日志中间件）
+- Modify: `cmd/AgnesCodeProxy/root.go:1-70`（添加 --verbose flag）
+- Modify: `cmd/AgnesCodeProxy/serve.go:1-82`（添加请求日志中间件）
 
 - [ ] **Step 1: 修改 root.go — 添加 --verbose 全局 flag**
-文件: `cmd/JoyCodeProxy/root.go:1-70`（替换整个文件）
+文件: `cmd/AgnesCodeProxy/root.go:1-70`（替换整个文件）
 
 ```go
-// cmd/JoyCodeProxy/root.go
+// cmd/AgnesCodeProxy/root.go
 package main
 
 import (
@@ -301,8 +301,8 @@ import (
 	"log"
 
 	"github.com/spf13/cobra"
-	"github.com/vibe-coding-labs/JoyCodeProxy/pkg/auth"
-	"github.com/vibe-coding-labs/JoyCodeProxy/pkg/joycode"
+	"github.com/vibe-coding-labs/AgnesCodeProxy/pkg/auth"
+	"github.com/vibe-coding-labs/AgnesCodeProxy/pkg/agnescode"
 )
 
 var (
@@ -313,19 +313,19 @@ var (
 )
 
 var rootCmd = &cobra.Command{
-	Use:   "JoyCodeProxy",
-	Short: "JoyCode OpenAI-Compatible API Proxy",
-	Long:  "Convert JoyCode AI IDE APIs to OpenAI/Anthropic-compatible format for Codex, Claude Code, and other tools.",
+	Use:   "AgnesCodeProxy",
+	Short: "AgnesCode OpenAI-Compatible API Proxy",
+	Long:  "Convert AgnesCode AI IDE APIs to OpenAI/Anthropic-compatible format for Codex, Claude Code, and other tools.",
 }
 
 func init() {
-	rootCmd.PersistentFlags().StringVarP(&ptKey, "ptkey", "k", "", "JoyCode ptKey (auto-detected if empty)")
-	rootCmd.PersistentFlags().StringVarP(&userID, "userid", "u", "", "JoyCode userID (auto-detected if empty)")
+	rootCmd.PersistentFlags().StringVarP(&ptKey, "ptkey", "k", "", "AgnesCode ptKey (auto-detected if empty)")
+	rootCmd.PersistentFlags().StringVarP(&userID, "userid", "u", "", "AgnesCode userID (auto-detected if empty)")
 	rootCmd.PersistentFlags().BoolVar(&skipValidation, "skip-validation", false, "skip credential validation on startup")
 	rootCmd.PersistentFlags().BoolVarP(&verbose, "verbose", "v", false, "enable debug logging")
 }
 
-func resolveClient() (*joycode.Client, error) {
+func resolveClient() (*agnescode.Client, error) {
 	var creds *auth.Credentials
 	var source string
 
@@ -335,7 +335,7 @@ func resolveClient() (*joycode.Client, error) {
 	} else {
 		detected, err := auth.LoadFromSystem()
 		if err != nil {
-			return nil, fmt.Errorf("cannot auto-detect credentials: %w\n  Please provide --ptkey and --userid flags, or log in to JoyCode first", err)
+			return nil, fmt.Errorf("cannot auto-detect credentials: %w\n  Please provide --ptkey and --userid flags, or log in to AgnesCode first", err)
 		}
 		creds = detected
 		source = "auto-detected"
@@ -351,7 +351,7 @@ func resolveClient() (*joycode.Client, error) {
 	}
 
 	log.Printf("Credentials source: %s (userId=%s)", source, creds.UserID)
-	client := joycode.NewClient(creds.PtKey, creds.UserID)
+	client := agnescode.NewClient(creds.PtKey, creds.UserID)
 
 	if skipValidation {
 		log.Printf("Credential validation skipped (--skip-validation)")
@@ -360,7 +360,7 @@ func resolveClient() (*joycode.Client, error) {
 
 	log.Printf("Validating credentials...")
 	if err := client.Validate(); err != nil {
-		return nil, fmt.Errorf("%w\n  Your credentials may have expired. Try re-logging into JoyCode or provide fresh --ptkey and --userid", err)
+		return nil, fmt.Errorf("%w\n  Your credentials may have expired. Try re-logging into AgnesCode or provide fresh --ptkey and --userid", err)
 	}
 	log.Printf("Credentials validated successfully")
 	return client, nil
@@ -368,10 +368,10 @@ func resolveClient() (*joycode.Client, error) {
 ```
 
 - [ ] **Step 2: 修改 serve.go — 添加请求日志中间件**
-文件: `cmd/JoyCodeProxy/serve.go:1-82`（替换整个文件）
+文件: `cmd/AgnesCodeProxy/serve.go:1-82`（替换整个文件）
 
 ```go
-// cmd/JoyCodeProxy/serve.go
+// cmd/AgnesCodeProxy/serve.go
 package main
 
 import (
@@ -385,8 +385,8 @@ import (
 	"time"
 
 	"github.com/spf13/cobra"
-	"github.com/vibe-coding-labs/JoyCodeProxy/pkg/anthropic"
-	"github.com/vibe-coding-labs/JoyCodeProxy/pkg/openai"
+	"github.com/vibe-coding-labs/AgnesCodeProxy/pkg/anthropic"
+	"github.com/vibe-coding-labs/AgnesCodeProxy/pkg/openai"
 )
 
 var (
@@ -397,7 +397,7 @@ var (
 var serveCmd = &cobra.Command{
 	Use:   "serve",
 	Short: "Start the OpenAI-compatible proxy server",
-	Long:  "Start an OpenAI-compatible API proxy that converts requests to JoyCode API format.",
+	Long:  "Start an OpenAI-compatible API proxy that converts requests to AgnesCode API format.",
 	RunE: func(cmd *cobra.Command, args []string) error {
 		client, err := resolveClient()
 		if err != nil {
@@ -421,7 +421,7 @@ var serveCmd = &cobra.Command{
 		}
 
 		go func() {
-			log.Printf("JoyCode Proxy running on http://%s", addr)
+			log.Printf("AgnesCode Proxy running on http://%s", addr)
 			fmt.Println("  Endpoints:")
 			fmt.Println("    POST /v1/chat/completions  — Chat (OpenAI format)")
 			fmt.Println("    POST /v1/messages          — Chat (Anthropic/Claude Code format)")
@@ -432,7 +432,7 @@ var serveCmd = &cobra.Command{
 			fmt.Println()
 			fmt.Println("  Claude Code setup:")
 			fmt.Printf("    export ANTHROPIC_BASE_URL=http://%s\n", addr)
-			fmt.Println("    export ANTHROPIC_API_KEY=joycode")
+			fmt.Println("    export ANTHROPIC_API_KEY=agnescode")
 			if verbose {
 				fmt.Println()
 				fmt.Println("  Verbose logging: enabled")
@@ -474,17 +474,17 @@ func loggingMiddleware(next http.Handler) http.Handler {
 ```
 
 - [ ] **Step 3: 验证全部命令编译通过**
-Run: `go build -o joycode_proxy_bin ./cmd/JoyCodeProxy/ && ./joycode_proxy_bin --help`
+Run: `go build -o agnescode_proxy_bin ./cmd/AgnesCodeProxy/ && ./agnescode_proxy_bin --help`
 Expected:
   - Exit code: 0
   - Output contains: "config", "check", "search", "serve", "chat", "models", "whoami", "service", "version"
   - Output contains: "-v, --verbose"
 
 - [ ] **Step 4: 验证 --verbose flag 正常工作**
-Run: `./joycode_proxy_bin --verbose serve --skip-validation &  sleep 2 && kill %1`
+Run: `./agnescode_proxy_bin --verbose serve --skip-validation &  sleep 2 && kill %1`
 Expected:
   - Output contains: "Verbose logging: enabled"
   - Output contains: "->" 请求日志（如果有请求进来）
 
 - [ ] **Step 5: 提交**
-Run: `git add cmd/JoyCodeProxy/root.go cmd/JoyCodeProxy/serve.go && git commit -m "feat(cli): add --verbose flag with request debug logging"`
+Run: `git add cmd/AgnesCodeProxy/root.go cmd/AgnesCodeProxy/serve.go && git commit -m "feat(cli): add --verbose flag with request debug logging"`

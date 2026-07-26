@@ -18,7 +18,7 @@ func GenerateToken(username, secret string, expiry time.Duration) (string, error
 		RegisteredClaims: jwt.RegisteredClaims{
 			ExpiresAt: jwt.NewNumericDate(time.Now().Add(expiry)),
 			IssuedAt:  jwt.NewNumericDate(time.Now()),
-			Issuer:    "joycode-proxy",
+			Issuer:    "agnescode-proxy",
 		},
 	}
 	token := jwt.NewWithClaims(jwt.SigningMethodHS256, claims)

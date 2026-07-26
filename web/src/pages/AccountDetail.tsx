@@ -329,7 +329,7 @@ const AccountDetail: React.FC = () => {
           </div>
         </div>
         <Space>
-          <Tooltip title="此模型的用途仅限生成下方的快速启动命令。实际请求中的模型由客户端指定（如 ANTHROPIC_MODEL 环境变量），始终优先于本设置。模型列表来自 JoyCode API 支持的模型 + 服务器动态获取的扩展模型。">
+          <Tooltip title="此模型的用途仅限生成下方的快速启动命令。实际请求中的模型由客户端指定（如 ANTHROPIC_MODEL 环境变量），始终优先于本设置。模型列表来自 AgnesCode API 支持的模型 + 服务器动态获取的扩展模型。">
             <QuestionCircleOutlined style={{ color: '#999', cursor: 'help' }} />
           </Tooltip>
           <Select
@@ -344,7 +344,7 @@ const AccountDetail: React.FC = () => {
             size="small"
           />
           {isClaudeModel(account.default_model) && (
-            <Tooltip title="Claude 模型需要本机登录 JoyCode IDE">
+            <Tooltip title="Claude 模型需要本机登录 AgnesCode IDE">
               <InfoCircleOutlined style={{ color: '#faad14' }} />
             </Tooltip>
           )}
@@ -385,8 +385,8 @@ const AccountDetail: React.FC = () => {
         <Alert
           type="warning"
           showIcon
-          message="Claude 模型需要 JoyCode IDE 登录态"
-          description="请确保本机 JoyCode IDE 已登录，否则 Claude 模型无法使用。"
+          message="Claude 模型需要 AgnesCode IDE 登录态"
+          description="请确保本机 AgnesCode IDE 已登录，否则 Claude 模型无法使用。"
           style={{ marginBottom: 16 }}
         />
       )}

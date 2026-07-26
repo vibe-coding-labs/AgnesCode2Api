@@ -19,7 +19,7 @@
 
 **Depends on:** None
 **Files:**
-- Create: `joycode_proxy/crypto.py`
+- Create: `agnescode_proxy/crypto.py`
 - Modify: `pyproject.toml:6-15`
 
 - [ ] **Step 1: 添加 cryptography 依赖**
@@ -28,9 +28,9 @@
 
 ```toml
 [project]
-name = "joycode-proxy"
+name = "agnescode-proxy"
 version = "0.1.0"
-description = "JoyCode API proxy - OpenAI & Anthropic compatible"
+description = "AgnesCode API proxy - OpenAI & Anthropic compatible"
 requires-python = ">=3.12"
 dependencies = [
     "fastapi>=0.115",
@@ -47,7 +47,7 @@ dependencies = [
 
 - [ ] **Step 2: 安装 cryptography 包**
 
-Run: `cd /Users/cc11001100/github/vibe-coding-labs/JoyCodeProxy && pip install "cryptography>=44.0" 2>&1 | tail -5`
+Run: `cd /Users/cc11001100/github/vibe-coding-labs/AgnesCodeProxy && pip install "cryptography>=44.0" 2>&1 | tail -5`
 Expected:
   - Exit code: 0
   - Output contains: "Successfully installed"
@@ -55,16 +55,16 @@ Expected:
 - [ ] **Step 3: 创建 crypto.py — AES 对称加密/解密工具模块**
 
 ```python
-# joycode_proxy/crypto.py
+# agnescode_proxy/crypto.py
 import base64
 import logging
 from pathlib import Path
 
 from cryptography.fernet import Fernet
 
-log = logging.getLogger("joycode-proxy.crypto")
+log = logging.getLogger("agnescode-proxy.crypto")
 
-DATA_DIR = Path.home() / ".joycode-proxy"
+DATA_DIR = Path.home() / ".agnescode-proxy"
 KEY_FILE = DATA_DIR / ".enc_key"
 
 # Prefix for encrypted values stored in DB
@@ -121,8 +121,8 @@ def is_encrypted(value: str) -> bool:
 
 - [ ] **Step 4: 验证加密模块**
 
-Run: `cd /Users/cc11001100/github/vibe-coding-labs/JoyCodeProxy && python -c "
-from joycode_proxy.crypto import encrypt, decrypt, is_encrypted
+Run: `cd /Users/cc11001100/github/vibe-coding-labs/AgnesCodeProxy && python -c "
+from agnescode_proxy.crypto import encrypt, decrypt, is_encrypted
 plain = 'my-secret-pt-key-12345'
 enc = encrypt(plain)
 print(f'Encrypted: {enc[:20]}...')
@@ -139,7 +139,7 @@ Expected:
 
 - [ ] **Step 5: 提交**
 
-Run: `git add joycode_proxy/crypto.py pyproject.toml && git commit -m "feat(security): add AES encryption module for credential storage"`
+Run: `git add agnescode_proxy/crypto.py pyproject.toml && git commit -m "feat(security): add AES encryption module for credential storage"`
 
 ---
 
@@ -147,16 +147,16 @@ Run: `git add joycode_proxy/crypto.py pyproject.toml && git commit -m "feat(secu
 
 **Depends on:** Task 1
 **Files:**
-- Modify: `joycode_proxy/db.py:63-109`（add_account, get_account, get_default_account）
-- Modify: `joycode_proxy/db.py:215-232`（migrate_from_json）
+- Modify: `agnescode_proxy/db.py:63-109`（add_account, get_account, get_default_account）
+- Modify: `agnescode_proxy/db.py:215-232`（migrate_from_json）
 
 - [ ] **Step 1: 修改 add_account — 写入时加密 pt_key**
 
-文件: `joycode_proxy/db.py:63-73`（替换 add_account 方法）
+文件: `agnescode_proxy/db.py:63-73`（替换 add_account 方法）
 
 ```python
     def add_account(self, api_key: str, pt_key: str, user_id: str, is_default: bool = False):
-        from joycode_proxy.crypto import encrypt
+        from agnescode_proxy.crypto import encrypt
         conn = self._get_conn()
         if is_default:
             conn.execute("UPDATE accounts SET is_default = 0")
@@ -172,11 +172,11 @@ Run: `git add joycode_proxy/crypto.py pyproject.toml && git commit -m "feat(secu
 
 - [ ] **Step 2: 修改 get_account — 读取时解密 pt_key**
 
-文件: `joycode_proxy/db.py:96-109`（替换 get_account 方法）
+文件: `agnescode_proxy/db.py:96-109`（替换 get_account 方法）
 
 ```python
     def get_account(self, api_key: str) -> Optional[Dict[str, Any]]:
-        from joycode_proxy.crypto import decrypt, is_encrypted
+        from agnescode_proxy.crypto import decrypt, is_encrypted
         conn = self._get_conn()
         row = conn.execute(
             "SELECT api_key, pt_key, user_id, is_default FROM accounts WHERE api_key = ?",
@@ -197,11 +197,11 @@ Run: `git add joycode_proxy/crypto.py pyproject.toml && git commit -m "feat(secu
 
 - [ ] **Step 3: 修改 get_default_account — 读取时解密 pt_key**
 
-文件: `joycode_proxy/db.py:111-122`（替换 get_default_account 方法）
+文件: `agnescode_proxy/db.py:111-122`（替换 get_default_account 方法）
 
 ```python
     def get_default_account(self) -> Optional[Dict[str, Any]]:
-        from joycode_proxy.crypto import decrypt, is_encrypted
+        from agnescode_proxy.crypto import decrypt, is_encrypted
         conn = self._get_conn()
         row = conn.execute(
             "SELECT api_key, pt_key, user_id FROM accounts WHERE is_default = 1"
@@ -220,7 +220,7 @@ Run: `git add joycode_proxy/crypto.py pyproject.toml && git commit -m "feat(secu
 
 - [ ] **Step 4: 修改 migrate_from_json — 迁移时自动加密**
 
-文件: `joycode_proxy/db.py:215-232`（替换 migrate_from_json 方法）
+文件: `agnescode_proxy/db.py:215-232`（替换 migrate_from_json 方法）
 
 ```python
     def migrate_from_json(self):
@@ -245,12 +245,12 @@ Run: `git add joycode_proxy/crypto.py pyproject.toml && git commit -m "feat(secu
 
 - [ ] **Step 5: 添加明文自动迁移方法 — 启动时扫描并加密所有明文 pt_key**
 
-文件: `joycode_proxy/db.py`（在 `migrate_from_json` 方法之后添加新方法）
+文件: `agnescode_proxy/db.py`（在 `migrate_from_json` 方法之后添加新方法）
 
 ```python
     def migrate_plaintext_credentials(self):
         """Encrypt any plaintext pt_key values in the database."""
-        from joycode_proxy.crypto import encrypt, is_encrypted
+        from agnescode_proxy.crypto import encrypt, is_encrypted
         conn = self._get_conn()
         rows = conn.execute("SELECT api_key, pt_key FROM accounts").fetchall()
         migrated = 0
@@ -270,7 +270,7 @@ Run: `git add joycode_proxy/crypto.py pyproject.toml && git commit -m "feat(secu
 
 - [ ] **Step 6: 在 cli.py 的 serve 命令中调用明文迁移**
 
-文件: `joycode_proxy/cli.py:78-79`（在 `db.migrate_from_json()` 之后添加）
+文件: `agnescode_proxy/cli.py:78-79`（在 `db.migrate_from_json()` 之后添加）
 
 ```python
     db = Database()
@@ -280,8 +280,8 @@ Run: `git add joycode_proxy/crypto.py pyproject.toml && git commit -m "feat(secu
 
 - [ ] **Step 7: 验证加密集成**
 
-Run: `cd /Users/cc11001100/github/vibe-coding-labs/JoyCodeProxy && python -c "
-from joycode_proxy.db import Database
+Run: `cd /Users/cc11001100/github/vibe-coding-labs/AgnesCodeProxy && python -c "
+from agnescode_proxy.db import Database
 import tempfile, os
 # Use temp DB to avoid touching real data
 tmp = tempfile.mktemp(suffix='.db')
@@ -305,7 +305,7 @@ Expected:
 
 - [ ] **Step 8: 提交**
 
-Run: `git add joycode_proxy/db.py joycode_proxy/cli.py && git commit -m "feat(security): encrypt pt_key in SQLite with auto-migration from plaintext"`
+Run: `git add agnescode_proxy/db.py agnescode_proxy/cli.py && git commit -m "feat(security): encrypt pt_key in SQLite with auto-migration from plaintext"`
 
 ---
 
@@ -313,22 +313,22 @@ Run: `git add joycode_proxy/db.py joycode_proxy/cli.py && git commit -m "feat(se
 
 **Depends on:** None
 **Files:**
-- Modify: `joycode_proxy/server.py:12-23`
+- Modify: `agnescode_proxy/server.py:12-23`
 
 - [ ] **Step 1: 修改 server.py — 添加 Gzip 中间件和静态资源缓存头**
 
-文件: `joycode_proxy/server.py`（完整替换）
+文件: `agnescode_proxy/server.py`（完整替换）
 
 ```python
 import logging
 import time
 from pathlib import Path
 
-from joycode_proxy.credential_router import CredentialRouter
-from joycode_proxy.openai_handler import create_openai_router
-from joycode_proxy.anthropic_handler import create_anthropic_router
+from agnescode_proxy.credential_router import CredentialRouter
+from agnescode_proxy.openai_handler import create_openai_router
+from agnescode_proxy.anthropic_handler import create_anthropic_router
 
-log = logging.getLogger("joycode-proxy")
+log = logging.getLogger("agnescode-proxy")
 
 
 def create_app(router: CredentialRouter, db=None):
@@ -338,7 +338,7 @@ def create_app(router: CredentialRouter, db=None):
     from starlette.middleware.gzip import GZipMiddleware
     from starlette.responses import Response
 
-    app = FastAPI(title="JoyCode Proxy")
+    app = FastAPI(title="AgnesCode Proxy")
 
     app.add_middleware(
         CORSMiddleware,
@@ -375,7 +375,7 @@ def create_app(router: CredentialRouter, db=None):
                 )
             return response
 
-        from joycode_proxy.web_api import create_web_api_router
+        from agnescode_proxy.web_api import create_web_api_router
         app.include_router(create_web_api_router(db))
 
     app.include_router(create_openai_router(router))
@@ -390,9 +390,9 @@ def create_app(router: CredentialRouter, db=None):
 
 - [ ] **Step 2: 验证 Gzip 中间件加载**
 
-Run: `cd /Users/cc11001100/github/vibe-coding-labs/JoyCodeProxy && python -c "
-from joycode_proxy.credential_router import CredentialRouter
-from joycode_proxy.server import create_app
+Run: `cd /Users/cc11001100/github/vibe-coding-labs/AgnesCodeProxy && python -c "
+from agnescode_proxy.credential_router import CredentialRouter
+from agnescode_proxy.server import create_app
 router = CredentialRouter()
 app = create_app(router)
 middlewares = [type(m).__name__ for m in app.user_middleware]
@@ -405,7 +405,7 @@ Expected:
 
 - [ ] **Step 3: 提交**
 
-Run: `git add joycode_proxy/server.py && git commit -m "perf(web): add Gzip compression middleware for faster frontend loading"`
+Run: `git add agnescode_proxy/server.py && git commit -m "perf(web): add Gzip compression middleware for faster frontend loading"`
 
 ---
 
@@ -465,9 +465,9 @@ const FIELD_GROUPS = [
       },
       {
         key: 'api_base_url',
-        label: 'JoyCode API 地址',
-        tooltip: 'JoyCode 后端 API 的基础地址。通常不需要修改，除非使用私有部署的 JoyCode 服务',
-        placeholder: 'https://joycode-api.jd.com',
+        label: 'AgnesCode API 地址',
+        tooltip: 'AgnesCode 后端 API 的基础地址。通常不需要修改，除非使用私有部署的 AgnesCode 服务',
+        placeholder: 'https://agnescode-api.jd.com',
         type: 'input' as const,
       },
     ],
@@ -479,7 +479,7 @@ const FIELD_GROUPS = [
       {
         key: 'default_model',
         label: '默认模型',
-        tooltip: '当客户端未指定模型时使用的 JoyCode 模型。可选：JoyAI-Code, GLM-5.1, GLM-4.7, Kimi-K2.6 等',
+        tooltip: '当客户端未指定模型时使用的 AgnesCode 模型。可选：JoyAI-Code, GLM-5.1, GLM-4.7, Kimi-K2.6 等',
         placeholder: 'JoyAI-Code',
         type: 'input' as const,
       },
@@ -499,7 +499,7 @@ const FIELD_GROUPS = [
       {
         key: 'request_timeout',
         label: '请求超时（秒）',
-        tooltip: '与 JoyCode 后端通信的读取超时时间。流式对话可能需要较长时间，建议不低于 60 秒',
+        tooltip: '与 AgnesCode 后端通信的读取超时时间。流式对话可能需要较长时间，建议不低于 60 秒',
         placeholder: '120',
         type: 'number' as const,
         suffix: '秒',
@@ -514,7 +514,7 @@ const FIELD_GROUPS = [
       {
         key: 'max_connections',
         label: '最大连接数',
-        tooltip: '与 JoyCode 后端的最大并发 HTTP 连接数。多账号场景下可适当增加',
+        tooltip: '与 AgnesCode 后端的最大并发 HTTP 连接数。多账号场景下可适当增加',
         placeholder: '20',
         type: 'number' as const,
       },
@@ -675,8 +675,8 @@ const SettingsPage: React.FC = () => {
           <span>
             以下设置控制代理服务的行为。每个字段旁的 <QuestionCircleOutlined /> 图标提供详细说明。
             修改后点击「保存设置」，部分配置（如监听端口、模型映射）需
-            <Text code>joycode-proxy serve</Text> 重启后生效。配置存储在
-            <Text code>~/.joycode-proxy/proxy.db</Text>。
+            <Text code>agnescode-proxy serve</Text> 重启后生效。配置存储在
+            <Text code>~/.agnescode-proxy/proxy.db</Text>。
           </span>
         }
         style={{ marginBottom: 16 }}
@@ -751,7 +751,7 @@ import type { Account } from '../api';
 
 ```typescript
       <Modal
-        title="添加 JoyCode 账号"
+        title="添加 AgnesCode 账号"
         open={modalOpen}
         onCancel={() => { setModalOpen(false); form.resetFields(); }}
         onOk={() => form.submit()}
@@ -763,7 +763,7 @@ import type { Account } from '../api';
           type="info"
           showIcon
           message="添加账号说明"
-          description="将 JoyCode 客户端的凭证信息填入下方表单。添加后，Claude Code 使用对应的路由密钥即可通过此账号访问 JoyCode 后端。"
+          description="将 AgnesCode 客户端的凭证信息填入下方表单。添加后，Claude Code 使用对应的路由密钥即可通过此账号访问 AgnesCode 后端。"
           style={{ marginBottom: 16 }}
         />
         <Form form={form} layout="vertical" onFinish={handleAdd}>
@@ -772,7 +772,7 @@ import type { Account } from '../api';
             label={
               <Space size={4}>
                 路由密钥 (API Key)
-                <Tooltip title="客户端使用此密钥来路由到对应的 JoyCode 账号。配置 Claude Code 时，将此值填入 ANTHROPIC_API_KEY 环境变量。建议使用易辨识的名称，如 team-a、user-zhangsan">
+                <Tooltip title="客户端使用此密钥来路由到对应的 AgnesCode 账号。配置 Claude Code 时，将此值填入 ANTHROPIC_API_KEY 环境变量。建议使用易辨识的名称，如 team-a、user-zhangsan">
                   <QuestionCircleOutlined style={{ color: '#999' }} />
                 </Tooltip>
               </Space>
@@ -785,29 +785,29 @@ import type { Account } from '../api';
             name="pt_key"
             label={
               <Space size={4}>
-                JoyCode ptKey 凭证
-                <Tooltip title="从 JoyCode 客户端获取的 ptKey，用于后端 API 认证。获取方式：打开 JoyCode 桌面客户端 → 设置 → 开发者 → 复制 ptKey。凭证将以加密形式存储在本地数据库中">
+                AgnesCode ptKey 凭证
+                <Tooltip title="从 AgnesCode 客户端获取的 ptKey，用于后端 API 认证。获取方式：打开 AgnesCode 桌面客户端 → 设置 → 开发者 → 复制 ptKey。凭证将以加密形式存储在本地数据库中">
                   <QuestionCircleOutlined style={{ color: '#999' }} />
                 </Tooltip>
               </Space>
             }
             rules={[{ required: true, message: '请输入 ptKey' }]}
           >
-            <Input.Password placeholder="粘贴从 JoyCode 客户端复制的 ptKey，例如：eyJhbGci..." />
+            <Input.Password placeholder="粘贴从 AgnesCode 客户端复制的 ptKey，例如：eyJhbGci..." />
           </Form.Item>
           <Form.Item
             name="user_id"
             label={
               <Space size={4}>
-                JoyCode 用户 ID
-                <Tooltip title="与 ptKey 对应的用户 ID。获取方式：打开 JoyCode 桌面客户端 → 设置 → 个人信息 → 复制用户 ID">
+                AgnesCode 用户 ID
+                <Tooltip title="与 ptKey 对应的用户 ID。获取方式：打开 AgnesCode 桌面客户端 → 设置 → 个人信息 → 复制用户 ID">
                   <QuestionCircleOutlined style={{ color: '#999' }} />
                 </Tooltip>
               </Space>
             }
             rules={[{ required: true, message: '请输入用户 ID' }]}
           >
-            <Input placeholder="例如：user-12345 或从 JoyCode 客户端复制" />
+            <Input placeholder="例如：user-12345 或从 AgnesCode 客户端复制" />
           </Form.Item>
           <Form.Item
             name="is_default"
@@ -829,11 +829,11 @@ import type { Account } from '../api';
 
 - [ ] **Step 2: 构建前端并验证**
 
-Run: `cd /Users/cc11001100/github/vibe-coding-labs/JoyCodeProxy/web && npm run build 2>&1`
+Run: `cd /Users/cc11001100/github/vibe-coding-labs/AgnesCodeProxy/web && npm run build 2>&1`
 Expected:
   - Exit code: 0
   - Output contains: "built in"
 
 - [ ] **Step 3: 提交**
 
-Run: `git add web/src/pages/Accounts.tsx joycode_proxy/static/ && git commit -m "feat(ui): add tooltips and help text to Accounts form fields, rebuild frontend"`
+Run: `git add web/src/pages/Accounts.tsx agnescode_proxy/static/ && git commit -m "feat(ui): add tooltips and help text to Accounts form fields, rebuild frontend"`

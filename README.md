@@ -1,10 +1,10 @@
 <div align="center">
 
-# JoyCodeProxy
+# AgnesCodeProxy
 
 **一个不太正经的协议翻译器**
 
-让 Claude Code、Cursor 这类工具能直接用上 JoyCode 的模型
+让 Claude Code、Cursor 这类工具能直接用上 AgnesCode 的模型
 
 JoyAI-Code · GLM-5.1 · Kimi-K2.6 · MiniMax-M2.7 · Doubao-Seed-2.0-pro
 
@@ -16,18 +16,18 @@ JoyAI-Code · GLM-5.1 · Kimi-K2.6 · MiniMax-M2.7 · Doubao-Seed-2.0-pro
 
 ---
 
-> **免责声明：** 本项目仅供**个人学习和技术研究**使用。禁止用于商业转售、API 中转服务（**中转站属于违法行为**）、大规模薅号或任何黑灰产/违法违规活动。因不当使用造成的一切后果由使用者**自行承担**，与项目作者无关。本项目不是 JoyCode 官方产品。
+> **免责声明：** 本项目仅供**个人学习和技术研究**使用。禁止用于商业转售、API 中转服务（**中转站属于违法行为**）、大规模薅号或任何黑灰产/违法违规活动。因不当使用造成的一切后果由使用者**自行承担**，与项目作者无关。本项目不是 AgnesCode 官方产品。
 
 ---
 
 ## 起因
 
-事情是这样的：JoyCode（京东的 AI 编程助手）里面有一些不错的模型，GLM、Kimi、MiniMax、Doubao 这些都有。但它的 API 协议跟 Anthropic 和 OpenAI 的不一样，所以 Claude Code、Cursor 这些主流编程工具接不上。
+事情是这样的：AgnesCode（京东的 AI 编程助手）里面有一些不错的模型，GLM、Kimi、MiniMax、Doubao 这些都有。但它的 API 协议跟 Anthropic 和 OpenAI 的不一样，所以 Claude Code、Cursor 这些主流编程工具接不上。
 
-JoyCodeProxy 就是在中间做了一个翻译层，把协议对齐了。改两个环境变量，Claude Code 就能直接用 JoyCode 的模型了。
+AgnesCodeProxy 就是在中间做了一个翻译层，把协议对齐了。改两个环境变量，Claude Code 就能直接用 AgnesCode 的模型了。
 
 ```
-Claude Code / Cursor / Windsurf  →  JoyCodeProxy  →  JoyCode API
+Claude Code / Cursor / Windsurf  →  AgnesCodeProxy  →  AgnesCode API
                                     (协议翻译)
 ```
 
@@ -78,14 +78,14 @@ Claude Code / Cursor / Windsurf  →  JoyCodeProxy  →  JoyCode API
 cd web && npm install && npm run build && cd ..
 
 # 再构建后端（前端会自动嵌入）
-go build -o joycode_proxy_bin ./cmd/JoyCodeProxy/
+go build -o agnescode_proxy_bin ./cmd/AgnesCodeProxy/
 ```
 
 或者用 Docker：
 
 ```bash
-docker build -t joycode-proxy .
-docker run -p 34891:34891 joycode-proxy
+docker build -t agnescode-proxy .
+docker run -p 34891:34891 agnescode-proxy
 ```
 
 > **构建时连不上 Alpine 源?** 如果 `docker build` 卡在 `apk add` 并报 `ca-certificates`/`gcc`/`musl-dev` "no such package"，根因通常是网络连不上官方源 `dl-cdn.alpinelinux.org`（国内常见）。用 `ALPINE_MIRROR` 构建参数切到国内镜像即可：
@@ -93,7 +93,7 @@ docker run -p 34891:34891 joycode-proxy
 > ```bash
 > docker build \
 >   --build-arg ALPINE_MIRROR=https://mirrors.aliyun.com/alpine \
->   -t joycode-proxy .
+>   -t agnescode-proxy .
 > ```
 >
 > 镜像源任选其一（写到 `/alpine` 为止）：阿里云 `https://mirrors.aliyun.com/alpine`、清华 `https://mirrors.tuna.tsinghua.edu.cn/alpine`、中科大 `https://mirrors.ustc.edu.cn/alpine`。若 `go mod download` 也慢，可在构建环境设 `GOPROXY=https://goproxy.cn,direct`。
@@ -101,10 +101,10 @@ docker run -p 34891:34891 joycode-proxy
 ### 启动
 
 ```bash
-./joycode_proxy_bin serve
+./agnescode_proxy_bin serve
 ```
 
-默认监听 `0.0.0.0:34891`。macOS 首次启动会自动从本地 JoyCode 客户端读取凭据，不需要手动配。
+默认监听 `0.0.0.0:34891`。macOS 首次启动会自动从本地 AgnesCode 客户端读取凭据，不需要手动配。
 
 ### 接到 Claude Code
 
@@ -112,7 +112,7 @@ docker run -p 34891:34891 joycode-proxy
 
 ```bash
 export ANTHROPIC_BASE_URL=http://localhost:34891
-export ANTHROPIC_API_KEY=joycode
+export ANTHROPIC_API_KEY=agnescode
 
 claude
 ```
@@ -128,20 +128,20 @@ claude
 
 ### Docker / 远程部署登录
 
-非 macOS（尤其是 Docker）环境拿不到本地 JoyCode 客户端凭据，登录方式如下：
+非 macOS（尤其是 Docker）环境拿不到本地 AgnesCode 客户端凭据，登录方式如下：
 
-1. **OAuth 授权（推荐）**：在 Dashboard 点「OAuth授权登录」，在打开的 JoyCode 页面完成授权。
+1. **OAuth 授权（推荐）**：在 Dashboard 点「OAuth授权登录」，在打开的 AgnesCode 页面完成授权。
    - 本地直接部署时，回调会自动检测并添加账号。
    - **Docker / 远程部署时，浏览器会跳转到一个无法访问的 `localhost` 页面，这是正常现象**。把该页面地址栏里的完整 URL（形如 `http://127.0.0.1:34891/?pt_key=xxx&...`）复制下来，粘贴进弹窗的输入框，点「提交授权」即可。弹窗里的粘贴框现在一打开就可见，不用再等。
 2. **手动添加**：若你已经有 `pt_key`，可在「手动添加」里直接填。
-   - `pt_key`：来自上面 OAuth 回调 URL 的 `pt_key` 参数，或本地 JoyCode IDE 的 `state.vscdb`。
-   - `user_id`：JoyCode 客户端 → 设置 → 个人信息。
-3. **挂载本地凭据**：如果宿主机装了 JoyCode IDE，可把其状态库挂进容器，让「一键导入」可用：
+   - `pt_key`：来自上面 OAuth 回调 URL 的 `pt_key` 参数，或本地 AgnesCode IDE 的 `state.vscdb`。
+   - `user_id`：AgnesCode 客户端 → 设置 → 个人信息。
+3. **挂载本地凭据**：如果宿主机装了 AgnesCode IDE，可把其状态库挂进容器，让「一键导入」可用：
    ```bash
    docker run -p 34891:34891 \
-     -e JOYCODE_STATE_DB=/data/state.vscdb \
-     -v /path/to/JoyCode/state.vscdb:/data/state.vscdb:ro \
-     joycode-proxy
+     -e AGNESCODE_STATE_DB=/data/state.vscdb \
+     -v /path/to/AgnesCode/state.vscdb:/data/state.vscdb:ro \
+     agnescode-proxy
    ```
 
 ## API 端点
@@ -159,10 +159,10 @@ claude
 ## 项目结构
 
 ```
-cmd/JoyCodeProxy/    入口，HTTP 服务器
+cmd/AgnesCodeProxy/    入口，HTTP 服务器
 pkg/anthropic/       Anthropic 协议翻译（请求、响应、SSE 流式）
 pkg/openai/          OpenAI 协议翻译
-pkg/joycode/         JoyCode API 客户端
+pkg/agnescode/         AgnesCode API 客户端
 pkg/auth/            凭据读取、JD 扫码登录
 pkg/store/           SQLite 存储（账号、设置、请求日志）
 pkg/dashboard/       Dashboard API
@@ -172,8 +172,8 @@ web/                 前端（React + Ant Design）
 ## 使用限制
 
 - 每个用户最多配置 **10 个账号**，超出限制将无法添加或导入
-- 使用本项目前，请确保你已了解并遵守 JoyCode 的服务条款
-- 如果你觉得 JoyCode 的模型好用，建议去 [JoyCode 官方](https://joycode.jd.com/) 支持正版
+- 使用本项目前，请确保你已了解并遵守 AgnesCode 的服务条款
+- 如果你觉得 AgnesCode 的模型好用，建议去 [AgnesCode 官方](https://agnescode.jd.com/) 支持正版
 
 ## 许可证
 

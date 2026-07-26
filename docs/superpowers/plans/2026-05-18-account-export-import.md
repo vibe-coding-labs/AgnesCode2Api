@@ -3,7 +3,7 @@
 > **For agentic workers:** REQUIRED SUB-SKILL: `superpowers:subagent-driven-development`
 > Steps use checkbox (`- [ ]`) syntax.
 
-**Goal:** 添加账号导出/导入功能，将已登录账号（含 pt_key 凭证）导出为 JSON 文件，可在其他电脑的 JoyCodeProxy 实例上导入使用
+**Goal:** 添加账号导出/导入功能，将已登录账号（含 pt_key 凭证）导出为 JSON 文件，可在其他电脑的 AgnesCodeProxy 实例上导入使用
 
 **Architecture:** 用户点击导出 → 后端解密所有 pt_key → 返回 JSON 数组 → 前端触发下载；用户上传 JSON → 前端读取 → 后端逐条调用 AddAccount（自动处理重复：已有账号只更新 pt_key，新账号正常添加）
 
@@ -107,14 +107,14 @@ func (s *Store) ImportAccounts(items []ExportAccountItem) (added int, updated in
 
 - [ ] **Step 2: 验证编译**
 
-Run: `cd /Users/cc11001100/github/vibe-coding-labs/JoyCodeProxy && go build ./...`
+Run: `cd /Users/cc11001100/github/vibe-coding-labs/AgnesCodeProxy && go build ./...`
 Expected:
   - Exit code: 0
   - Output does NOT contain: "error" or "undefined"
 
 - [ ] **Step 3: 质量门禁 — 编译检查**
 
-Run: `cd /Users/cc11001100/github/vibe-coding-labs/JoyCodeProxy && go vet ./pkg/store/...`
+Run: `cd /Users/cc11001100/github/vibe-coding-labs/AgnesCodeProxy && go vet ./pkg/store/...`
 Expected:
   - Exit code: 0
 
@@ -223,13 +223,13 @@ func (h *Handler) handleImportAccounts(w http.ResponseWriter, r *http.Request) {
 
 - [ ] **Step 4: 验证后端编译**
 
-Run: `cd /Users/cc11001100/github/vibe-coding-labs/JoyCodeProxy && go build ./...`
+Run: `cd /Users/cc11001100/github/vibe-coding-labs/AgnesCodeProxy && go build ./...`
 Expected:
   - Exit code: 0
 
 - [ ] **Step 5: 质量门禁**
 
-Run: `cd /Users/cc11001100/github/vibe-coding-labs/JoyCodeProxy && go vet ./pkg/...`
+Run: `cd /Users/cc11001100/github/vibe-coding-labs/AgnesCodeProxy && go vet ./pkg/...`
 Expected:
   - Exit code: 0
 
@@ -291,7 +291,7 @@ import {
                 const url = URL.createObjectURL(blob);
                 const a = document.createElement('a');
                 a.href = url;
-                a.download = `joycode-accounts-${new Date().toISOString().slice(0, 10)}.json`;
+                a.download = `agnescode-accounts-${new Date().toISOString().slice(0, 10)}.json`;
                 a.click();
                 URL.revokeObjectURL(url);
                 message.success(`已导出 ${result.count} 个账号`);
@@ -341,19 +341,19 @@ import {
 
 - [ ] **Step 4: 验证前端编译**
 
-Run: `cd /Users/cc11001100/github/vibe-coding-labs/JoyCodeProxy/web && npx tsc --noEmit 2>&1 | head -20`
+Run: `cd /Users/cc11001100/github/vibe-coding-labs/AgnesCodeProxy/web && npx tsc --noEmit 2>&1 | head -20`
 Expected:
   - Exit code: 0 或无 TS 错误（已存在的警告可忽略）
 
 - [ ] **Step 5: 完整构建验证**
 
-Run: `cd /Users/cc11001100/github/vibe-coding-labs/JoyCodeProxy && go build -o /dev/null ./cmd/proxy/`
+Run: `cd /Users/cc11001100/github/vibe-coding-labs/AgnesCodeProxy && go build -o /dev/null ./cmd/proxy/`
 Expected:
   - Exit code: 0
 
 - [ ] **Step 6: 质量门禁**
 
-Run: `cd /Users/cc11001100/github/vibe-coding-labs/JoyCodeProxy/web && npx tsc --noEmit`
+Run: `cd /Users/cc11001100/github/vibe-coding-labs/AgnesCodeProxy/web && npx tsc --noEmit`
 Expected:
   - Exit code: 0
 

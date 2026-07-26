@@ -91,7 +91,7 @@ func (s *Store) GetStats() (*Stats, error) {
 ```
 
 - [ ] **Step 2: 验证编译**
-Run: `cd /Users/cc11001100/github/vibe-coding-labs/JoyCodeProxy && go build ./cmd/JoyCodeProxy/`
+Run: `cd /Users/cc11001100/github/vibe-coding-labs/AgnesCodeProxy && go build ./cmd/AgnesCodeProxy/`
 Expected:
   - Exit code: 0
 
@@ -291,13 +291,13 @@ export default Dashboard;
 ```
 
 - [ ] **Step 2: 构建前端**
-Run: `cd /Users/cc11001100/github/vibe-coding-labs/JoyCodeProxy/web && npm run build`
+Run: `cd /Users/cc11001100/github/vibe-coding-labs/AgnesCodeProxy/web && npm run build`
 Expected:
   - Exit code: 0
   - Output contains: "built in"
 
 - [ ] **Step 3: 提交**
-Run: `git add web/src/pages/Dashboard.tsx cmd/JoyCodeProxy/static/ && git commit -m "fix(web): improve dashboard data accuracy — 24h window, filter empty models, clean account display"`
+Run: `git add web/src/pages/Dashboard.tsx cmd/AgnesCodeProxy/static/ && git commit -m "fix(web): improve dashboard data accuracy — 24h window, filter empty models, clean account display"`
 
 ---
 
@@ -307,12 +307,12 @@ Run: `git add web/src/pages/Dashboard.tsx cmd/JoyCodeProxy/static/ && git commit
 **Files:** None (build only)
 
 - [ ] **Step 1: 构建 Go 二进制**
-Run: `cd /Users/cc11001100/github/vibe-coding-labs/JoyCodeProxy && go build -o joycode_proxy_bin ./cmd/JoyCodeProxy/`
+Run: `cd /Users/cc11001100/github/vibe-coding-labs/AgnesCodeProxy && go build -o agnescode_proxy_bin ./cmd/AgnesCodeProxy/`
 Expected:
   - Exit code: 0
 
 - [ ] **Step 2: 重启服务**
-Run: `launchctl unload ~/Library/LaunchAgents/com.joycode.proxy.plist && launchctl load ~/Library/LaunchAgents/com.joycode.proxy.plist`
+Run: `launchctl unload ~/Library/LaunchAgents/com.agnescode.proxy.plist && launchctl load ~/Library/LaunchAgents/com.agnescode.proxy.plist`
 Expected:
   - Exit code: 0
 

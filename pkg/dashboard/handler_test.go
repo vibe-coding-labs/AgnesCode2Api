@@ -11,8 +11,8 @@ import (
 	"time"
 	"testing"
 
-	"github.com/vibe-coding-labs/JoyCodeProxy/pkg/keepalive"
-	"github.com/vibe-coding-labs/JoyCodeProxy/pkg/store"
+	"github.com/vibe-coding-labs/AgnesCode2Api/pkg/keepalive"
+	"github.com/vibe-coding-labs/AgnesCode2Api/pkg/store"
 )
 
 func setupTestHandler(t *testing.T) (*Handler, *store.Store) {

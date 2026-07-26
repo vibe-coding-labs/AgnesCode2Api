@@ -129,7 +129,7 @@ const QRLoginModal: React.FC<QRLoginModalProps> = ({ open, onClose, onSuccess, o
       onClick={handleAutoLogin}
       style={{ padding: 0, height: 'auto' }}
     >
-      推荐使用「一键登录」从本机 JoyCode 自动导入
+      推荐使用「一键登录」从本机 AgnesCode 自动导入
     </Button>
   );
 

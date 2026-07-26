@@ -203,12 +203,12 @@ Run: `git add pkg/store/store.go && git commit -m "feat(store): add structured e
 
 **Depends on:** Task 1
 **Files:**
-- Modify: `cmd/JoyCodeProxy/serve.go:196-250`（requestLogMiddleware 增加 request_id）
+- Modify: `cmd/AgnesCodeProxy/serve.go:196-250`（requestLogMiddleware 增加 request_id）
 - Modify: `pkg/dashboard/handler.go:368-391`（handleStats 缺少错误日志）
 
 - [ ] **Step 1: 添加 request ID 到 requestLogMiddleware**
 
-文件: `cmd/JoyCodeProxy/serve.go` — 在 import 块添加 `"sync/atomic"`，修改 requestLogMiddleware 函数。
+文件: `cmd/AgnesCodeProxy/serve.go` — 在 import 块添加 `"sync/atomic"`，修改 requestLogMiddleware 函数。
 
 在文件级别添加计数器变量：
 
@@ -335,7 +335,7 @@ Expected:
   - No output
 
 - [ ] **Step 4: 提交**
-Run: `git add cmd/JoyCodeProxy/serve.go pkg/dashboard/handler.go && git commit -m "feat(middleware): add request ID tracking and fix handleStats error logging"`
+Run: `git add cmd/AgnesCodeProxy/serve.go pkg/dashboard/handler.go && git commit -m "feat(middleware): add request ID tracking and fix handleStats error logging"`
 
 ---
 

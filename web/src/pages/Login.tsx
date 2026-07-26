@@ -40,7 +40,7 @@ const LoginPage: React.FC = () => {
     }}>
       <Tooltip title="去 GitHub Star 支持我们">
         <a
-          href="https://github.com/vibe-coding-labs/JoyCodeProxy"
+          href="https://github.com/vibe-coding-labs/AgnesCodeProxy"
           target="_blank"
           rel="noopener noreferrer"
           style={{
@@ -73,7 +73,7 @@ const LoginPage: React.FC = () => {
         styles={{ body: { padding: 32 } }}
       >
         <div style={{ textAlign: 'center', marginBottom: 24 }}>
-          <Title level={3} style={{ marginBottom: 4 }}>JoyCode 代理</Title>
+          <Title level={3} style={{ marginBottom: 4 }}>AgnesCode 代理</Title>
           <Text type="secondary">请输入 root 密码登录</Text>
         </div>
         <Form onFinish={handleSubmit} size="large">

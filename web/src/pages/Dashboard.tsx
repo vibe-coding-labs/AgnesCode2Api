@@ -145,7 +145,7 @@ const Dashboard: React.FC = () => {
         <Row align="middle" justify="space-between">
           <Col>
             <Typography.Text style={{ color: 'rgba(255,255,255,0.85)', fontSize: 13 }}>
-              JoyCode API 代理服务 · 数据概览
+              AgnesCode API 代理服务 · 数据概览
             </Typography.Text>
             <Typography.Title level={3} style={{ color: '#fff', margin: '4px 0 0' }}>
               系统运行状态

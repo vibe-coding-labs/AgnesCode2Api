@@ -82,17 +82,17 @@ func (s *Store) LogRequest(apiKey, model, endpoint string, stream bool, statusCo
 
 - [ ] **Step 5: 修改 requestLogMiddleware 传递错误消息**
 
-文件: `cmd/JoyCodeProxy/serve.go:256`
+文件: `cmd/AgnesCodeProxy/serve.go:256`
 
 将 `go s.LogRequest(apiKey, model, path, isStream, rw.statusCode, latency)` 改为在错误时捕获错误信息。需要在 middleware 中增加 errMsg 变量并在 status >= 400 时设值。
 
 - [ ] **Step 6: 验证编译**
-Run: `cd /Users/cc11001100/github/vibe-coding-labs/JoyCodeProxy && go build ./cmd/JoyCodeProxy/`
+Run: `cd /Users/cc11001100/github/vibe-coding-labs/AgnesCodeProxy && go build ./cmd/AgnesCodeProxy/`
 Expected:
   - Exit code: 0
 
 - [ ] **Step 7: 提交**
-Run: `git add pkg/store/store.go cmd/JoyCodeProxy/serve.go && git commit -m "feat(store): add error_message field to request logs for detailed error tracking"`
+Run: `git add pkg/store/store.go cmd/AgnesCodeProxy/serve.go && git commit -m "feat(store): add error_message field to request logs for detailed error tracking"`
 
 ---
 
@@ -128,12 +128,12 @@ export interface RequestLog {
 在 `<Table>` 组件中添加 `expandable` 配置，使错误行（status >= 400）可以展开查看 error_message。
 
 - [ ] **Step 3: 构建前端**
-Run: `cd /Users/cc11001100/github/vibe-coding-labs/JoyCodeProxy/web && npm run build`
+Run: `cd /Users/cc11001100/github/vibe-coding-labs/AgnesCodeProxy/web && npm run build`
 Expected:
   - Exit code: 0
 
 - [ ] **Step 4: 提交**
-Run: `git add web/src/api.ts web/src/pages/AccountDetail.tsx cmd/JoyCodeProxy/static/ && git commit -m "feat(web): add expandable error details to request log table"`
+Run: `git add web/src/api.ts web/src/pages/AccountDetail.tsx cmd/AgnesCodeProxy/static/ && git commit -m "feat(web): add expandable error details to request log table"`
 
 ---
 
@@ -143,12 +143,12 @@ Run: `git add web/src/api.ts web/src/pages/AccountDetail.tsx cmd/JoyCodeProxy/st
 **Files:** None (build only)
 
 - [ ] **Step 1: 构建 Go 二进制**
-Run: `cd /Users/cc11001100/github/vibe-coding-labs/JoyCodeProxy && go build -o joycode_proxy_bin ./cmd/JoyCodeProxy/`
+Run: `cd /Users/cc11001100/github/vibe-coding-labs/AgnesCodeProxy && go build -o agnescode_proxy_bin ./cmd/AgnesCodeProxy/`
 Expected:
   - Exit code: 0
 
 - [ ] **Step 2: 重启服务**
-Run: `launchctl unload ~/Library/LaunchAgents/com.joycode.proxy.plist && launchctl load ~/Library/LaunchAgents/com.joycode.proxy.plist`
+Run: `launchctl unload ~/Library/LaunchAgents/com.agnescode.proxy.plist && launchctl load ~/Library/LaunchAgents/com.agnescode.proxy.plist`
 Expected:
   - Exit code: 0
 

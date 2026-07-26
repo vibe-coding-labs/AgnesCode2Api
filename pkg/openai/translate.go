@@ -5,80 +5,88 @@ import (
 	"fmt"
 	"time"
 
-	"github.com/vibe-coding-labs/JoyCodeProxy/pkg/joycode"
+	"github.com/vibe-coding-labs/AgnesCode2Api/pkg/agnes"
 )
 
-// TranslateRequest converts an OpenAI ChatRequest to JoyCode API body.
-func TranslateRequest(req *ChatRequest) map[string]interface{} {
-	body := map[string]interface{}{
-		"model":  req.Model,
-		"stream": req.Stream,
-	}
-	if len(req.Messages) > 0 {
-		var msgs []interface{}
-		json.Unmarshal(req.Messages, &msgs)
-		body["messages"] = msgs
-	}
-	if req.MaxTokens > 0 {
-		body["max_tokens"] = req.MaxTokens
+func TranslateRequest(req *ChatRequest) agnescode.ChatRequest {
+	cr := agnescode.ChatRequest{
+		Model:       req.Model,
+		MaxTokens:   req.MaxTokens,
+		Stream:      req.Stream,
+		Temperature: 0.7,
+		TopP:        1.0,
 	}
 	if req.Temperature != nil {
-		body["temperature"] = *req.Temperature
+		cr.Temperature = *req.Temperature
 	}
 	if req.TopP != nil {
-		body["top_p"] = *req.TopP
+		cr.TopP = *req.TopP
 	}
-	if len(req.Tools) > 0 {
-		var tools []interface{}
-		json.Unmarshal(req.Tools, &tools)
-		body["tools"] = tools
+	// Convert messages from json.RawMessage to []Message
+	if len(req.Messages) > 0 {
+		var rawMsgs []struct {
+			Role    string `json:"role"`
+			Content string `json:"content"`
+		}
+		if err := json.Unmarshal(req.Messages, &rawMsgs); err == nil {
+			msgs := make([]agnescode.Message, 0, len(rawMsgs))
+			for _, m := range rawMsgs {
+				msgs = append(msgs, agnescode.Message{Role: m.Role, Content: m.Content})
+			}
+			cr.Messages = msgs
+		}
 	}
-	if len(req.ToolChoice) > 0 {
-		body["tool_choice"] = json.RawMessage(req.ToolChoice)
-	}
+	// Convert stop sequences
 	if len(req.Stop) > 0 {
-		body["stop"] = json.RawMessage(req.Stop)
+		var stops []string
+		if err := json.Unmarshal(req.Stop, &stops); err == nil {
+			cr.Stop = stops
+		}
 	}
-	if len(req.Thinking) > 0 && ReasoningModels[req.Model] {
-		body["thinking"] = json.RawMessage(req.Thinking)
-	}
-	return body
+	return cr
 }
 
-// TranslateResponse converts a JoyCode API response to OpenAI format.
-func TranslateResponse(jcResp map[string]interface{}, model string) map[string]interface{} {
+func TranslateResponse(resp *agnescode.ChatResponse, model string) map[string]interface{} {
+	choices := make([]map[string]interface{}, len(resp.Choices))
+	for i, c := range resp.Choices {
+		choices[i] = map[string]interface{}{
+			"index":         c.Index,
+			"finish_reason": c.FinishReason,
+			"message": map[string]interface{}{
+				"role":    c.Message.Role,
+				"content": c.Message.Content,
+			},
+		}
+	}
 	return map[string]interface{}{
 		"id":                 fmt.Sprintf("chatcmpl-%s", newShortID()),
 		"object":             "chat.completion",
 		"created":            time.Now().Unix(),
 		"model":              model,
-		"choices":            jcResp["choices"],
-		"usage":              jcResp["usage"],
+		"choices":            choices,
+		"usage":              map[string]interface{}{"prompt_tokens": resp.Usage.PromptTokens, "completion_tokens": resp.Usage.CompletionTokens, "total_tokens": resp.Usage.TotalTokens},
 		"system_fingerprint": fmt.Sprintf("fp_%s", newShortID()),
 	}
 }
 
-// TranslateModels converts JoyCode models to OpenAI /v1/models format.
-func TranslateModels(jcModels []joycode.ModelInfo) map[string]interface{} {
-	data := make([]map[string]interface{}, 0, len(jcModels))
-	for _, m := range jcModels {
-		mid := m.ModelID
-		if mid == "" {
-			mid = m.Label
-		}
+func TranslateModels(apiModels []agnescode.ModelInfo) map[string]interface{} {
+	data := make([]map[string]interface{}, 0, len(apiModels))
+	for _, m := range apiModels {
 		entry := map[string]interface{}{
-			"id": mid, "object": "model",
-			"created": 1700000000, "owned_by": "joycode",
-		}
-		if caps, ok := ModelCapabilities[mid]; ok {
-			entry["capabilities"] = caps
+			"id": m.ID, "object": "model",
+			"created": 1700000000, "owned_by": m.OwnedBy,
+			"description":       m.Description,
+			"max_input_tokens":  m.MaxInputTokens,
+			"max_output_tokens": m.MaxOutputTokens,
+			"is_member_only":    m.IsMemberOnly,
+			"is_gray":           m.IsGray,
+			"model_type":        m.ModelType,
 		}
 		data = append(data, entry)
 	}
 	return map[string]interface{}{"object": "list", "data": data}
 }
 
-// TranslateStreamChunk converts a JoyCode SSE data line to OpenAI format.
 func TranslateStreamChunk(data string, model string) string {
 	if data == "[DONE]" {
 		return "data: [DONE]\n\n"
@@ -100,14 +108,9 @@ func newShortID() string {
 	return fmt.Sprintf("%d", time.Now().UnixNano()%1e12)
 }
 
-// ResolveModel returns the model to use for the request.
-// If the client-specified model is a known JoyCode model, pass it through.
-// Otherwise fall back to the account's default model, then the global default.
 func ResolveModel(model string, accountDefault string, systemDefault string) string {
-	for _, m := range joycode.Models {
-		if m == model {
-			return model
-		}
+	if model != "" {
+		return model
 	}
 	if accountDefault != "" {
 		return accountDefault
@@ -115,5 +118,5 @@ func ResolveModel(model string, accountDefault string, systemDefault string) str
 	if systemDefault != "" {
 		return systemDefault
 	}
-	return joycode.DefaultModel
+	return agnescode.DefaultModel
 }

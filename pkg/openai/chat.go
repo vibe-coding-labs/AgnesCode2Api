@@ -7,8 +7,8 @@ import (
 	"net/http"
 	"strings"
 
-	"github.com/vibe-coding-labs/JoyCodeProxy/pkg/joycode"
-	"github.com/vibe-coding-labs/JoyCodeProxy/pkg/store"
+	"github.com/vibe-coding-labs/AgnesCode2Api/pkg/agnes"
+	"github.com/vibe-coding-labs/AgnesCode2Api/pkg/store"
 )
 
 func (s *Server) handleChat(w http.ResponseWriter, r *http.Request) {
@@ -18,7 +18,7 @@ func (s *Server) handleChat(w http.ResponseWriter, r *http.Request) {
 	var req ChatRequest
 	if err := json.NewDecoder(r.Body).Decode(&req); err != nil {
 		slog.Error("decode chat request", "error", err)
-		writeError(w, 400, fmt.Sprintf("请求体解析失败: %s。请检查请求是否完整，或尝试开启新对话减少上下文长度。", err.Error()))
+		writeError(w, 400, fmt.Sprintf("Failed to parse request body: %s", err.Error()))
 		return
 	}
 	systemDefault := ""
@@ -26,38 +26,35 @@ func (s *Server) handleChat(w http.ResponseWriter, r *http.Request) {
 		systemDefault = s.store.GetSetting("default_model")
 	}
 	model := ResolveModel(req.Model, store.GetAccountDefaultModel(r), systemDefault)
-		store.SetModel(r, model)
-		jcBody := TranslateRequest(&req)
+	store.SetModel(r, model)
 	client := s.getClient(r)
+	jcReq := TranslateRequest(&req)
 	if req.Stream {
-		s.handleStreamChat(w, r, client, jcBody, model)
+		s.handleStreamChat(w, r, client, &jcReq, model)
 	} else {
-		s.handleNonStreamChat(w, r, client, jcBody, model)
+		s.handleNonStreamChat(w, r, client, &jcReq, model)
 	}
 }
 
-func (s *Server) handleNonStreamChat(w http.ResponseWriter, r *http.Request, client *joycode.Client, jcBody map[string]interface{}, model string) {
-	resp, err := client.Post("/api/saas/openai/v1/chat/completions", jcBody)
+func (s *Server) handleNonStreamChat(w http.ResponseWriter, r *http.Request, client *agnescode.Client, req *agnescode.ChatRequest, model string) {
+	req.Model = model
+	resp, err := client.ChatCompletion(*req)
 	if err != nil {
 		slog.Error("chat non-stream upstream error", "model", model, "error", err)
 		msg := err.Error()
 		code := 500
 		if isTimeoutError(msg) {
 			code = 504
-			msg = "上游服务响应超时，请稍后重试。原始错误: " + msg
+			msg = "Upstream timeout, please retry later. " + msg
 		}
 		writeError(w, code, msg)
 		return
 	}
-	if usage, ok := resp["usage"].(map[string]interface{}); ok {
-		inTk, _ := usage["prompt_tokens"].(float64)
-		outTk, _ := usage["completion_tokens"].(float64)
-		store.SetTokenUsage(r, int(inTk), int(outTk))
-	}
+	store.SetTokenUsage(r, resp.Usage.PromptTokens, resp.Usage.CompletionTokens)
 	writeJSON(w, 200, TranslateResponse(resp, model))
 }
 
-func (s *Server) handleStreamChat(w http.ResponseWriter, r *http.Request, client *joycode.Client, jcBody map[string]interface{}, model string) {
+func (s *Server) handleStreamChat(w http.ResponseWriter, r *http.Request, client *agnescode.Client, req *agnescode.ChatRequest, model string) {
 	flusher, ok := w.(http.Flusher)
 	if !ok {
 		slog.Error("streaming not supported by response writer")
@@ -69,12 +66,13 @@ func (s *Server) handleStreamChat(w http.ResponseWriter, r *http.Request, client
 	w.Header().Set("Access-Control-Allow-Origin", "*")
 	w.WriteHeader(200)
 
-	resp, err := client.PostStream("/api/saas/openai/v1/chat/completions", jcBody)
+	req.Model = model
+	ch, err := client.ChatCompletionStream(*req)
 	if err != nil {
 		slog.Error("chat stream upstream error", "model", model, "error", err)
 		msg := err.Error()
 		if isTimeoutError(msg) {
-			msg = "上游服务响应超时，请稍后重试。原始错误: " + msg
+			msg = "Upstream timeout, please retry later. " + msg
 		}
 		fmt.Fprintf(w, "data: {\"error\":{\"message\":\"%s\"}}\n\n", msg)
 		flusher.Flush()
@@ -82,23 +80,13 @@ func (s *Server) handleStreamChat(w http.ResponseWriter, r *http.Request, client
 		flusher.Flush()
 		return
 	}
-	defer resp.Body.Close()
-
-	// Pipe JoyCode SSE response directly — already OpenAI-compatible format
-	buf := make([]byte, 4096)
-	for {
-		n, readErr := resp.Body.Read(buf)
-		if n > 0 {
-			w.Write(buf[:n])
-			flusher.Flush()
-		}
-		if readErr != nil {
-				if readErr.Error() != "EOF" {
-					slog.Error("chat stream read error", "model", model, "error", readErr)
-				}
-			break
-		}
+	for event := range ch {
+		data, _ := json.Marshal(event)
+		fmt.Fprintf(w, "data: %s\n\n", data)
+		flusher.Flush()
 	}
+	fmt.Fprint(w, "data: [DONE]\n\n")
+	flusher.Flush()
 }
 
 func isTimeoutError(msg string) bool {

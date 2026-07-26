@@ -147,7 +147,7 @@ func minInt(a, b int) int {
 然后将 Step 2 中的 `min(len(str), 200)` 替换为 `minInt(len(str), 200)`。
 
 - [ ] **Step 3: 验证 Go 编译**
-Run: `cd /Users/cc11001100/github/vibe-coding-labs/JoyCodeProxy && go build -o joycode_proxy_bin ./cmd/JoyCodeProxy`
+Run: `cd /Users/cc11001100/github/vibe-coding-labs/AgnesCodeProxy && go build -o agnescode_proxy_bin ./cmd/AgnesCodeProxy`
 Expected:
   - Exit code: 0
   - Output is empty (no errors)
@@ -312,7 +312,7 @@ const QRLoginModal: React.FC<QRLoginModalProps> = ({ open, onClose, onSuccess })
     >
       <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 16 }}>
         <Typography.Text type="secondary" style={{ fontSize: 12 }}>
-          使用京东 APP 扫描二维码登录，每个京东账号对应一个 JoyCode 账号
+          使用京东 APP 扫描二维码登录，每个京东账号对应一个 AgnesCode 账号
         </Typography.Text>
         {qrImage && status !== 'confirmed' && (
           <div style={{
@@ -338,19 +338,19 @@ export default QRLoginModal;
 4. `setStatus('scanned')` 不再导致轮询链重建
 
 - [ ] **Step 2: 验证 TypeScript 编译**
-Run: `cd /Users/cc11001100/github/vibe-coding-labs/JoyCodeProxy/web && npx tsc --noEmit`
+Run: `cd /Users/cc11001100/github/vibe-coding-labs/AgnesCodeProxy/web && npx tsc --noEmit`
 Expected:
   - Exit code: 0
   - Output does NOT contain: "error TS"
 
 - [ ] **Step 3: 构建前端**
-Run: `cd /Users/cc11001100/github/vibe-coding-labs/JoyCodeProxy/web && npm run build`
+Run: `cd /Users/cc11001100/github/vibe-coding-labs/AgnesCodeProxy/web && npm run build`
 Expected:
   - Exit code: 0
   - Output contains: "built in"
 
 - [ ] **Step 4: 构建后端并重启**
-Run: `cd /Users/cc11001100/github/vibe-coding-labs/JoyCodeProxy && go build -o joycode_proxy_bin ./cmd/JoyCodeProxy && ps aux | grep joycode_proxy_bin | grep -v grep | awk '{print $2}' | xargs kill`
+Run: `cd /Users/cc11001100/github/vibe-coding-labs/AgnesCodeProxy && go build -o agnescode_proxy_bin ./cmd/AgnesCodeProxy && ps aux | grep agnescode_proxy_bin | grep -v grep | awk '{print $2}' | xargs kill`
 Expected:
   - Go build exit code: 0
   - launchd 自动重启服务
@@ -370,18 +370,18 @@ Run: `git add web/src/components/QRLoginModal.tsx && git commit -m "fix(qr-login
 **Files:** None
 
 - [ ] **Step 1: 构建前端**
-Run: `cd /Users/cc11001100/github/vibe-coding-labs/JoyCodeProxy/web && npm run build`
+Run: `cd /Users/cc11001100/github/vibe-coding-labs/AgnesCodeProxy/web && npm run build`
 Expected:
   - Exit code: 0
   - Output contains: "built in"
 
 - [ ] **Step 2: 构建后端二进制**
-Run: `cd /Users/cc11001100/github/vibe-coding-labs/JoyCodeProxy && go build -o joycode_proxy_bin ./cmd/JoyCodeProxy`
+Run: `cd /Users/cc11001100/github/vibe-coding-labs/AgnesCodeProxy && go build -o agnescode_proxy_bin ./cmd/AgnesCodeProxy`
 Expected:
   - Exit code: 0
 
 - [ ] **Step 3: 重启服务**
-Run: `ps aux | grep joycode_proxy_bin | grep -v grep | awk '{print $2}' | xargs kill`
+Run: `ps aux | grep agnescode_proxy_bin | grep -v grep | awk '{print $2}' | xargs kill`
 Expected: launchd 自动重启
 
 - [ ] **Step 4: 验证**

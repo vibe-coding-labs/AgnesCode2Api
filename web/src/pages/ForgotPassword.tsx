@@ -77,7 +77,7 @@ function BashCode({ children }: { children: string }) {
 }
 
 const ForgotPasswordPage: React.FC = () => {
-  const [exePath, setExePath] = useState('./joycode_proxy_bin');
+  const [exePath, setExePath] = useState('./agnescode_proxy_bin');
 
   useEffect(() => {
     authApi.status().then((res) => {

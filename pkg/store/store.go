@@ -19,7 +19,7 @@ import (
 )
 
 const (
-	DefaultDBDir  = ".joycode-proxy"
+	DefaultDBDir  = ".agnescode-proxy"
 	DefaultDBName = "proxy.db"
 	encKeyFile    = ".enc_key"
 )

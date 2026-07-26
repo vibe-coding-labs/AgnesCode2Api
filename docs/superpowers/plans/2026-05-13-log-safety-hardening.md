@@ -438,7 +438,7 @@ func TestTruncateFileIfNeeded_Nonexistent(t *testing.T) {
 ```
 
 - [ ] **Step 3: 验证 logrot 测试**
-Run: `cd /Users/cc11001100/github/vibe-coding-labs/JoyCodeProxy && go test ./pkg/logrot/ -v`
+Run: `cd /Users/cc11001100/github/vibe-coding-labs/AgnesCodeProxy && go test ./pkg/logrot/ -v`
 Expected:
   - Exit code: 0
   - Output contains: "PASS"
@@ -453,12 +453,12 @@ Run: `git add pkg/logrot/rotator.go pkg/logrot/rotator_test.go && git commit -m 
 
 **Depends on:** Task 1
 **Files:**
-- Modify: `cmd/JoyCodeProxy/serve.go:435-455` (setupLogRotation)
-- Modify: `cmd/JoyCodeProxy/daemon.go:254-266` (runAsDaemonChild — 移除重复 slog 设置)
+- Modify: `cmd/AgnesCodeProxy/serve.go:435-455` (setupLogRotation)
+- Modify: `cmd/AgnesCodeProxy/daemon.go:254-266` (runAsDaemonChild — 移除重复 slog 设置)
 
 - [ ] **Step 1: 修改 setupLogRotation — 使用新默认值(1GB) + stdout 截断**
 
-文件: `cmd/JoyCodeProxy/serve.go:435-455`（替换 setupLogRotation 函数）
+文件: `cmd/AgnesCodeProxy/serve.go:435-455`（替换 setupLogRotation 函数）
 
 ```go
 // setupLogRotation initializes rotating log writers for slog and log.
@@ -488,7 +488,7 @@ func setupLogRotation() {
 
 - [ ] **Step 2: 修复 daemon.go runAsDaemonChild — 不再设置 slog（由 serve.go 的 setupLogRotation 统一设置）**
 
-文件: `cmd/JoyCodeProxy/daemon.go:254-266`（替换 runAsDaemonChild 函数）
+文件: `cmd/AgnesCodeProxy/daemon.go:254-266`（替换 runAsDaemonChild 函数）
 
 ```go
 // runAsDaemonChild redirects logs to daemon log file with rotation.
@@ -509,13 +509,13 @@ func runAsDaemonChild() {
 ```
 
 - [ ] **Step 3: 验证编译**
-Run: `cd /Users/cc11001100/github/vibe-coding-labs/JoyCodeProxy && go build ./cmd/JoyCodeProxy/`
+Run: `cd /Users/cc11001100/github/vibe-coding-labs/AgnesCodeProxy && go build ./cmd/AgnesCodeProxy/`
 Expected:
   - Exit code: 0
   - No error output
 
 - [ ] **Step 4: 提交**
-Run: `git add cmd/JoyCodeProxy/serve.go cmd/JoyCodeProxy/daemon.go && git commit -m "fix(logging): use 1GB total limit, truncate stdout.log, fix daemon dual-write"`
+Run: `git add cmd/AgnesCodeProxy/serve.go cmd/AgnesCodeProxy/daemon.go && git commit -m "fix(logging): use 1GB total limit, truncate stdout.log, fix daemon dual-write"`
 
 ---
 
@@ -523,20 +523,20 @@ Run: `git add cmd/JoyCodeProxy/serve.go cmd/JoyCodeProxy/daemon.go && git commit
 
 **Depends on:** Task 2
 **Files:**
-- Deploy: `~/.joycode-proxy/joycode_proxy_bin`
+- Deploy: `~/.agnescode-proxy/agnescode_proxy_bin`
 
 - [ ] **Step 1: Build and deploy**
-Run: `cd /Users/cc11001100/github/vibe-coding-labs/JoyCodeProxy && go build -o ~/.joycode-proxy/joycode_proxy_bin ./cmd/JoyCodeProxy/`
+Run: `cd /Users/cc11001100/github/vibe-coding-labs/AgnesCodeProxy && go build -o ~/.agnescode-proxy/agnescode_proxy_bin ./cmd/AgnesCodeProxy/`
 Expected:
   - Exit code: 0
 
 - [ ] **Step 2: Restart service**
-Run: `launchctl unload ~/Library/LaunchAgents/com.joycode.proxy.plist && launchctl load ~/Library/LaunchAgents/com.joycode.proxy.plist`
+Run: `launchctl unload ~/Library/LaunchAgents/com.agnescode.proxy.plist && launchctl load ~/Library/LaunchAgents/com.agnescode.proxy.plist`
 Expected:
   - Service restarts successfully
 
 - [ ] **Step 3: Verify service health + log rotation active**
-Run: `sleep 3 && curl -s http://localhost:34891/v1/models | head -c 50 && echo "" && ls -lh ~/.joycode-proxy/logs/`
+Run: `sleep 3 && curl -s http://localhost:34891/v1/models | head -c 50 && echo "" && ls -lh ~/.agnescode-proxy/logs/`
 Expected:
   - Model list returned successfully
   - stderr.log size shown

@@ -1,5 +1,5 @@
 {
-  "name": "JoyCode2Api",
+  "name": "AgnesCode2Api",
   "private": true,
   "scripts": {
     "docs:dev": "vitepress dev docs",

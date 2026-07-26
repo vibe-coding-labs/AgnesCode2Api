@@ -1,4 +1,4 @@
-# JoyCodeProxy
+# AgnesCodeProxy
 
 ## 文档列表
 
@@ -33,7 +33,7 @@
 - [AccountDetail 统计面板增强 Implementation Plan](/superpowers/plans/2026-05-03-account-detail-stats-panels)
 - [Account Keep-Alive (账号凭证保活机制) Implementation Plan](/superpowers/plans/2026-05-03-account-keepalive)
 - [Account Stats 24h Dimension Implementation Plan](/superpowers/plans/2026-05-03-account-stats-24h-dimension)
-- [Feature: JoyCode 浏览器 OAuth 回调登录 — 构建多账号池](/superpowers/plans/2026-05-03-joycode-browser-oauth-login)
+- [Feature: AgnesCode 浏览器 OAuth 回调登录 — 构建多账号池](/superpowers/plans/2026-05-03-agnescode-browser-oauth-login)
 - [Bug Fix: pt_key cookie not found after QR validation](/superpowers/plans/2026-05-03-pt-key-cookie-not-found-fix)
 - [Bug Fix: QR login pt_key extraction — JD 不再通过 Set-Cookie 返回 pt_key](/superpowers/plans/2026-05-03-qr-login-ptkey-extraction-v2)
 - [Bug Fix: QR 登录 pt_key 提取失败 — 改为一键登录优先策略](/superpowers/plans/2026-05-03-qr-login-redirect-to-auto-login)

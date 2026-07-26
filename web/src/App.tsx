@@ -26,11 +26,11 @@ const OAuthCallback: React.FC = () => {
     const loginError = searchParams.get('login_error');
 
     if (loginSuccess) {
-      const jwtCookie = document.cookie.split('; ').find(c => c.startsWith('joycode_auto_jwt='));
+      const jwtCookie = document.cookie.split('; ').find(c => c.startsWith('agnescode_auto_jwt='));
       if (jwtCookie) {
         const token = jwtCookie.split('=')[1];
         if (token) setToken(token);
-        document.cookie = 'joycode_auto_jwt=; path=/; max-age=0';
+        document.cookie = 'agnescode_auto_jwt=; path=/; max-age=0';
       }
       message.success(`登录成功！账号「${loginSuccess}」已添加`);
       navigate('/accounts', { replace: true });

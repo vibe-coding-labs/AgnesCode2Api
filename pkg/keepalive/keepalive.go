@@ -6,8 +6,8 @@ import (
 	"sync"
 	"time"
 
-	"github.com/vibe-coding-labs/JoyCodeProxy/pkg/joycode"
-	"github.com/vibe-coding-labs/JoyCodeProxy/pkg/store"
+	"github.com/vibe-coding-labs/AgnesCode2Api/pkg/agnes"
+	"github.com/vibe-coding-labs/AgnesCode2Api/pkg/store"
 )
 
 // CredentialStatus represents the health of an account's credentials.
@@ -153,10 +153,10 @@ func (k *Keeper) checkOne(apiKey, ptKey, userID string) string {
 
 	checkStart := time.Now()
 
-	client := joycode.NewClient(ptKey, userID)
+	client := agnescode.NewClient(ptKey)
 	client.SetTimeout(30 * time.Second)
 
-	refreshedPtKey, err := client.UserInfoWithRefresh()
+	refreshedPtKey, err := "", client.Authenticate()
 	checkDuration := time.Since(checkStart)
 	now := time.Now()
 
@@ -202,9 +202,9 @@ func (k *Keeper) checkOne(apiKey, ptKey, userID string) string {
 		} else {
 			status.LastRefreshed = now
 
-			verifyClient := joycode.NewClient(refreshedPtKey, userID)
+			verifyClient := agnescode.NewClient(refreshedPtKey)
 			verifyClient.SetTimeout(15 * time.Second)
-			if verifyErr := verifyClient.Validate(); verifyErr != nil {
+			if verifyErr := verifyClient.Authenticate(); verifyErr != nil {
 				slog.Error("keepalive: refreshed pt_key verification FAILED",
 					"user_id", apiKey,
 					"user_id", userID,

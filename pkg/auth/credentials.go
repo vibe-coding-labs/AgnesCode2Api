@@ -11,7 +11,7 @@ import (
 	_ "github.com/mattn/go-sqlite3"
 )
 
-// Credentials holds JoyCode authentication data.
+// Credentials holds AgnesCode authentication data.
 type Credentials struct {
 	PtKey         string
 	UserID        string
@@ -23,7 +23,7 @@ type Credentials struct {
 }
 
 type stateData struct {
-	JoyCoderUser struct {
+	AgnesCoderUser struct {
 		PtKey         string `json:"ptKey"`
 		UserID        string `json:"userId"`
 		ColorBaseURL  string `json:"colorBaseUrl"`
@@ -35,11 +35,11 @@ type stateData struct {
 }
 
 const (
-	stateDBEnv       = "JOYCODE_STATE_DB"
-	containerStateDB = "/root/.joycode-ide/state.vscdb"
+	stateDBEnv       = "AGNESCODE_STATE_DB"
+	containerStateDB = "/root/.agnescode-ide/state.vscdb"
 )
 
-// LoadFromSystem reads ptKey from local JoyCode state database (macOS).
+// LoadFromSystem reads ptKey from local AgnesCode state database (macOS).
 func LoadFromSystem() (*Credentials, error) {
 	if dbPath := os.Getenv(stateDBEnv); dbPath != "" {
 		return loadFromStateDB(dbPath)
@@ -48,7 +48,7 @@ func LoadFromSystem() (*Credentials, error) {
 		return loadFromStateDB(containerStateDB)
 	}
 	if runtime.GOOS != "darwin" {
-		return nil, fmt.Errorf("auto credential extraction requires macOS JoyCode IDE state; in Docker, mount state.vscdb to %s or set %s", containerStateDB, stateDBEnv)
+		return nil, fmt.Errorf("auto credential extraction requires macOS AgnesCode IDE state; in Docker, mount state.vscdb to %s or set %s", containerStateDB, stateDBEnv)
 	}
 	home, err := os.UserHomeDir()
 	if err != nil {
@@ -56,10 +56,10 @@ func LoadFromSystem() (*Credentials, error) {
 	}
 	dbPath := filepath.Join(home,
 		"Library", "Application Support",
-		"JoyCode", "User", "globalStorage", "state.vscdb")
+		"AgnesCode", "User", "globalStorage", "state.vscdb")
 
 	if _, err := os.Stat(dbPath); os.IsNotExist(err) {
-		return nil, fmt.Errorf("JoyCode state database not found at %s\n  Please install and log in to JoyCode IDE first", dbPath)
+		return nil, fmt.Errorf("AgnesCode state database not found at %s\n  Please install and log in to AgnesCode IDE first", dbPath)
 	}
 
 	return loadFromStateDB(dbPath)
@@ -67,39 +67,39 @@ func LoadFromSystem() (*Credentials, error) {
 
 func loadFromStateDB(dbPath string) (*Credentials, error) {
 	if _, err := os.Stat(dbPath); err != nil {
-		return nil, fmt.Errorf("JoyCode state database not found at %s: %w", dbPath, err)
+		return nil, fmt.Errorf("AgnesCode state database not found at %s: %w", dbPath, err)
 	}
 
 	db, err := sql.Open("sqlite3", dbPath+"?mode=ro")
 	if err != nil {
-		return nil, fmt.Errorf("cannot open JoyCode database: %w", err)
+		return nil, fmt.Errorf("cannot open AgnesCode database: %w", err)
 	}
 	defer db.Close()
 
 	var value string
 	if err := db.QueryRow(
-		"SELECT value FROM ItemTable WHERE key='JoyCoder.IDE'",
+		"SELECT value FROM ItemTable WHERE key='AgnesCoder.IDE'",
 	).Scan(&value); err != nil {
-		return nil, fmt.Errorf("login info not found in database\n  Please log in to JoyCode IDE first")
+		return nil, fmt.Errorf("login info not found in database\n  Please log in to AgnesCode IDE first")
 	}
 
 	var data stateData
 	if err := json.Unmarshal([]byte(value), &data); err != nil {
 		return nil, fmt.Errorf("cannot parse login data from database: %w", err)
 	}
-	if data.JoyCoderUser.PtKey == "" {
-		return nil, fmt.Errorf("ptKey is empty in stored credentials\n  Please re-login to JoyCode IDE")
+	if data.AgnesCoderUser.PtKey == "" {
+		return nil, fmt.Errorf("ptKey is empty in stored credentials\n  Please re-login to AgnesCode IDE")
 	}
-	if data.JoyCoderUser.UserID == "" {
-		return nil, fmt.Errorf("userId is empty in stored credentials\n  Please re-login to JoyCode IDE")
+	if data.AgnesCoderUser.UserID == "" {
+		return nil, fmt.Errorf("userId is empty in stored credentials\n  Please re-login to AgnesCode IDE")
 	}
 	return &Credentials{
-		PtKey:         data.JoyCoderUser.PtKey,
-		UserID:        data.JoyCoderUser.UserID,
-		ColorBaseURL:  data.JoyCoderUser.ColorBaseURL,
-		MasterBaseURL: data.JoyCoderUser.MasterBaseURL,
-		Tenant:        data.JoyCoderUser.Tenant,
-		LoginType:     data.JoyCoderUser.LoginType,
-		OrgFullName:   data.JoyCoderUser.OrgFullName,
+		PtKey:         data.AgnesCoderUser.PtKey,
+		UserID:        data.AgnesCoderUser.UserID,
+		ColorBaseURL:  data.AgnesCoderUser.ColorBaseURL,
+		MasterBaseURL: data.AgnesCoderUser.MasterBaseURL,
+		Tenant:        data.AgnesCoderUser.Tenant,
+		LoginType:     data.AgnesCoderUser.LoginType,
+		OrgFullName:   data.AgnesCoderUser.OrgFullName,
 	}, nil
 }

@@ -19,7 +19,7 @@
 
 **Depends on:** None
 **Files:**
-- Create: `joycode_proxy/ui.py`（Rich UI 工具模块）
+- Create: `agnescode_proxy/ui.py`（Rich UI 工具模块）
 - Modify: `pyproject.toml:6-11`（添加 rich 依赖）
 
 - [ ] **Step 1: 修改 pyproject.toml — 添加 rich 依赖**
@@ -37,7 +37,7 @@ dependencies = [
 ]
 ```
 
-- [ ] **Step 2: 创建 joycode_proxy/ui.py — Rich UI 工具模块**
+- [ ] **Step 2: 创建 agnescode_proxy/ui.py — Rich UI 工具模块**
 
 提供全局 Console、Banner 渲染、Table/Panel 工具函数，供所有 CLI 命令使用。
 
@@ -59,7 +59,7 @@ BANNER = r"""
   / __  / /_/ / __  / / / /___/ /___
  /_/ /_/\__/_/_/ /_/ /_/ /_____/_____/
 [/bold cyan]
-[dim]  JoyCode API Proxy — OpenAI & Anthropic Compatible[/dim]
+[dim]  AgnesCode API Proxy — OpenAI & Anthropic Compatible[/dim]
 """
 
 VERSION = "0.2.0"
@@ -137,7 +137,7 @@ def print_endpoint_tree(host: str, port: int):
     console.print()
     setup_panel = Panel(
         f"[bold]export ANTHROPIC_BASE_URL=http://{host}:{port}[/bold]\n"
-        f"[bold]export ANTHROPIC_API_KEY=joycode[/bold]",
+        f"[bold]export ANTHROPIC_API_KEY=agnescode[/bold]",
         title="[bold]Claude Code Setup[/bold]",
         border_style="green",
     )
@@ -147,17 +147,17 @@ def print_endpoint_tree(host: str, port: int):
 - [ ] **Step 3: 验证 Rich UI 模块**
 
 Run: `python3 -c "
-from joycode_proxy.ui import console, print_banner, print_kv_table, print_model_table
+from agnescode_proxy.ui import console, print_banner, print_kv_table, print_model_table
 print_banner()
 print_kv_table('Test', {'Key1': 'Value1', 'Key2': 'Value2'})
 print('Rich UI module OK!')
 "`
 Expected:
   - Exit code: 0
-  - Output contains: "JoyCode" and "Rich UI module OK!"
+  - Output contains: "AgnesCode" and "Rich UI module OK!"
 
 - [ ] **Step 4: 提交**
-Run: `git add joycode_proxy/ui.py pyproject.toml && git commit -m "feat(ui): add Rich-based UI module with banner, tables, and panels"`
+Run: `git add agnescode_proxy/ui.py pyproject.toml && git commit -m "feat(ui): add Rich-based UI module with banner, tables, and panels"`
 
 ---
 
@@ -165,11 +165,11 @@ Run: `git add joycode_proxy/ui.py pyproject.toml && git commit -m "feat(ui): add
 
 **Depends on:** Task 1
 **Files:**
-- Modify: `joycode_proxy/cli.py`（整体重写所有命令的输出）
+- Modify: `agnescode_proxy/cli.py`（整体重写所有命令的输出）
 
 - [ ] **Step 1: 重写 cli.py — 导入 Rich UI，替换所有 click.echo 为 Rich 输出**
 
-文件: `joycode_proxy/cli.py`（替换整个文件）
+文件: `agnescode_proxy/cli.py`（替换整个文件）
 
 保留所有现有功能和命令逻辑，仅替换输出层：click.echo → Rich console.print，添加 Spinner、Panel、Table 等。
 
@@ -183,8 +183,8 @@ from pathlib import Path
 import click
 from rich.console import Console
 
-from joycode_proxy.auth import Credentials, load_from_system
-from joycode_proxy.ui import (
+from agnescode_proxy.auth import Credentials, load_from_system
+from agnescode_proxy.ui import (
     VERSION,
     console,
     print_banner,
@@ -197,11 +197,11 @@ from joycode_proxy.ui import (
     print_warning,
 )
 
-log = logging.getLogger("joycode-proxy")
+log = logging.getLogger("agnescode-proxy")
 
 
 def _resolve_client(ptkey: str, userid: str, skip_validation: bool = False):
-    from joycode_proxy.client import Client
+    from agnescode_proxy.client import Client
     if ptkey and userid:
         creds = Credentials(pt_key=ptkey, user_id=userid)
         source = "flags"
@@ -227,8 +227,8 @@ def _resolve_client(ptkey: str, userid: str, skip_validation: bool = False):
 
 
 @click.group()
-@click.option("-k", "--ptkey", default="", help="JoyCode ptKey (auto-detected if empty)")
-@click.option("-u", "--userid", default="", help="JoyCode userID (auto-detected if empty)")
+@click.option("-k", "--ptkey", default="", help="AgnesCode ptKey (auto-detected if empty)")
+@click.option("-u", "--userid", default="", help="AgnesCode userID (auto-detected if empty)")
 @click.option("--skip-validation", is_flag=True, help="Skip credential validation")
 @click.option("-v", "--verbose", is_flag=True, help="Enable debug logging")
 @click.pass_context
@@ -250,7 +250,7 @@ def serve(ctx, host: str, port: int):
     import uvicorn
     print_banner()
     client = _resolve_client(ctx.obj["ptkey"], ctx.obj["userid"], ctx.obj["skip_validation"])
-    from joycode_proxy.server import create_app
+    from agnescode_proxy.server import create_app
     app = create_app(client)
     print_endpoint_tree(host, port)
     console.print()
@@ -311,7 +311,7 @@ def chat(ctx, message: str, model: str, stream: bool, max_tokens: int):
 @cli.command()
 @click.pass_context
 def models(ctx):
-    from joycode_proxy.client import DEFAULT_MODEL
+    from agnescode_proxy.client import DEFAULT_MODEL
     client = _resolve_client(ctx.obj["ptkey"], ctx.obj["userid"], ctx.obj["skip_validation"])
     from rich.status import Status
     with Status("[bold cyan]Fetching models...", console=console):
@@ -341,7 +341,7 @@ def whoami(ctx):
 def version():
     print_banner()
     print_kv_table("Version Info", {
-        "JoyCode Proxy": VERSION,
+        "AgnesCode Proxy": VERSION,
         "Python": sys.version.split()[0],
     })
 
@@ -351,13 +351,13 @@ def version():
 def config(ctx):
     print_banner()
     print_kv_table("Configuration", {
-        "API Base URL": "https://joycode-api.jd.com",
+        "API Base URL": "https://agnescode-api.jd.com",
         "Default Model": "JoyAI-Code",
         "Default Port": "34891",
         "Verbose": str(ctx.obj.get("verbose", False)),
         "Skip Validation": str(ctx.obj.get("skip_validation", False)),
-        "Config Dir": str(Path.home() / ".joycode-proxy"),
-        "Log Dir": str(Path.home() / ".joycode-proxy" / "logs"),
+        "Config Dir": str(Path.home() / ".agnescode-proxy"),
+        "Log Dir": str(Path.home() / ".agnescode-proxy" / "logs"),
     })
 
 
@@ -424,19 +424,19 @@ def service():
 def service_install(port: int):
     bin_path = Path(sys.executable).resolve()
     home = Path.home()
-    log_dir = home / ".joycode-proxy" / "logs"
+    log_dir = home / ".agnescode-proxy" / "logs"
     log_dir.mkdir(parents=True, exist_ok=True)
-    plist_path = home / "Library" / "LaunchAgents" / "com.joycode.proxy.plist"
+    plist_path = home / "Library" / "LaunchAgents" / "com.agnescode.proxy.plist"
     plist = f"""<?xml version="1.0" encoding="UTF-8"?>
 <!DOCTYPE plist PUBLIC "-//Apple//DTD PLIST 1.0//EN" "http://www.apple.com/DTDs/PropertyList-1.0.dtd">
 <plist version="1.0">
 <dict>
-    <key>Label</key><string>com.joycode.proxy</string>
+    <key>Label</key><string>com.agnescode.proxy</string>
     <key>ProgramArguments</key>
     <array>
         <string>{bin_path}</string>
         <string>-m</string>
-        <string>joycode_proxy.cli</string>
+        <string>agnescode_proxy.cli</string>
         <string>serve</string>
         <string>--port</string>
         <string>{port}</string>
@@ -453,7 +453,7 @@ def service_install(port: int):
     subprocess.run(["launchctl", "load", str(plist_path)], check=True)
     print_success("Service installed and started")
     print_kv_table("Service", {
-        "Label": "com.joycode.proxy",
+        "Label": "com.agnescode.proxy",
         "Plist": str(plist_path),
         "Port": str(port),
         "Logs": str(log_dir) + "/",
@@ -463,7 +463,7 @@ def service_install(port: int):
 @service.command("uninstall")
 def service_uninstall():
     home = Path.home()
-    plist_path = home / "Library" / "LaunchAgents" / "com.joycode.proxy.plist"
+    plist_path = home / "Library" / "LaunchAgents" / "com.agnescode.proxy.plist"
     subprocess.run(["launchctl", "unload", str(plist_path)], capture_output=True)
     if plist_path.exists():
         plist_path.unlink()
@@ -475,21 +475,21 @@ def service_uninstall():
 @service.command("status")
 def service_status():
     home = Path.home()
-    plist_path = home / "Library" / "LaunchAgents" / "com.joycode.proxy.plist"
+    plist_path = home / "Library" / "LaunchAgents" / "com.agnescode.proxy.plist"
     if not plist_path.exists():
         print_warning("Service not installed")
         return
     result = subprocess.run(["launchctl", "list"], capture_output=True, text=True)
     found = False
     for line in result.stdout.splitlines():
-        if "com.joycode.proxy" in line:
+        if "com.agnescode.proxy" in line:
             print_success(f"Service is running")
             console.print(f"  [dim]{line}[/dim]")
             found = True
             break
     if not found:
         print_warning("Service installed but not running")
-    console.print(f"\n  Logs: [cyan]{home / '.joycode-proxy' / 'logs'}/[/cyan]")
+    console.print(f"\n  Logs: [cyan]{home / '.agnescode-proxy' / 'logs'}/[/cyan]")
 
 
 if __name__ == "__main__":
@@ -498,24 +498,24 @@ if __name__ == "__main__":
 
 - [ ] **Step 2: 验证 CLI 命令列表**
 
-Run: `python3 -m joycode_proxy.cli --help`
+Run: `python3 -m agnescode_proxy.cli --help`
 Expected:
   - Exit code: 0
   - Output contains: "chat", "check", "config", "models", "search", "serve", "service", "version", "whoami"
 
 - [ ] **Step 3: 验证 version 命令**
 
-Run: `python3 -m joycode_proxy.cli version`
+Run: `python3 -m agnescode_proxy.cli version`
 Expected:
   - Exit code: 0
-  - Output contains: "JoyCode" and "Version Info"
+  - Output contains: "AgnesCode" and "Version Info"
 
 - [ ] **Step 4: 验证 check 命令**
 
-Run: `python3 -m joycode_proxy.cli check --port 34891`
+Run: `python3 -m agnescode_proxy.cli check --port 34891`
 Expected:
   - Exit code: 0
   - Output contains: "Proxy is running" (if proxy is up) OR "Cannot connect" (if proxy is down)
 
 - [ ] **Step 5: 提交**
-Run: `git add joycode_proxy/cli.py && git commit -m "feat(cli): rewrite CLI with Rich UI — banner, tables, spinners, and 4 new subcommands"`
+Run: `git add agnescode_proxy/cli.py && git commit -m "feat(cli): rewrite CLI with Rich UI — banner, tables, spinners, and 4 new subcommands"`

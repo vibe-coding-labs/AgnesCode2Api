@@ -15,7 +15,7 @@ COPY go.mod go.sum ./
 RUN go mod download
 
 COPY . .
-RUN CGO_ENABLED=1 go build -ldflags "-s -w" -o /JoyCodeProxy ./cmd/JoyCodeProxy
+RUN CGO_ENABLED=1 go build -ldflags "-s -w" -o /AgnesCodeProxy ./cmd/AgnesCodeProxy
 
 FROM alpine:3.19
 
@@ -23,12 +23,12 @@ ARG ALPINE_MIRROR
 RUN sed -i "s|https://dl-cdn.alpinelinux.org/alpine|${ALPINE_MIRROR}|g" /etc/apk/repositories \
     && apk add --no-cache ca-certificates
 
-COPY --from=builder /JoyCodeProxy /usr/local/bin/JoyCodeProxy
+COPY --from=builder /AgnesCodeProxy /usr/local/bin/AgnesCodeProxy
 
 EXPOSE 34891
 
 HEALTHCHECK --interval=30s --timeout=5s --start-period=5s --retries=3 \
     CMD wget -qO- http://localhost:34891/health || exit 1
 
-ENTRYPOINT ["JoyCodeProxy"]
+ENTRYPOINT ["AgnesCodeProxy"]
 CMD ["serve"]

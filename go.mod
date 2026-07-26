@@ -1,4 +1,4 @@
-module github.com/vibe-coding-labs/JoyCodeProxy
+module github.com/vibe-coding-labs/AgnesCode2Api
 
 go 1.25.0
 

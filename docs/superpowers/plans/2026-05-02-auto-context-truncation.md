@@ -3,7 +3,7 @@
 > **For agentic workers:** REQUIRED SUB-SKILL: `superpowers:subagent-driven-development`
 > Steps use checkbox (`- [ ]`) syntax.
 
-**Goal:** 当上游 JoyCode API 返回上下文长度超限错误时，代理自动截断旧消息后重试，让请求成功通过。解决"上下文满了 → compact 也超限 → 永远压不了"的死循环。
+**Goal:** 当上游 AgnesCode API 返回上下文长度超限错误时，代理自动截断旧消息后重试，让请求成功通过。解决"上下文满了 → compact 也超限 → 永远压不了"的死循环。
 
 **Architecture:** 请求到达代理 → 转发到上游 → 上游返回上下文超限错误 → `isContextLimitError` 检测 → `truncateMessages` 移除最旧的 60% 消息（保留首条+最近 40%+插入截断通知）→ 用截断后的消息重新翻译并重试 → 成功返回。同时修改已有的 `connectStreamWithRetry` 中对上下文错误的处理：不只返回错误，而是返回特殊标记让调用方做截断重试。
 
@@ -93,7 +93,7 @@ func truncateMessages(req *MessageRequest) bool {
 ```
 
 - [ ] **Step 2: 验证编译**
-Run: `cd /Users/cc11001100/github/vibe-coding-labs/JoyCodeProxy && go build ./pkg/anthropic/`
+Run: `cd /Users/cc11001100/github/vibe-coding-labs/AgnesCodeProxy && go build ./pkg/anthropic/`
 Expected:
   - Exit code: 0
 
@@ -118,7 +118,7 @@ Run: `git add pkg/anthropic/truncate.go && git commit -m "feat(anthropic): add a
 替换 `handleNonStream` 函数整体（从 `func (h *Handler) handleNonStream` 到其函数结束）：
 
 ```go
-func (h *Handler) handleNonStream(w http.ResponseWriter, req *MessageRequest, client *joycode.Client) {
+func (h *Handler) handleNonStream(w http.ResponseWriter, req *MessageRequest, client *agnescode.Client) {
 	jcBody := TranslateRequest(req)
 	const maxRetries = 3
 	var jcResp map[string]interface{}
@@ -202,7 +202,7 @@ func (h *Handler) handleNonStream(w http.ResponseWriter, req *MessageRequest, cl
 ```
 
 - [ ] **Step 3: 验证编译**
-Run: `cd /Users/cc11001100/github/vibe-coding-labs/JoyCodeProxy && go build ./cmd/JoyCodeProxy/`
+Run: `cd /Users/cc11001100/github/vibe-coding-labs/AgnesCodeProxy && go build ./cmd/AgnesCodeProxy/`
 Expected:
   - Exit code: 0
 
@@ -217,12 +217,12 @@ Run: `git add pkg/anthropic/handler.go && git commit -m "feat(anthropic): auto-t
 **Files:** None (build only)
 
 - [ ] **Step 1: 构建 Go 二进制**
-Run: `cd /Users/cc11001100/github/vibe-coding-labs/JoyCodeProxy && go build -o joycode_proxy_bin ./cmd/JoyCodeProxy/`
+Run: `cd /Users/cc11001100/github/vibe-coding-labs/AgnesCodeProxy && go build -o agnescode_proxy_bin ./cmd/AgnesCodeProxy/`
 Expected:
   - Exit code: 0
 
 - [ ] **Step 2: 重启服务**
-Run: `launchctl unload ~/Library/LaunchAgents/com.joycode.proxy.plist && launchctl load ~/Library/LaunchAgents/com.joycode.proxy.plist`
+Run: `launchctl unload ~/Library/LaunchAgents/com.agnescode.proxy.plist && launchctl load ~/Library/LaunchAgents/com.agnescode.proxy.plist`
 Expected:
   - Exit code: 0
 

@@ -22,7 +22,7 @@ const menuItems = [
   { key: '/settings', icon: <SettingOutlined />, label: '系统设置' },
 ];
 
-const COLLAPSED_KEY = 'joycode_sider_collapsed';
+const COLLAPSED_KEY = 'agnescode_sider_collapsed';
 
 const MainLayout: React.FC = () => {
   const [collapsed, setCollapsed] = useState(() => localStorage.getItem(COLLAPSED_KEY) === 'true');
@@ -62,8 +62,8 @@ const MainLayout: React.FC = () => {
           justifyContent: 'center',
           borderBottom: `1px solid ${token.colorBorderSecondary}`,
         }}>
-          <img src="/favicon.ico" alt="JoyCode" style={{ width: 24, height: 24, marginRight: collapsed ? 0 : 8 }} />
-          {!collapsed && <Text strong style={{ fontSize: 15 }}>JoyCode 代理</Text>}
+          <img src="/favicon.ico" alt="AgnesCode" style={{ width: 24, height: 24, marginRight: collapsed ? 0 : 8 }} />
+          {!collapsed && <Text strong style={{ fontSize: 15 }}>AgnesCode 代理</Text>}
         </div>
         <Menu
           mode="inline"
@@ -102,7 +102,7 @@ const MainLayout: React.FC = () => {
             </Tooltip>
             <Tooltip title="去 GitHub Star 支持我们">
             <a
-              href="https://github.com/vibe-coding-labs/JoyCodeProxy"
+              href="https://github.com/vibe-coding-labs/AgnesCodeProxy"
               target="_blank"
               rel="noopener noreferrer"
               style={{ display: 'flex', alignItems: 'center', gap: 6, color: token.colorTextSecondary, fontSize: 13, textDecoration: 'none' }}

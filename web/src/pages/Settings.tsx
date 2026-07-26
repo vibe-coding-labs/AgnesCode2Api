@@ -32,7 +32,7 @@ const FIELD_GROUPS = [
         key: 'default_model',
         label: '默认模型',
         tag: '已生效',
-        tooltip: '当客户端未指定模型，且账号未配置默认模型时使用的 JoyCode 模型',
+        tooltip: '当客户端未指定模型，且账号未配置默认模型时使用的 AgnesCode 模型',
         placeholder: 'JoyAI-Code',
         type: 'select' as const,
         options: [
@@ -71,7 +71,7 @@ const FIELD_GROUPS = [
       {
         key: 'request_timeout',
         label: '请求超时（秒）',
-        tooltip: '与 JoyCode 后端通信的读取超时时间，低于 60 秒会自动调整为 60 秒',
+        tooltip: '与 AgnesCode 后端通信的读取超时时间，低于 60 秒会自动调整为 60 秒',
         placeholder: '120',
         type: 'number' as const,
         suffix: '秒',
@@ -80,7 +80,7 @@ const FIELD_GROUPS = [
       {
         key: 'max_connections',
         label: '最大连接数',
-        tooltip: '与 JoyCode 后端的最大并发 HTTP 连接数，修改后 10 秒内自动生效',
+        tooltip: '与 AgnesCode 后端的最大并发 HTTP 连接数，修改后 10 秒内自动生效',
         placeholder: '20',
         type: 'number' as const,
         tag: '已生效',
@@ -246,7 +246,7 @@ const SettingsPage: React.FC = () => {
         <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
           <div>
             <Text style={{ color: 'rgba(255,255,255,0.85)', fontSize: 13 }}>
-              JoyCode API 代理服务 · 系统设置
+              AgnesCode API 代理服务 · 系统设置
             </Text>
             <div style={{ color: '#fff', fontSize: 22, fontWeight: 700, marginTop: 4 }}>
               代理配置管理

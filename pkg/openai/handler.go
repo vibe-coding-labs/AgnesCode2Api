@@ -5,26 +5,26 @@ import (
 	"log/slog"
 	"net/http"
 
-	"github.com/vibe-coding-labs/JoyCodeProxy/pkg/joycode"
-	"github.com/vibe-coding-labs/JoyCodeProxy/pkg/store"
+	"github.com/vibe-coding-labs/AgnesCode2Api/pkg/agnes"
+	"github.com/vibe-coding-labs/AgnesCode2Api/pkg/store"
 )
 
-// ClientResolver returns the appropriate joycode.Client for a request.
-type ClientResolver func(r *http.Request) *joycode.Client
+// ClientResolver returns the appropriate agnescode.Client for a request.
+type ClientResolver func(r *http.Request) *agnescode.Client
 
 // Server implements the OpenAI-compatible HTTP API.
 type Server struct {
-	Client   *joycode.Client
+	Client   *agnescode.Client
 	Resolver ClientResolver
 	store    *store.Store
 }
 
 // NewServer creates a new OpenAI-compatible proxy server.
-func NewServer(c *joycode.Client, s *store.Store) *Server {
+func NewServer(c *agnescode.Client, s *store.Store) *Server {
 	return &Server{Client: c, store: s}
 }
 
-func (s *Server) getClient(r *http.Request) *joycode.Client {
+func (s *Server) getClient(r *http.Request) *agnescode.Client {
 	if s.Resolver != nil {
 		return s.Resolver(r)
 	}
@@ -89,7 +89,7 @@ func (s *Server) handleHealth(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 	writeJSON(w, 200, map[string]interface{}{
-		"status": "ok", "service": "joycode-openai-proxy",
+		"status": "ok", "service": "agnescode-openai-proxy",
 		"endpoints": []string{
 			"/v1/chat/completions", "/v1/models",
 			"/v1/web-search", "/v1/rerank",

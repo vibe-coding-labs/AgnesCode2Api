@@ -3,7 +3,7 @@
 > **For agentic workers:** REQUIRED SUB-SKILL: `superpowers:subagent-driven-development`
 > Steps use checkbox (`- [ ]`) syntax.
 
-**Goal:** 为每个 JoyCode 账号添加可点击进入的详情页面，包含默认模型编辑、请求统计、模型使用分布等功能。
+**Goal:** 为每个 AgnesCode 账号添加可点击进入的详情页面，包含默认模型编辑、请求统计、模型使用分布等功能。
 
 **Architecture:** 用户在账号列表点击行 → 路由跳转 `/accounts/:apiKey` → AccountDetail 页面加载 → 调用 `GET /api/accounts/{key}/stats` 获取该账号统计 → 调用 `PUT /api/accounts/{key}/model` 编辑默认模型。后端复用 `request_logs` 表做 per-account 聚合查询。
 
@@ -19,13 +19,13 @@
 
 **Depends on:** None
 **Files:**
-- Modify: `joycode_proxy/db.py:206-224`（在 `get_stats()` 之后添加 `get_account_stats()`）
-- Modify: `joycode_proxy/db.py:84-90`（在 `add_account()` 之后添加 `update_account_model()`）
-- Modify: `joycode_proxy/web_api.py:96-108`（在 health 端点之前添加两个新端点）
+- Modify: `agnescode_proxy/db.py:206-224`（在 `get_stats()` 之后添加 `get_account_stats()`）
+- Modify: `agnescode_proxy/db.py:84-90`（在 `add_account()` 之后添加 `update_account_model()`）
+- Modify: `agnescode_proxy/web_api.py:96-108`（在 health 端点之前添加两个新端点）
 
 - [ ] **Step 1: 在 db.py 添加 `update_account_model()` 方法 — 支持更新账号默认模型**
 
-文件: `joycode_proxy/db.py:84-90`（在 `add_account` 方法之后、`remove_account` 之前）
+文件: `agnescode_proxy/db.py:84-90`（在 `add_account` 方法之后、`remove_account` 之前）
 
 ```python
     def update_account_model(self, api_key: str, default_model: str):
@@ -41,7 +41,7 @@
 
 - [ ] **Step 2: 在 db.py 添加 `get_account_stats()` 方法 — 按账号统计请求日志**
 
-文件: `joycode_proxy/db.py:224-225`（在 `get_stats()` 方法之后、`get_credential_router()` 之前）
+文件: `agnescode_proxy/db.py:224-225`（在 `get_stats()` 方法之后、`get_credential_router()` 之前）
 
 ```python
     def get_account_stats(self, api_key: str) -> Dict[str, Any]:
@@ -88,7 +88,7 @@
 
 - [ ] **Step 3: 在 web_api.py 添加两个新端点 — 更新模型 + 获取统计**
 
-文件: `joycode_proxy/web_api.py:96-108`（在 `list_account_models` 之后、health 之前）
+文件: `agnescode_proxy/web_api.py:96-108`（在 `list_account_models` 之后、health 之前）
 
 ```python
     @router.put("/accounts/{api_key:path}/model")
@@ -110,13 +110,13 @@
 ```
 
 - [ ] **Step 4: 验证后端 API**
-Run: `cd /Users/cc11001100/github/vibe-coding-labs/JoyCodeProxy && python3 -m pytest tests/test_db.py tests/test_credential_router.py -v --tb=short 2>&1 | tail -20`
+Run: `cd /Users/cc11001100/github/vibe-coding-labs/AgnesCodeProxy && python3 -m pytest tests/test_db.py tests/test_credential_router.py -v --tb=short 2>&1 | tail -20`
 Expected:
   - Exit code: 0
   - Output contains: "passed"
 
 - [ ] **Step 5: 提交**
-Run: `git add joycode_proxy/db.py joycode_proxy/web_api.py && git commit -m "feat(api): add account model update and per-account stats endpoints"`
+Run: `git add agnescode_proxy/db.py agnescode_proxy/web_api.py && git commit -m "feat(api): add account model update and per-account stats endpoints"`
 
 ---
 
@@ -346,7 +346,7 @@ const AccountDetail: React.FC = () => {
           <Descriptions.Item label={
             <Space size={4}>
               默认模型
-              <Tooltip title="此账号的默认模型。当客户端未指定模型时使用。可从下拉列表选择，也可点击「获取在线模型」从 JoyCode API 获取该账号支持的全部模型">
+              <Tooltip title="此账号的默认模型。当客户端未指定模型时使用。可从下拉列表选择，也可点击「获取在线模型」从 AgnesCode API 获取该账号支持的全部模型">
                 <QuestionCircleOutlined style={{ color: '#999' }} />
               </Tooltip>
             </Space>
@@ -554,7 +554,7 @@ import type { Account } from '../api';
           onClick: () => navigate(`/accounts/${encodeURIComponent(record.api_key)}`),
           style: { cursor: 'pointer' },
         })}
-        locale={{ emptyText: '暂无账号，请点击「添加账号」按钮配置您的第一个 JoyCode 账号' }}
+        locale={{ emptyText: '暂无账号，请点击「添加账号」按钮配置您的第一个 AgnesCode 账号' }}
       />
 ```
 
@@ -567,19 +567,19 @@ import { useEffect } from 'react';
 import { useLocation } from 'react-router-dom';
 
 const TITLES: Record<string, string> = {
-  '/': '数据概览 — JoyCode 代理',
-  '/accounts': '账号管理 — JoyCode 代理',
-  '/settings': '系统设置 — JoyCode 代理',
+  '/': '数据概览 — AgnesCode 代理',
+  '/accounts': '账号管理 — AgnesCode 代理',
+  '/settings': '系统设置 — AgnesCode 代理',
 };
 
-const DEFAULT_TITLE = 'JoyCode 代理';
+const DEFAULT_TITLE = 'AgnesCode 代理';
 
 const useDocumentTitle = () => {
   const location = useLocation();
   useEffect(() => {
     if (location.pathname.startsWith('/accounts/')) {
       const key = decodeURIComponent(location.pathname.replace('/accounts/', ''));
-      document.title = `${key} — 账号详情 — JoyCode 代理`;
+      document.title = `${key} — 账号详情 — AgnesCode 代理`;
     } else {
       document.title = TITLES[location.pathname] || DEFAULT_TITLE;
     }
@@ -600,7 +600,7 @@ export default useDocumentTitle;
 ```
 
 - [ ] **Step 6: 构建前端验证**
-Run: `cd /Users/cc11001100/github/vibe-coding-labs/JoyCodeProxy/web && npm run build 2>&1 | tail -15`
+Run: `cd /Users/cc11001100/github/vibe-coding-labs/AgnesCodeProxy/web && npm run build 2>&1 | tail -15`
 Expected:
   - Exit code: 0
   - Output contains: "built in"
@@ -617,14 +617,14 @@ Run: `git add web/src/pages/AccountDetail.tsx web/src/App.tsx web/src/pages/Acco
 **Files:** None (verification only)
 
 - [ ] **Step 1: 运行后端全部测试**
-Run: `cd /Users/cc11001100/github/vibe-coding-labs/JoyCodeProxy && python3 -m pytest tests/ -v 2>&1 | tail -30`
+Run: `cd /Users/cc11001100/github/vibe-coding-labs/AgnesCodeProxy && python3 -m pytest tests/ -v 2>&1 | tail -30`
 Expected:
   - Exit code: 0
   - Output contains: "passed"
   - Output does NOT contain: "FAIL" or "ERROR"
 
 - [ ] **Step 2: 验证前端静态资源已更新**
-Run: `ls -la /Users/cc11001100/github/vibe-coding-labs/JoyCodeProxy/joycode_proxy/static/assets/ 2>&1`
+Run: `ls -la /Users/cc11001100/github/vibe-coding-labs/AgnesCodeProxy/agnescode_proxy/static/assets/ 2>&1`
 Expected:
   - Contains `AccountDetail` chunk file (e.g. `AccountDetail-*.js`)
   - Exit code: 0

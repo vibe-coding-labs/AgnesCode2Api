@@ -7,8 +7,8 @@ import (
 	"fmt"
 	"strings"
 
-	"github.com/vibe-coding-labs/JoyCodeProxy/pkg/joycode"
-	"github.com/vibe-coding-labs/JoyCodeProxy/pkg/store"
+	"github.com/vibe-coding-labs/AgnesCode2Api/pkg/agnes"
+	"github.com/vibe-coding-labs/AgnesCode2Api/pkg/store"
 )
 
 // TranslateRequest converts an Anthropic MessageRequest to a JoyCode API body.
@@ -184,7 +184,7 @@ func TranslateResponse(jcResp map[string]interface{}, reqModel string) *MessageR
 }
 
 func resolveModel(model string, accountDefault string, systemDefault string) string {
-	for _, m := range joycode.Models {
+	for _, m := range []string{} { // Models available via client.ListModels()
 		if m == model {
 			return model
 		}
@@ -195,7 +195,7 @@ func resolveModel(model string, accountDefault string, systemDefault string) str
 	if systemDefault != "" {
 		return systemDefault
 	}
-	return joycode.DefaultModel
+	return agnescode.DefaultModel
 }
 
 // contentBlock represents a single content block in Anthropic format.

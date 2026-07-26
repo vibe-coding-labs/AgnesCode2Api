@@ -3,16 +3,16 @@
 > **For agentic workers:** REQUIRED SUB-SKILL: `superpowers:subagent-driven-development`
 > Steps use checkbox (`- [ ]`) syntax.
 
-**Goal:** 修复 QR 扫码登录无法获取 pt_key 的问题，将用户引导至已有的"一键登录"功能（从本地 JoyCode 数据库读取凭据）。
+**Goal:** 修复 QR 扫码登录无法获取 pt_key 的问题，将用户引导至已有的"一键登录"功能（从本地 AgnesCode 数据库读取凭据）。
 
-**Root Cause:** JD 的 `qrCodeTicketValidation` 端点不再通过 HTTP Set-Cookie 返回 `pt_key`。Cookie jar 中有 14 个 cookie（pin, thor, flash, logining=1 等）但没有 `pt_key`。JoyCode-RE 逆向分析证明正确方案是从本地 JoyCode IDE 的 SQLite 数据库 (`~/Library/Application Support/JoyCode/User/globalStorage/state.vscdb`) 读取 ptKey，而非通过 HTTP 接口。**JoyCodeProxy 已有此实现**（`pkg/auth/credentials.go:LoadFromSystem()` + `/api/accounts-auto-login` 端点）。
+**Root Cause:** JD 的 `qrCodeTicketValidation` 端点不再通过 HTTP Set-Cookie 返回 `pt_key`。Cookie jar 中有 14 个 cookie（pin, thor, flash, logining=1 等）但没有 `pt_key`。AgnesCode-RE 逆向分析证明正确方案是从本地 AgnesCode IDE 的 SQLite 数据库 (`~/Library/Application Support/AgnesCode/User/globalStorage/state.vscdb`) 读取 ptKey，而非通过 HTTP 接口。**AgnesCodeProxy 已有此实现**（`pkg/auth/credentials.go:LoadFromSystem()` + `/api/accounts-auto-login` 端点）。
 
 **Architecture:** QR 登录失败时 → 后端检测到 pt_key 缺失 → 前端显示引导信息："推荐使用一键登录" → 用户点击一键登录 → 后端从本地数据库读取 pt_key → 验证并保存账号。保留 QR 登录入口作为备选。
 
 **Tech Stack:** Go 1.23, React 19, Ant Design 6, SQLite (go-sqlite3)
 
 **Risks:**
-- 一键登录依赖 JoyCode IDE 已安装并登录 → 缓解：QR 登录保留为备选，显示安装指引
+- 一键登录依赖 AgnesCode IDE 已安装并登录 → 缓解：QR 登录保留为备选，显示安装指引
 - JD 未来可能进一步收紧 API → 缓解：本地数据库读取不受 JD API 变更影响
 
 ---
@@ -162,7 +162,7 @@ const QRLoginModal: React.FC<QRLoginModalProps> = ({ open, onClose, onSuccess, o
       onClick={handleAutoLogin}
       style={{ padding: 0, height: 'auto' }}
     >
-      推荐使用「一键登录」从本机 JoyCode 自动导入
+      推荐使用「一键登录」从本机 AgnesCode 自动导入
     </Button>
   );
 
@@ -261,7 +261,7 @@ export default QRLoginModal;
 同时确保 `handleAutoLogin` 函数存在（约第 97 行附近已有 autoLogin 逻辑，需要提取为独立函数）。
 
 - [ ] **Step 3: 验证前端构建**
-Run: `cd /Users/cc11001100/github/vibe-coding-labs/JoyCodeProxy/web && npm run build`
+Run: `cd /Users/cc11001100/github/vibe-coding-labs/AgnesCodeProxy/web && npm run build`
 Expected:
   - Exit code: 0
   - Output contains: "built in"
@@ -275,12 +275,12 @@ Expected:
 - Modify: (binary output)
 
 - [ ] **Step 1: 构建 Go 二进制文件**
-Run: `cd /Users/cc11001100/github/vibe-coding-labs/JoyCodeProxy && go build -o joycode_proxy_bin ./cmd/JoyCodeProxy/`
+Run: `cd /Users/cc11001100/github/vibe-coding-labs/AgnesCodeProxy && go build -o agnescode_proxy_bin ./cmd/AgnesCodeProxy/`
 Expected:
   - Exit code: 0
 
 - [ ] **Step 2: 重新加载服务**
-Run: `launchctl unload ~/Library/LaunchAgents/com.joycode.proxy.plist && launchctl load ~/Library/LaunchAgents/com.joycode.proxy.plist`
+Run: `launchctl unload ~/Library/LaunchAgents/com.agnescode.proxy.plist && launchctl load ~/Library/LaunchAgents/com.agnescode.proxy.plist`
 Expected:
   - Exit code: 0
 

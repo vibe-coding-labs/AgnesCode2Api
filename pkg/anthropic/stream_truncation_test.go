@@ -7,7 +7,7 @@ import (
 	"strings"
 	"testing"
 
-	"github.com/vibe-coding-labs/JoyCodeProxy/pkg/joycode"
+	"github.com/vibe-coding-labs/AgnesCode2Api/pkg/agnes"
 )
 
 // Regression tests for issue #2 ("模型自动断开"): a stream that starts but ends
@@ -41,7 +41,7 @@ func (e *errAfterReader) Close() error { return nil }
 // (built fresh per request) and returns the SSE bytes the client receives.
 func runStream(t *testing.T, bodyFn func() io.ReadCloser) string {
 	t.Helper()
-	client := joycode.NewClient("pt-test", "user-test")
+	client := agnescode.NewClient("pt-test", "user-test")
 	client.SetHTTPClient(&http.Client{
 		Transport: rtFunc(func(r *http.Request) (*http.Response, error) {
 			return &http.Response{StatusCode: 200, Header: make(http.Header), Body: bodyFn()}, nil

@@ -48,7 +48,7 @@ const SetupPage: React.FC = () => {
       >
         <div style={{ textAlign: 'center', marginBottom: 24 }}>
           <CheckCircleOutlined style={{ fontSize: 40, color: '#00b578', marginBottom: 8 }} />
-          <Title level={3} style={{ marginBottom: 4 }}>初始化 JoyCode 代理</Title>
+          <Title level={3} style={{ marginBottom: 4 }}>初始化 AgnesCode 代理</Title>
           <Text type="secondary">首次使用，请设置 root 管理员密码</Text>
         </div>
         <Form onFinish={handleSubmit} size="large" autoComplete="off">

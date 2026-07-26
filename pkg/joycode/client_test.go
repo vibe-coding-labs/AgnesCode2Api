@@ -1,4 +1,4 @@
-package joycode
+package agnescode
 
 import (
 	"bytes"
@@ -117,9 +117,9 @@ func TestPrepareBody_DefaultFields(t *testing.T) {
 	body := c.prepareBody(map[string]interface{}{})
 
 	defaults := map[string]string{
-		"tenant":        "JOYCODE",
+		"tenant":        "AGNESCODE",
 		"userId":        "user42",
-		"client":        "JoyCode",
+		"client":        "AgnesCode",
 		"clientVersion": ClientVersion,
 		"language":      "UNKNOWN",
 	}
@@ -132,7 +132,7 @@ func TestPrepareBody_DefaultFields(t *testing.T) {
 }
 
 func TestPrepareBody_NoLegacyTrackingFields(t *testing.T) {
-	// JoyCode 2.7 协议不再自动注入 chatId/requestId/sessionId（对齐真实客户端 customFetch）。
+	// AgnesCode 2.7 协议不再自动注入 chatId/requestId/sessionId（对齐真实客户端 customFetch）。
 	c := NewClient("k", "u")
 	body := c.prepareBody(map[string]interface{}{})
 	for _, key := range []string{"chatId", "requestId", "sessionId"} {
@@ -879,7 +879,7 @@ func TestDecodeBody_Gzipped(t *testing.T) {
 }
 
 // ---------------------------------------------------------------------------
-// color gateway signing / routing (JoyCode 2.7)
+// color gateway signing / routing (AgnesCode 2.7)
 // ---------------------------------------------------------------------------
 
 func TestRequestURL_GatewaySigned(t *testing.T) {
@@ -895,8 +895,8 @@ func TestRequestURL_GatewaySigned(t *testing.T) {
 		t.Errorf("gateway url host/path = %q/%q, want api-ai.jd.com//api", u.Host, u.Path)
 	}
 	q := u.Query()
-	if q.Get("appid") != "joycode_ide" {
-		t.Errorf("appid = %q, want joycode_ide", q.Get("appid"))
+	if q.Get("appid") != "agnescode_ide" {
+		t.Errorf("appid = %q, want agnescode_ide", q.Get("appid"))
 	}
 	if q.Get("functionId") != "chat_completions" {
 		t.Errorf("functionId = %q, want chat_completions", q.Get("functionId"))
@@ -905,7 +905,7 @@ func TestRequestURL_GatewaySigned(t *testing.T) {
 		t.Error("missing timestamp t")
 	}
 	// 重算签名校验：HMAC_SHA256(sorted(values).join("&"), key)
-	signStr := "joycode_ide&chat_completions&" + q.Get("t")
+	signStr := "agnescode_ide&chat_completions&" + q.Get("t")
 	mac := hmac.New(sha256.New, []byte(colorHMACKey))
 	mac.Write([]byte(signStr))
 	want := hex.EncodeToString(mac.Sum(nil))
@@ -917,9 +917,9 @@ func TestRequestURL_GatewaySigned(t *testing.T) {
 func TestRequestURL_DirectV2WhenNoColorBase(t *testing.T) {
 	c := NewClient("k", "u")
 	c.ColorBaseURL = ""
-	c.MasterBaseURL = "https://joycode-api.jd.com"
+	c.MasterBaseURL = "https://agnescode-api.jd.com"
 	got := c.requestURL("/api/saas/models/v1/modelList")
-	want := "https://joycode-api.jd.com/api/saas/models/v2/modelList"
+	want := "https://agnescode-api.jd.com/api/saas/models/v2/modelList"
 	if got != want {
 		t.Errorf("direct url = %q, want %q", got, want)
 	}

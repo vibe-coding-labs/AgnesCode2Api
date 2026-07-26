@@ -41,13 +41,13 @@
 ```
 
 - [ ] **Step 2: 重新构建前端并验证**
-Run: `cd /home/cc11001100/github/vibe-coding-labs/JoyCodeProxy/web && npm run build`
+Run: `cd /home/cc11001100/github/vibe-coding-labs/AgnesCodeProxy/web && npm run build`
 Expected:
   - Exit code: 0
   - Output does NOT contain: "ERROR" or "Build failed"
 
 - [ ] **Step 3: 提交**
-Run: `cd /home/cc11001100/github/vibe-coding-labs/JoyCodeProxy && git add web/src/pages/Accounts.tsx && git commit -m "fix(ui): widen account name column and add ellipsis tooltip"`
+Run: `cd /home/cc11001100/github/vibe-coding-labs/AgnesCodeProxy && git add web/src/pages/Accounts.tsx && git commit -m "fix(ui): widen account name column and add ellipsis tooltip"`
 
 ---
 
@@ -172,10 +172,10 @@ func (s *Store) AddAccount(userID, ptKey, nickname string, isDefault bool, defau
 ```
 
 - [ ] **Step 2: 验证编译通过**
-Run: `cd /home/cc11001100/github/vibe-coding-labs/JoyCodeProxy && go build ./...`
+Run: `cd /home/cc11001100/github/vibe-coding-labs/AgnesCodeProxy && go build ./...`
 Expected:
   - Exit code: 0
   - Output does NOT contain: "cannot" or "undefined" or "not used"
 
 - [ ] **Step 3: 提交**
-Run: `cd /home/cc11001100/github/vibe-coding-labs/JoyCodeProxy && git add pkg/store/store.go && git commit -m "fix(import): add pt_key dedup check in AddAccount to prevent duplicate accounts"`
+Run: `cd /home/cc11001100/github/vibe-coding-labs/AgnesCodeProxy && git add pkg/store/store.go && git commit -m "fix(import): add pt_key dedup check in AddAccount to prevent duplicate accounts"`
