@@ -58,7 +58,7 @@ func (h *Handler) RegisterRoutes(mux *http.ServeMux) {
 	mux.HandleFunc("/api/accounts/", h.handleAccountAction)
 	mux.HandleFunc("/api/accounts-auto-login", h.handleAutoLogin)
 	mux.HandleFunc("/api/accounts-clear-all", h.handleClearAllAccounts)
-	mux.HandleFunc("/api/clear-joycode-session", h.handleClearJoyCodeSession)
+	mux.HandleFunc("/api/clear-agnescode-session", h.handleClearAgnesCodeSession)
 	mux.HandleFunc("/api/browser-login", h.handleBrowserLogin)
 	mux.HandleFunc("/api/oauth-callback", h.handleOAuthCallback)
 	mux.HandleFunc("/api/oauth-submit", h.handleOAuthSubmit)
@@ -209,7 +209,7 @@ func (h *Handler) ServeStatic(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	// Handle JoyCode OAuth callback on root path: /?pt_key=xxx
+	// Handle AgnesCode OAuth callback on root path: /?pt_key=xxx
 	if path == "/" && r.URL.Query().Get("pt_key") != "" {
 		h.handleOAuthCallback(w, r)
 		return
@@ -735,7 +735,7 @@ func (h *Handler) handleBrowserLogin(w http.ResponseWriter, r *http.Request) {
 	token := hex.EncodeToString(b)
 
 	loginURL := fmt.Sprintf(
-		"https://agnescode.jd.com/login/?ideAppName=JoyCode&fromIde=ide&redirect=0&authPort=%s&authKey=%s",
+		"https://agnescode.jd.com/login/?ideAppName=AgnesCode&fromIde=ide&redirect=0&authPort=%s&authKey=%s",
 		url.QueryEscape(port), url.QueryEscape(token),
 	)
 
@@ -812,7 +812,7 @@ func (h *Handler) handleOAuthCallback(w http.ResponseWriter, r *http.Request) {
 	if jwtSecret != "" {
 		if token, jwtErr := auth.GenerateToken(userID, jwtSecret, 7*24*time.Hour); jwtErr == nil {
 			http.SetCookie(w, &http.Cookie{
-				Name:     "joycode_auto_jwt",
+				Name:     "agnescode_auto_jwt",
 				Value:    token,
 				Path:     "/",
 				MaxAge:   30,
@@ -1070,7 +1070,7 @@ func (h *Handler) updateRemark(w http.ResponseWriter, r *http.Request, userID st
 	writeJSON(w, http.StatusOK, map[string]interface{}{"ok": true, "user_id": userID, "remark": body.Remark})
 }
 
-func (h *Handler) handleClearJoyCodeSession(w http.ResponseWriter, r *http.Request) {
+func (h *Handler) handleClearAgnesCodeSession(w http.ResponseWriter, r *http.Request) {
 	setCors(w)
 	if r.Method == http.MethodOptions {
 		w.WriteHeader(http.StatusNoContent)
@@ -1106,23 +1106,23 @@ func (h *Handler) handleClearJoyCodeSession(w http.ResponseWriter, r *http.Reque
 	}
 	n, _ := result.RowsAffected()
 
-	// Also clear jdhLoginInfo from JoyCode.joycoder-editor to prevent auto-restore
+	// Also clear jdhLoginInfo from AgnesCode.editor to prevent auto-restore
 	var editorVal string
-	if err := db.QueryRow("SELECT value FROM ItemTable WHERE key = 'JoyCode.joycoder-editor'").Scan(&editorVal); err == nil {
+	if err := db.QueryRow("SELECT value FROM ItemTable WHERE key = 'AgnesCode.editor'").Scan(&editorVal); err == nil {
 		var editor map[string]interface{}
 		if json.Unmarshal([]byte(editorVal), &editor) == nil {
 			delete(editor, "jdhLoginInfo")
 			if newVal, err := json.Marshal(editor); err == nil {
-				db.Exec("UPDATE ItemTable SET value = ? WHERE key = 'JoyCode.joycoder-editor'", string(newVal))
+				db.Exec("UPDATE ItemTable SET value = ? WHERE key = 'AgnesCode.editor'", string(newVal))
 				n++
 			}
 		}
 	}
 
-	slog.Info("clear-joycode-session: cleared", "rows_affected", n)
+	slog.Info("clear-agnescode-session: cleared", "rows_affected", n)
 	writeJSON(w, http.StatusOK, map[string]interface{}{
 		"ok":      true,
-		"message": fmt.Sprintf("JoyCode 本地会话已彻底清除（影响 %d 条记录），请重新打开 JoyCode IDE 登录", n),
+		"message": fmt.Sprintf("AgnesCode 本地会话已彻底清除（影响 %d 条记录），请重新打开 AgnesCode IDE 登录", n),
 	})
 }
 

@@ -14,8 +14,8 @@ import (
 	"github.com/vibe-coding-labs/AgnesCode2Api/pkg/store"
 )
 
-const chatEndpoint = "/api/saas/openai/v1/chat/completions"
-const anthropicEndpoint = "/api/saas/anthropic/v1/messages"
+const chatEndpoint = "/v1/chat/completions"
+const anthropicEndpoint = "/v1/messages"
 
 // ClientResolver returns the appropriate agnescode.Client for a request.
 type ClientResolver func(r *http.Request) *agnescode.Client

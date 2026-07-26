@@ -884,15 +884,15 @@ func TestDecodeBody_Gzipped(t *testing.T) {
 
 func TestRequestURL_GatewaySigned(t *testing.T) {
 	c := NewClient("k", "u")
-	c.BaseURL = "https://api-ai.jd.com"
-	raw := c.requestURL("/api/saas/openai/v1/chat/completions")
+	c.BaseURL = "https://api.agnes-ai.com"
+	raw := c.requestURL("/v1/chat/completions")
 
 	u, err := url.Parse(raw)
 	if err != nil {
 		t.Fatalf("parse url: %v", err)
 	}
-	if u.Host != "api-ai.jd.com" || u.Path != "/api" {
-		t.Errorf("gateway url host/path = %q/%q, want api-ai.jd.com//api", u.Host, u.Path)
+	if u.Host != "api.agnes-ai.com" || u.Path != "/api" {
+		t.Errorf("gateway url host/path = %q/%q, want api.agnes-ai.com//api", u.Host, u.Path)
 	}
 	q := u.Query()
 	if q.Get("appid") != "agnescode_ide" {
@@ -917,9 +917,9 @@ func TestRequestURL_GatewaySigned(t *testing.T) {
 func TestRequestURL_DirectV2WhenNoColorBase(t *testing.T) {
 	c := NewClient("k", "u")
 	c.BaseURL = ""
-	c.MasterBaseURL = "https://agnescode-api.jd.com"
-	got := c.requestURL("/api/saas/models/v1/modelList")
-	want := "https://agnescode-api.jd.com/api/saas/models/v2/modelList"
+	c.MasterBaseURL = "https://api-agnes-code.agnes-ai.com"
+	got := c.requestURL("/v1/models")
+	want := "https://api-agnes-code.agnes-ai.com/v1/models"
 	if got != want {
 		t.Errorf("direct url = %q, want %q", got, want)
 	}
