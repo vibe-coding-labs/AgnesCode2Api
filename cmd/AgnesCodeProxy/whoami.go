@@ -16,20 +16,13 @@ var whoamiCmd = &cobra.Command{
 		if err != nil {
 			return err
 		}
-		resp, err := client.UserInfo()
+		user, err := client.GetUserInfo()
 		if err != nil {
 			return err
 		}
-		data, _ := resp["data"].(map[string]interface{})
-		fmt.Printf("  用户: %s\n", data["realName"])
-		fmt.Printf("  ID: %s\n", data["userId"])
-		fmt.Printf("  组织: %s\n", data["orgName"])
-		fmt.Printf("  租户: %s\n", data["tenant"])
-		status := "无效"
-		if code, ok := resp["code"].(float64); ok && code == 0 {
-			status = "有效"
-		}
-		fmt.Printf("  状态: %s\n", status)
+		fmt.Printf("  User: %s (%s)\n", user.Username, user.Email)
+		fmt.Printf("  ID: %s\n", user.ID)
+		fmt.Printf("  Active: %v\n", user.IsActive)
 		return nil
 	},
 }

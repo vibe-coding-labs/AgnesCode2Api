@@ -77,7 +77,6 @@ func resolveClient() (*agnescode.Client, error) {
 
 	log.Printf("Credentials source: %s (userId=%s)", source, creds.UserID)
 	client := agnescode.NewClient(creds.PtKey)
-	client
 
 	if skipValidation {
 		log.Printf("Credential validation skipped (--skip-validation)")

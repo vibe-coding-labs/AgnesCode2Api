@@ -8,40 +8,33 @@ import (
 
 var searchCmd = &cobra.Command{
 	Use:     "search [query]",
-	Short:   "网页搜索",
-	Long:    "使用 AgnesCode 内置搜索 API 进行网页搜索。",
+	Short:   "列出可用模型",
+	Long:    "通过 AgnesCode API 获取可用模型列表。",
 	GroupID: "query",
-	Example: `  agnescode-proxy search "Go 语言并发编程"`,
+	Example: `  agnescode-proxy search`,
 	Args:    cobra.MinimumNArgs(1),
 	RunE: func(cmd *cobra.Command, args []string) error {
 		client, err := resolveClient()
 		if err != nil {
 			return err
 		}
-		results, err := client.ListModels()
+		models, err := client.ListModels()
 		if err != nil {
 			return err
 		}
-		if len(results) == 0 {
-			fmt.Println("No results found.")
+		if len(models) == 0 {
+			fmt.Println("No models found.")
 			return nil
 		}
-		fmt.Printf("Search results for: %s\n\n", args[0])
-		for i, r := range results {
-			item, ok := r.(map[string]interface{})
-			if !ok {
-				continue
+		fmt.Printf("Available models (%d):\n\n", len(models))
+		for i, m := range models {
+			free := "✅"
+			if m.IsMemberOnly {
+				free = "🔒"
 			}
-			title, _ := item["title"].(string)
-			url, _ := item["url"].(string)
-			snippet, _ := item["snippet"].(string)
-			fmt.Printf("  %d. %s\n", i+1, title)
-			if url != "" {
-				fmt.Printf("     %s\n", url)
-			}
-			if snippet != "" {
-				fmt.Printf("     %s\n", snippet)
-			}
+			fmt.Printf("  %d. %s %s (%s)\n", i+1, free, m.ID, m.OwnedBy)
+			fmt.Printf("     %s\n", m.Description)
+			fmt.Printf("     Input: %d | Output: %d\n", m.MaxInputTokens, m.MaxOutputTokens)
 			fmt.Println()
 		}
 		return nil

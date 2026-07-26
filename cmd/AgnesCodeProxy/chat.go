@@ -18,13 +18,8 @@ var chatCmd = &cobra.Command{
 	Short:   "发送聊天消息",
 	Long:    "通过 AgnesCode API 发送一条聊天消息并返回响应。",
 	GroupID: "core",
-	Example: `  # 发送简单消息
-  agnescode-proxy chat "你好"
-
-  # 指定模型
-  agnescode-proxy chat -m GLM-5.1 "写一个排序算法"
-
-  # 流式输出
+	Example: `  agnescode-proxy chat "你好"
+  agnescode-proxy chat -m agnes-2.0-flash "写一个排序算法"
   agnescode-proxy chat -s "解释量子计算"`,
 	Args: cobra.MinimumNArgs(1),
 	RunE: func(cmd *cobra.Command, args []string) error {
@@ -32,49 +27,34 @@ var chatCmd = &cobra.Command{
 		if err != nil {
 			return err
 		}
-		body := map[string]interface{}{
-			"model":      chatModel,
-			"messages":   []map[string]interface{}{{"role": "user", "content": args[0]}},
-			"stream":     false,
-			"max_tokens": chatMaxTokens,
+		req := agnescode.ChatRequest{
+			Model:     chatModel,
+			MaxTokens: chatMaxTokens,
+			Stream:    chatStream,
+			Messages:  []agnescode.Message{{Role: "user", Content: args[0]}},
 		}
 		if chatStream {
-			body["stream"] = true
-			return streamChat(client, body)
+			return streamChat(client, req)
 		}
-		resp, err := client.ChatCompletion(agnescode.ChatRequest{
-		Model:    model,
-		Messages: msgs,
-		Stream:   chatStream,
-	})
+		resp, err := client.ChatCompletion(req)
 		if err != nil {
 			return err
 		}
-		choices, _ := resp["choices"].([]interface{})
-		if len(choices) > 0 {
-			choice, _ := choices[0].(map[string]interface{})
-			msg, _ := choice["message"].(map[string]interface{})
-			content, _ := msg["content"].(string)
-			fmt.Println(content)
+		if len(resp.Choices) > 0 {
+			fmt.Println(resp.Choices[0].Message.Content)
 		}
 		return nil
 	},
 }
 
-func streamChat(client *agnescode.Client, body map[string]interface{}) error {
-	resp, err := agnescode.Client.ChatCompletionStream("/api/saas/openai/v1/chat/completions", body)
+func streamChat(client *agnescode.Client, req agnescode.ChatRequest) error {
+	ch, err := client.ChatCompletionStream(req)
 	if err != nil {
 		return err
 	}
-	defer resp.Body.Close()
-	buf := make([]byte, 4096)
-	for {
-		n, readErr := resp.Body.Read(buf)
-		if n > 0 {
-			fmt.Print(string(buf[:n]))
-		}
-		if readErr != nil {
-			break
+	for event := range ch {
+		for _, c := range event.Choices {
+			fmt.Print(c.Delta.Content)
 		}
 	}
 	fmt.Println()
@@ -82,7 +62,7 @@ func streamChat(client *agnescode.Client, body map[string]interface{}) error {
 }
 
 func init() {
-	chatCmd.Flags().StringVarP(&chatModel, "model", "m", "JoyAI-Code", "模型名称")
+	chatCmd.Flags().StringVarP(&chatModel, "model", "m", "agnes-2.0-flash", "模型名称")
 	chatCmd.Flags().BoolVarP(&chatStream, "stream", "s", false, "流式输出")
 	chatCmd.Flags().IntVar(&chatMaxTokens, "max-tokens", 64000, "最大输出 token 数")
 	rootCmd.AddCommand(chatCmd)
