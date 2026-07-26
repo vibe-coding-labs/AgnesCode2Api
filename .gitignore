@@ -64,3 +64,6 @@ coverage.out
 web/node_modules/
 web/dist/
 joycode_proxy/static/
+node_modules/
+web/node_modules/
+package-lock.json

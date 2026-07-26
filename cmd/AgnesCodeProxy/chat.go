@@ -43,9 +43,6 @@ var chatCmd = &cobra.Command{
 			return streamChat(client, body)
 		}
 		resp, err := client.ChatCompletion(agnescode.ChatRequest{
-		Model: model,
-		Messages: msgs,
-	}
 		Model:    model,
 		Messages: msgs,
 		Stream:   chatStream,
