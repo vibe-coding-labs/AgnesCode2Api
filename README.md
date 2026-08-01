@@ -1,41 +1,111 @@
-<div align="center">
-
 # AgnesCodeProxy
 
-**一个不太正经的协议翻译器**
+> 把 AgnesCode 的 API 协议翻译成 Anthropic / OpenAI 兼容格式。
+> 让 Claude Code、Cursor 这些工具直接接上 AgnesCode 的模型。
 
-让 Claude Code、Cursor 这类工具能直接用上 AgnesCode 的模型
-
-JoyAI-Code · GLM-5.1 · Kimi-K2.6 · MiniMax-M2.7 · Doubao-Seed-2.0-pro
+```
+Claude Code / Cursor / Windsurf  →  AgnesCodeProxy  →  AgnesCode API
+                                    ↓
+                          Anthropic / OpenAI 协议
+```
 
 [![Go](https://img.shields.io/badge/Go-1.22+-00ADD8?style=flat&logo=go)](https://go.dev/)
 [![React](https://img.shields.io/badge/React-19-61DAFB?style=flat&logo=react)](https://react.dev/)
 [![License](https://img.shields.io/badge/License-Apache_2.0-blue?style=flat)](./LICENSE)
 
-</div>
+---
+
+## 它能做什么
+
+**一句话：协议翻译器。**
+
+AgnesCode 的模型能力不错，但它的 API 协议跟 Anthropic 和 OpenAI 不兼容，Claude Code、Cursor 这些工具接不上。AgnesCodeProxy 在中间做了一层翻译，把它们串起来。
+
+**支持模型：** JoyAI-Code · GLM-5.1 · GLM-5 · GLM-4.7 · Kimi-K2.6 · Kimi-K2.5 · MiniMax-M2.7 · Doubao-Seed-2.0-pro
+
+**核心能力：**
+
+- **双协议翻译** — 同时兼容 Anthropic Messages API 和 OpenAI Chat Completions API，Claude Code 和 Cursor 各走各的通道
+- **Tool Use 映射** — 工具调用（读写文件、执行命令等）完整翻译，不影响 Claude Code 的正常使用
+- **SSE 流式输出** — 实时流式返回，打字机效果，和原生体验一样
+- **多账号管理** — 通过 OAuth 授权登录或一键导入添加多个账号，每个账号有独立的 API Key，支持拖拽排序
+- **OAuth 授权登录** — 从 Dashboard 跳转 AgnesCode 登录页完成授权，服务端自动兑换 token，CSRF 防护
+- **会话保活** — 自动检测并刷新过期凭证，不需要手动重新登录
+- **智能上下文截断** — 对话过长时自动截断早期消息，不会卡死，`/compact` 正常工作
+- **单文件部署** — 前端打包进 Go 二进制，丢一个文件就能跑
 
 ---
 
-> **免责声明：** 本项目仅供**个人学习和技术研究**使用。禁止用于商业转售、API 中转服务（**中转站属于违法行为**）、大规模薅号或任何黑灰产/违法违规活动。因不当使用造成的一切后果由使用者**自行承担**，与项目作者无关。本项目不是 AgnesCode 官方产品。
+## 快速开始
+
+### 构建
+
+```bash
+# 前端构建
+cd web && npm install && npm run build && cd ..
+
+# 后端构建（前端自动嵌入）
+go build -o agnescode_proxy_bin ./cmd/AgnesCodeProxy/
+```
+
+### Docker
+
+```bash
+docker build -t agnescode-proxy .
+docker run -p 34891:34891 agnescode-proxy
+```
+
+> 国内构建 Docker 时如遇 Alpine 源连接失败，用国内镜像源：
+> ```bash
+> docker build --build-arg ALPINE_MIRROR=https://mirrors.aliyun.com/alpine -t agnescode-proxy .
+> ```
+
+### 启动
+
+```bash
+./agnescode_proxy_bin serve
+```
+
+默认监听 `0.0.0.0:34891`。macOS 首次启动会自动读取本地 AgnesCode 客户端凭据。
+
+### 连接到 Claude Code
+
+```bash
+export ANTHROPIC_BASE_URL=http://localhost:34891
+export ANTHROPIC_API_KEY=agnescode
+claude
+```
 
 ---
 
-## 起因
+## 账号管理
 
-事情是这样的：AgnesCode 的 AI 编程助手里面有一些不错的模型，GLM、Kimi、MiniMax、Doubao 这些都有。但它的 API 协议跟 Anthropic 和 OpenAI 的不一样，所以 Claude Code、Cursor 这些主流编程工具接不上。
+打开 `http://localhost:34891` 进入 Dashboard。
 
-AgnesCodeProxy 就是在中间做了一个翻译层，把协议对齐了。改两个环境变量，Claude Code 就能直接用 AgnesCode 的模型了。
+### 三种登录方式
 
+| 方式 | 适用场景 | 说明 |
+|------|---------|------|
+| **OAuth 授权登录** | 所有场景（推荐） | 点「OAuth授权登录」→ 浏览器跳转 AgnesCode 登录页 → 完成授权后自动添加账号 |
+| **一键导入** | macOS 本机已安装 AgnesCode IDE | 自动读取本地登录凭据，无需手动操作 |
+| **手动添加** | 已有 jwt_token 和 user_id | 在弹窗中直接填写 |
+
+### 远程 / Docker 部署时的 OAuth 授权
+
+点击「OAuth授权登录」后，浏览器会跳转到 AgnesCode 登录页。完成授权后，浏览器会尝试跳转到 `http://127.0.0.1:34891/auth/callback`——在远程部署时这个地址不可达，这是正常的。**把地址栏中的完整 URL 复制下来，粘贴到弹窗的输入框，点击「提交授权」即可。**
+
+Docker 部署时如需使用「一键导入」，需挂载 AgnesCode IDE 的状态文件：
+
+```bash
+docker run -p 34891:34891 \
+  -e AGNESCODE_STATE_DB=/data/state.vscdb \
+  -v /path/to/AgnesCode/state.vscdb:/data/state.vscdb:ro \
+  agnescode-proxy --skip-validation serve
 ```
-Claude Code / Cursor / Windsurf  →  AgnesCodeProxy  →  AgnesCode API
-                                    (协议翻译)
-```
 
-说白了就这点事，没有多复杂。做这个东西初衷是学习 Go 和了解 API 协议的差异，顺便给自己用着方便。
+---
 
-## 界面
-
-自带一个管理后台，账号、用量、配置都能在上面看和改。
+## 界面截图
 
 <div align="center">
 <img src="data/imgs/dashboard.png" alt="Dashboard" width="720" />
@@ -44,148 +114,64 @@ Claude Code / Cursor / Windsurf  →  AgnesCodeProxy  →  AgnesCode API
 
 <div align="center">
 <img src="data/imgs/accounts.png" alt="账号管理" width="720" />
-<p><sub>账号管理 — 支持多账号、OAuth 授权登录、一键导入、拖拽排序</sub></p>
+<p><sub>账号管理 — 多账号管理、OAuth 授权登录、拖拽排序</sub></p>
 </div>
 
 <div align="center">
 <img src="data/imgs/account-detail.png" alt="账号详情" width="720" />
-<p><sub>账号详情 — 单个账号的用量、模型分布、请求记录</sub></p>
+<p><sub>账号详情 — 用量、模型分布、请求记录</sub></p>
 </div>
 
 <div align="center">
 <img src="data/imgs/settings.png" alt="系统设置" width="720" />
-<p><sub>系统设置 — 默认模型、超时时间、日志保留，改完马上生效</sub></p>
+<p><sub>系统设置 — 默认模型、超时时间、日志保留</sub></p>
 </div>
 
-## 能做什么
-
-- **Anthropic + OpenAI 双协议** — 同时兼容 Anthropic Messages API 和 OpenAI Chat Completions API，Claude Code 和 Cursor 各走各的通道
-- **Tool Use 完整翻译** — Claude Code 的工具调用（读写文件、执行命令等）完整映射，不影响正常使用
-- **SSE 流式输出** — 实时流式返回，打字机效果
-- **多模型可选** — JoyAI-Code、GLM-5.1、GLM-5、GLM-4.7、Kimi-K2.6、Kimi-K2.5、MiniMax-M2.7、Doubao-Seed-2.0-pro
-- **多账号管理** — Dashboard 上通过 OAuth 授权登录或一键导入添加账号，每个账号有独立的 API Key
-- **OAuth 授权登录** — 支持从 Dashboard 直接跳转 AgnesCode 登录页完成授权，服务端自动兑换 token（支持 CSRF 防护）
-- **智能上下文截断** — 对话过长时自动截断早期消息，不会卡死，`/compact` 正常工作
-- **会话保活** — 自动检测并刷新过期凭证，保证服务持续可用
-- **单文件部署** — 前端打包进 Go 二进制，丢一个文件就能跑，也支持 Docker
-
-## 怎么跑起来
-
-### 构建
-
-需要 Go 1.22+ 和 Node.js 18+。
-
-```bash
-# 先构建前端
-cd web && npm install && npm run build && cd ..
-
-# 再构建后端（前端会自动嵌入）
-go build -o agnescode_proxy_bin ./cmd/AgnesCodeProxy/
-```
-
-或者用 Docker：
-
-```bash
-docker build -t agnescode-proxy .
-docker run -p 34891:34891 agnescode-proxy
-```
-
-> **构建时连不上 Alpine 源?** 如果 `docker build` 卡在 `apk add` 并报 `ca-certificates`/`gcc`/`musl-dev` "no such package"，根因通常是网络连不上官方源 `dl-cdn.alpinelinux.org`（国内常见）。用 `ALPINE_MIRROR` 构建参数切到国内镜像即可：
->
-> ```bash
-> docker build \
->   --build-arg ALPINE_MIRROR=https://mirrors.aliyun.com/alpine \
->   -t agnescode-proxy .
-> ```
->
-> 镜像源任选其一（写到 `/alpine` 为止）：阿里云 `https://mirrors.aliyun.com/alpine`、清华 `https://mirrors.tuna.tsinghua.edu.cn/alpine`、中科大 `https://mirrors.ustc.edu.cn/alpine`。若 `go mod download` 也慢，可在构建环境设 `GOPROXY=https://goproxy.cn,direct`。
-
-### 启动
-
-```bash
-./agnescode_proxy_bin serve
-```
-
-默认监听 `0.0.0.0:34891`。macOS 首次启动会自动从本地 AgnesCode 客户端读取凭据，不需要手动配。
-
-### 接到 Claude Code
-
-改两个环境变量就行：
-
-```bash
-export ANTHROPIC_BASE_URL=http://localhost:34891
-export ANTHROPIC_API_KEY=agnescode
-
-claude
-```
-
-### 多账号
-
-打开 `http://localhost:34891`，通过 Dashboard 的「OAuth授权登录」或「一键导入」添加账号。每个账号会生成一个独立的 API Key：
-
-```bash
-export ANTHROPIC_API_KEY=sk-joy-xxxx
-claude
-```
-
-### 登录方式
-
-#### OAuth 授权登录（推荐）
-
-在 Dashboard 点击「OAuth授权登录」，浏览器会打开 AgnesCode 的 deep link 登录页面。完成授权后：
-
-- **本地部署**：自动检测回调并添加账号
-- **Docker / 远程部署**：浏览器会跳转到 `http://127.0.0.1:34891/auth/callback`（这是正常的，因为回调地址指向本机），把地址栏中的完整 URL 复制粘贴到弹窗的输入框，点击「提交授权」即可
-
-#### 一键导入本地账号
-
-如果本机已安装 AgnesCode IDE 并登录，Dashboard 上的「一键导入」会自动读取本地凭据并导入。Docker 部署时需挂载状态文件：
-
-```bash
-docker run -p 34891:34891 \
-  -e AGNESCODE_STATE_DB=/data/state.vscdb \
-  -v /path/to/AgnesCode/state.vscdb:/data/state.vscdb:ro \
-  agnescode-proxy
-```
-
-#### 手动添加
-
-如果你已经从其他途径获取了 `jwt_token` 和 `user_id`，可以在 Dashboard 的「手动添加」弹窗中直接填写。
+---
 
 ## API 端点
 
 | 路径 | 说明 |
 |------|------|
-| `POST /v1/messages` | Anthropic Messages API，Claude Code 走这个 |
-| `POST /v1/chat/completions` | OpenAI Chat Completions API，Cursor 走这个 |
+| `POST /v1/messages` | Anthropic Messages API |
+| `POST /v1/chat/completions` | OpenAI Chat Completions API |
 | `POST /v1/web-search` | 网页搜索 |
 | `POST /v1/rerank` | 文档重排序 |
-| `GET /v1/models` | 拉取可用模型列表 |
+| `GET /v1/models` | 模型列表 |
 | `GET /health` | 健康检查 |
-| `GET /` | Dashboard 管理界面 |
+| `GET /` | Dashboard |
+
+---
 
 ## 项目结构
 
 ```
-cmd/AgnesCodeProxy/    入口，HTTP 服务器
-pkg/anthropic/       Anthropic 协议翻译（请求、响应、SSE 流式）
-pkg/openai/          OpenAI 协议翻译
-pkg/agnes/           AgnesCode API 客户端
-pkg/auth/            凭据读取、JWT 认证、中间件
-pkg/store/           SQLite 存储（账号、设置、请求日志）
-pkg/dashboard/       Dashboard API + 静态文件服务
-pkg/keepalive/       会话保活、凭证自动刷新
-pkg/logrot/          日志轮转
-pkg/proxy/           会话管理
-web/                 前端（React 19 + Ant Design + Recharts）
+cmd/AgnesCodeProxy/    入口，HTTP 服务器，CLI 命令
+pkg/anthropic/         Anthropic 协议翻译
+pkg/openai/            OpenAI 协议翻译
+pkg/agnes/             AgnesCode API 客户端
+pkg/auth/              凭据读取、JWT 认证、中间件
+pkg/store/             SQLite 存储层
+pkg/dashboard/         Dashboard API + 静态文件服务
+pkg/keepalive/         会话保活、凭证刷新
+pkg/logrot/            日志轮转
+pkg/proxy/             会话管理
+web/                   前端（React 19 + Ant Design + Recharts）
 ```
+
+---
 
 ## 使用限制
 
-- 每个用户最多配置 **10 个账号**，超出限制将无法添加或导入
-- 使用本项目前，请确保你已了解并遵守 AgnesCode 的服务条款
-- 如果你觉得 AgnesCode 的模型好用，建议去 [AgnesCode 官方](https://agnescode.jd.com/) 支持正版
+- 每个用户最多配置 **10 个账号**
+- 使用前请确保你已了解并遵守 AgnesCode 的服务条款
+
+---
 
 ## 许可证
 
 Apache 2.0
+
+---
+
+> **免责声明：** 本项目仅供个人学习和技术研究使用。禁止用于商业转售、API 中转服务（中转站属于违法行为）、大规模薅号或任何黑灰产/违法违规活动。因不当使用造成的一切后果由使用者自行承担，与项目作者无关。本项目不是 AgnesCode 官方产品。
