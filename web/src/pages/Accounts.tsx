@@ -822,7 +822,7 @@ const Accounts: React.FC = () => {
               type="info"
               showIcon
               message="完成授权后"
-              description="本地部署会自动检测并添加账号。若使用 Docker 或远程部署，浏览器会跳转到一个无法访问的 localhost 页面——这是正常现象：请复制该页面地址栏中的完整 URL 粘贴到下方，或直接粘贴 jwt_token 后点击「提交授权」。"
+              description="本地部署会自动检测并添加账号。若使用 Docker 或远程部署，请从浏览器地址栏复制完整 URL 粘贴到下方，或直接粘贴 jwt_token 后点击「提交授权」。"
               style={{ marginBottom: 12 }}
             />
             <Input.TextArea

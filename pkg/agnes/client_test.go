@@ -25,7 +25,7 @@ import (
 
 func testServerClient(handler http.Handler) (*Client, func()) {
 	srv := httptest.NewServer(handler)
-	c := NewClient("test-key", "test-user")
+	c := NewClient("test-key")
 	c.httpClient = srv.Client()
 	c.httpClient.Transport = redirectTransport{target: srv.URL, base: http.DefaultTransport}
 	return c, srv.Close
@@ -56,15 +56,15 @@ func (rt redirectTransport) RoundTrip(req *http.Request) (*http.Response, error)
 // ---------------------------------------------------------------------------
 
 func TestNewClient_SessionIDUnique(t *testing.T) {
-	a := NewClient("k", "u")
-	b := NewClient("k", "u")
+	a := NewClient("k")
+	b := NewClient("k")
 	if a.SessionID == b.SessionID {
 		t.Errorf("two clients should have different session IDs, got same %q", a.SessionID)
 	}
 }
 
 func TestNewClient_EmptyCredentials(t *testing.T) {
-	c := NewClient("", "")
+	c := NewClient("")
 	if c.JWTToken != "" || c.UserID != "" {
 		t.Errorf("expected empty credentials, got JWTToken=%q UserID=%q", c.JWTToken, c.UserID)
 	}
@@ -77,7 +77,7 @@ func TestNewClient_EmptyCredentials(t *testing.T) {
 }
 
 func TestHeaders_ContainsRequiredFields(t *testing.T) {
-	c := NewClient("my-key", "u1")
+	c := NewClient("my-key")
 	h := c.headers()
 
 	// Canonical headers (use Get, which canonicalizes the key).
@@ -104,7 +104,7 @@ func TestHeaders_ContainsRequiredFields(t *testing.T) {
 }
 
 func TestHeaders_JWTTokenSet(t *testing.T) {
-	c := NewClient("abc123token", "u1")
+	c := NewClient("abc123token")
 	h := c.headers()
 	vals := h["JWTToken"]
 	if len(vals) == 0 || vals[0] != "abc123token" {
@@ -113,7 +113,7 @@ func TestHeaders_JWTTokenSet(t *testing.T) {
 }
 
 func TestPrepareBody_DefaultFields(t *testing.T) {
-	c := NewClient("k", "user42")
+	c := NewClient("k")
 	body := c.prepareBody(map[string]interface{}{})
 
 	defaults := map[string]string{
@@ -133,7 +133,7 @@ func TestPrepareBody_DefaultFields(t *testing.T) {
 
 func TestPrepareBody_NoLegacyTrackingFields(t *testing.T) {
 	// AgnesCode 2.7 协议不再自动注入 chatId/requestId/sessionId（对齐真实客户端 customFetch）。
-	c := NewClient("k", "u")
+	c := NewClient("k")
 	body := c.prepareBody(map[string]interface{}{})
 	for _, key := range []string{"chatId", "requestId", "sessionId"} {
 		if _, ok := body[key]; ok {
@@ -143,7 +143,7 @@ func TestPrepareBody_NoLegacyTrackingFields(t *testing.T) {
 }
 
 func TestPrepareBody_ExtraChatIdPassedThrough(t *testing.T) {
-	c := NewClient("k", "u")
+	c := NewClient("k")
 	body := c.prepareBody(map[string]interface{}{"chatId": "keep-me"})
 	if got, _ := body["chatId"].(string); got != "keep-me" {
 		t.Errorf("chatId = %q, want %q", got, "keep-me")
@@ -151,7 +151,7 @@ func TestPrepareBody_ExtraChatIdPassedThrough(t *testing.T) {
 }
 
 func TestPrepareBody_ExtraFieldsMerged(t *testing.T) {
-	c := NewClient("k", "u")
+	c := NewClient("k")
 	body := c.prepareBody(map[string]interface{}{
 		"model":    "GLM-5",
 		"stream":   true,
@@ -578,7 +578,7 @@ func TestClient_DoPost_SendsCorrectRequest(t *testing.T) {
 // ---------------------------------------------------------------------------
 
 func TestPrepareBody_Table(t *testing.T) {
-	c := NewClient("k", "user1")
+	c := NewClient("k")
 
 	tests := []struct {
 		name  string
@@ -883,7 +883,7 @@ func TestDecodeBody_Gzipped(t *testing.T) {
 // ---------------------------------------------------------------------------
 
 func TestRequestURL_GatewaySigned(t *testing.T) {
-	c := NewClient("k", "u")
+	c := NewClient("k")
 	c.BaseURL = "https://api.agnes-ai.com"
 	raw := c.requestURL("/v1/chat/completions")
 
@@ -915,7 +915,7 @@ func TestRequestURL_GatewaySigned(t *testing.T) {
 }
 
 func TestRequestURL_DirectV2WhenNoColorBase(t *testing.T) {
-	c := NewClient("k", "u")
+	c := NewClient("k")
 	c.BaseURL = ""
 	c.MasterBaseURL = "https://api-agnes-code.agnes-ai.com"
 	got := c.requestURL("/v1/models")
@@ -926,7 +926,7 @@ func TestRequestURL_DirectV2WhenNoColorBase(t *testing.T) {
 }
 
 func TestRequestURL_UnmappedEndpointStaysDirect(t *testing.T) {
-	c := NewClient("k", "u")
+	c := NewClient("k")
 	got := c.requestURL("/api/saas/openai/v1/rerank") // 不在 color 端点表
 	want := BaseURL + "/api/saas/openai/v1/rerank"
 	if got != want {

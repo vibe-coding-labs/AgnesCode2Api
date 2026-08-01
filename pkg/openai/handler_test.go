@@ -60,9 +60,8 @@ func mockHandler(responses map[string]interface{}) http.Handler {
 // newMockClient creates a agnescode.Client that routes all requests to the
 // given httptest.Server.
 func newMockClient(ts *httptest.Server) *agnescode.Client {
-	c := agnescode.NewClient("test-key", "test-user")
-	// 走 direct 模式（清空网关 colorBaseURL），让 mock 按 path 路由而非 /api?functionId=
-	c.ColorBaseURL = ""
+	c := agnescode.NewClient("test-key")
+	// 走 direct 模式，让 mock 按 path 路由
 	c.SetHTTPClient(&http.Client{
 		Timeout:   10 * time.Second,
 		Transport: redirectTransport{target: ts.URL},

@@ -41,7 +41,7 @@ func (e *errAfterReader) Close() error { return nil }
 // (built fresh per request) and returns the SSE bytes the client receives.
 func runStream(t *testing.T, bodyFn func() io.ReadCloser) string {
 	t.Helper()
-	client := agnescode.NewClient("pt-test", "user-test")
+	client := agnescode.NewClient("pt-test")
 	client.SetHTTPClient(&http.Client{
 		Transport: rtFunc(func(r *http.Request) (*http.Response, error) {
 			return &http.Response{StatusCode: 200, Header: make(http.Header), Body: bodyFn()}, nil

@@ -39,6 +39,16 @@ func NewClient(jwtToken string) *Client {
 	}
 }
 
+// NewClientWithOAuth creates a client with a pre-obtained OAuth access token,
+// bypassing the JWT-based authentication flow. Used by the deep-link OAuth
+// callback flow where the auth code is exchanged server-side.
+func NewClientWithOAuth(oauthToken string) *Client {
+	return &Client{
+		OAuthToken: oauthToken,
+		httpClient: &http.Client{Timeout: 5 * time.Minute},
+	}
+}
+
 func (c *Client) SetTimeout(d time.Duration) {
 	c.httpClient.Timeout = d
 }
@@ -128,14 +138,48 @@ func (c *Client) exchangeToken(authCode string) (string, error) {
 	return r.Data.AccessToken, nil
 }
 
-func (c *Client) ensureAuth() error {
+// EnsureAuth ensures the client has a valid OAuth token.
+// It first tries to use the stored token as an OAuth token directly (for the
+// deep-link flow), and falls back to JWT-based authentication if that fails.
+// Now exported so external callers (keepalive) can use it.
+func (c *Client) EnsureAuth() error {
 	c.mu.RLock()
 	tok := c.OAuthToken
 	c.mu.RUnlock()
 	if tok != "" {
 		return nil
 	}
+
+	// If we have a stored JWTToken, try using it as an OAuth token directly first.
+	// This handles the deep-link OAuth flow where the stored token is already
+	// an OAuth access token, not a JWT that needs to be exchanged.
+	c.mu.RLock()
+	jwt := c.JWTToken
+	c.mu.RUnlock()
+	if jwt != "" {
+		// Try using the stored token as an OAuth token directly
+		c.mu.Lock()
+		c.OAuthToken = jwt
+		c.mu.Unlock()
+
+		// Verify by making a simple API call
+		_, err := c.GetUserInfo()
+		if err == nil {
+			return nil
+		}
+
+		// Reset: the token is not a valid OAuth token, fall back to JWT auth
+		slog.Debug("EnsureAuth: stored token not usable as OAuth token, falling back to JWT auth", "error", err)
+		c.mu.Lock()
+		c.OAuthToken = ""
+		c.mu.Unlock()
+	}
+
 	return c.Authenticate()
+}
+
+func (c *Client) ensureAuth() error {
+	return c.EnsureAuth()
 }
 
 func (c *Client) bearerHeaders() http.Header {
@@ -357,6 +401,42 @@ func (c *Client) GetTransactions(page, pageSize int) (*Transactions, error) {
 	var txns Transactions
 	json.Unmarshal(b, &txns)
 	return &txns, nil
+}
+
+// ExchangeAuthCode exchanges an authorization code for an OAuth access token.
+// This is a standalone API call used by the deep-link OAuth callback flow.
+func ExchangeAuthCode(authCode string) (string, error) {
+	body := map[string]string{
+		"code":         authCode,
+		"redirect_uri": RedirectURI,
+		"state":        newHexID(),
+		"client_id":    ClientID,
+	}
+	data, _ := json.Marshal(body)
+	req, _ := http.NewRequest("POST", BFFBaseURL+"/api/v1/code/auth/exchange-code", bytes.NewReader(data))
+	req.Header.Set("Content-Type", "application/json")
+
+	hc := &http.Client{Timeout: 30 * time.Second}
+	resp, err := hc.Do(req)
+	if err != nil {
+		return "", fmt.Errorf("exchange request: %w", err)
+	}
+	defer resp.Body.Close()
+
+	b, _ := io.ReadAll(resp.Body)
+	var r struct {
+		Code string `json:"code"`
+		Data struct {
+			AccessToken string `json:"access_token"`
+		} `json:"data"`
+	}
+	if err := json.Unmarshal(b, &r); err != nil {
+		return "", fmt.Errorf("parse exchange response: %w, %s", err, string(b))
+	}
+	if r.Code != "000000" && r.Code != "0" {
+		return "", fmt.Errorf("exchange failed: code=%s %s", r.Code, string(b))
+	}
+	return r.Data.AccessToken, nil
 }
 
 func newHexID() string {

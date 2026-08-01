@@ -36,7 +36,7 @@ func (c *captureRT) RoundTrip(r *http.Request) (*http.Response, error) {
 
 func TestAnthropicImageBlockForwardedToUpstream(t *testing.T) {
 	rt := &captureRT{}
-	client := agnescode.NewClient("pt-test", "user-test")
+	client := agnescode.NewClient("pt-test")
 	client.SetHTTPClient(&http.Client{Transport: rt})
 
 	h := anthropic.NewHandler(client, nil)

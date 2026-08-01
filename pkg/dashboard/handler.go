@@ -35,15 +35,38 @@ type Handler struct {
 	// Version is the proxy version reported by /api/health; set by the server
 	// at startup (the build-time Version lives in package main).
 	Version string
+
+	// oauthStates stores pending OAuth states for CSRF protection.
+	// Key: state token (hex), Value: timestamp of creation.
+	// Entries are cleaned up after 5 minutes.
+	oauthStates   map[string]time.Time
+	oauthStatesMu sync.RWMutex
 }
 
 func NewHandler(s *store.Store, staticFS fs.FS, k *keepalive.Keeper) *Handler {
-	return &Handler{
-		store:     s,
-		staticFS:  staticFS,
-		modelList: nil,
-		keeper:    k,
+	h := &Handler{
+		store:       s,
+		staticFS:    staticFS,
+		modelList:   nil,
+		keeper:      k,
+		oauthStates: make(map[string]time.Time),
 	}
+	// Periodic cleanup of expired OAuth states (every 5 minutes)
+	go func() {
+		ticker := time.NewTicker(5 * time.Minute)
+		defer ticker.Stop()
+		for range ticker.C {
+			h.oauthStatesMu.Lock()
+			cutoff := time.Now().Add(-5 * time.Minute)
+			for k, v := range h.oauthStates {
+				if v.Before(cutoff) {
+					delete(h.oauthStates, k)
+				}
+			}
+			h.oauthStatesMu.Unlock()
+		}
+	}()
+	return h
 }
 
 func (h *Handler) RegisterRoutes(mux *http.ServeMux) {
@@ -52,6 +75,9 @@ func (h *Handler) RegisterRoutes(mux *http.ServeMux) {
 	mux.HandleFunc("/api/auth/setup", h.handleAuthSetup)
 	mux.HandleFunc("/api/auth/login", h.handleAuthLogin)
 	mux.HandleFunc("/api/auth/change-password", h.handleChangePassword)
+
+	// Deep-link OAuth callback: AgnesCode login page POSTs the auth code here
+	mux.HandleFunc("/auth/callback", h.handleDeepLinkCallback)
 
 	// Dashboard endpoints (JWT required — enforced by middleware)
 	mux.HandleFunc("/api/accounts", h.handleAccounts)
@@ -732,20 +758,146 @@ func (h *Handler) handleBrowserLogin(w http.ResponseWriter, r *http.Request) {
 		writeError(w, http.StatusInternalServerError, "failed to generate token")
 		return
 	}
-	token := hex.EncodeToString(b)
+	state := hex.EncodeToString(b)
 
+	// Store state for CSRF validation in the callback
+	h.oauthStatesMu.Lock()
+	h.oauthStates[state] = time.Now()
+	h.oauthStatesMu.Unlock()
+
+	// Deep-link login URL: the AgnesCode login page will POST an auth code
+	// to our /auth/callback endpoint after the user completes authorization.
 	loginURL := fmt.Sprintf(
-		"https://app.agnes-ai.com/login/?ideAppName=AgnesCode&fromIde=ide&redirect=0&authPort=%s&authKey=%s",
-		url.QueryEscape(port), url.QueryEscape(token),
+		"https://app.agnes-ai.com/login/?client=agnes-code&redirect_uri=http://127.0.0.1:%s/auth/callback&state=%s",
+		url.QueryEscape(port), url.QueryEscape(state),
 	)
 
-	slog.Info("browser-login: generated login URL", "port", port, "token", token)
+	slog.Info("browser-login: generated login URL via deep-link", "port", port, "state", state)
 
 	writeJSON(w, http.StatusOK, map[string]interface{}{
 		"ok":    true,
 		"url":   loginURL,
-		"token": token,
+		"token": state,
 	})
+}
+
+// handleDeepLinkCallback receives the auth code from the AgnesCode login page
+// after the user completes authorization via the deep-link flow.
+// The login page POSTs to http://127.0.0.1:{port}/auth/callback with {code, state}.
+// We exchange the code for an OAuth access token, fetch user info, and save the account.
+func (h *Handler) handleDeepLinkCallback(w http.ResponseWriter, r *http.Request) {
+	if r.Method == http.MethodOptions {
+		w.Header().Set("Access-Control-Allow-Origin", "*")
+		w.Header().Set("Access-Control-Allow-Methods", "POST, OPTIONS")
+		w.Header().Set("Access-Control-Allow-Headers", "Content-Type")
+		w.WriteHeader(http.StatusNoContent)
+		return
+	}
+	if r.Method != http.MethodPost {
+		http.Error(w, `{"ok":false,"error":"method not allowed"}`, http.StatusMethodNotAllowed)
+		return
+	}
+
+	var body struct {
+		Code  string `json:"code"`
+		State string `json:"state"`
+	}
+	if err := json.NewDecoder(r.Body).Decode(&body); err != nil {
+		slog.Error("deep-link-callback: bad request", "error", err)
+		writeJSON(w, http.StatusBadRequest, map[string]interface{}{"ok": false, "error": "bad request"})
+		return
+	}
+
+	if body.Code == "" {
+		slog.Error("deep-link-callback: missing code")
+		writeJSON(w, http.StatusBadRequest, map[string]interface{}{"ok": false, "error": "missing code"})
+		return
+	}
+
+	// CSRF protection: validate state token
+	h.oauthStatesMu.Lock()
+	_, stateOK := h.oauthStates[body.State]
+	if stateOK {
+		delete(h.oauthStates, body.State)
+	}
+	h.oauthStatesMu.Unlock()
+
+	if !stateOK {
+		slog.Warn("deep-link-callback: invalid or expired state token — possible CSRF", "state_len", len(body.State))
+		writeJSON(w, http.StatusOK, map[string]interface{}{"ok": false, "error": "authorization failed"})
+		return
+	}
+
+	slog.Info("deep-link-callback: received auth code — state validated")
+
+	// Exchange the auth code for an OAuth access token
+	oauthToken, err := agnescode.ExchangeAuthCode(body.Code)
+	if err != nil {
+		slog.Error("deep-link-callback: exchange failed", "error", err)
+		writeJSON(w, http.StatusOK, map[string]interface{}{"ok": false, "error": "authorization code exchange failed"})
+		return
+	}
+
+	// Create a client with the OAuth token and fetch user info
+	client := agnescode.NewClientWithOAuth(oauthToken)
+	ui, err := client.GetUserInfo()
+	if err != nil {
+		slog.Error("deep-link-callback: user info failed", "error", err)
+		writeJSON(w, http.StatusOK, map[string]interface{}{"ok": false, "error": "authorization verification failed"})
+		return
+	}
+
+	userID := ui.Username
+	if userID == "" {
+		userID = ui.ID
+	}
+	if userID == "" {
+		slog.Error("deep-link-callback: empty user ID from AgnesCode API")
+		writeJSON(w, http.StatusOK, map[string]interface{}{"ok": false, "error": "authorization verification failed"})
+		return
+	}
+
+	nickname := ui.Username
+	if nickname == "" {
+		nickname = userID
+	}
+
+	// Check if account already exists
+	isDefault := false
+	existingAccounts, _ := h.store.ListAccounts()
+	if len(existingAccounts) == 0 {
+		isDefault = true
+	}
+
+	// Check if this user already has an account
+	alreadyExists := false
+	for _, a := range existingAccounts {
+		if a.UserID == userID {
+			alreadyExists = true
+			break
+		}
+	}
+	if !alreadyExists {
+		isDefault = true
+		for _, a := range existingAccounts {
+			if a.IsDefault {
+				isDefault = false
+				break
+			}
+		}
+		// Store the OAuth token as the JWTToken field (it's the long-lived access token)
+		// The keepalive mechanism will refresh it as needed
+		if err := h.store.AddAccount(userID, oauthToken, nickname, isDefault, "GLM-5.1"); err != nil {
+			slog.Error("deep-link-callback: save account failed", "error", err)
+			writeJSON(w, http.StatusOK, map[string]interface{}{"ok": false, "error": "account save failed"})
+			return
+		}
+		slog.Info("deep-link-callback: account saved", "user_id", userID, "nickname", nickname)
+	} else {
+		slog.Info("deep-link-callback: account already exists", "user_id", userID)
+	}
+
+	writeJSON(w, http.StatusOK, map[string]interface{}{"ok": true})
 }
 
 // validateAndSaveJWTToken validates a jwt_token with AgnesCode API and saves the account.
