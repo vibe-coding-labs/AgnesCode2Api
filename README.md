@@ -22,7 +22,7 @@ JoyAI-Code · GLM-5.1 · Kimi-K2.6 · MiniMax-M2.7 · Doubao-Seed-2.0-pro
 
 ## 起因
 
-事情是这样的：AgnesCode（京东的 AI 编程助手）里面有一些不错的模型，GLM、Kimi、MiniMax、Doubao 这些都有。但它的 API 协议跟 Anthropic 和 OpenAI 的不一样，所以 Claude Code、Cursor 这些主流编程工具接不上。
+事情是这样的：AgnesCode 的 AI 编程助手里面有一些不错的模型，GLM、Kimi、MiniMax、Doubao 这些都有。但它的 API 协议跟 Anthropic 和 OpenAI 的不一样，所以 Claude Code、Cursor 这些主流编程工具接不上。
 
 AgnesCodeProxy 就是在中间做了一个翻译层，把协议对齐了。改两个环境变量，Claude Code 就能直接用 AgnesCode 的模型了。
 
@@ -44,7 +44,7 @@ Claude Code / Cursor / Windsurf  →  AgnesCodeProxy  →  AgnesCode API
 
 <div align="center">
 <img src="data/imgs/accounts.png" alt="账号管理" width="720" />
-<p><sub>账号管理 — 支持多个 JD 账号，扫码添加</sub></p>
+<p><sub>账号管理 — 支持多账号、OAuth 授权登录、一键导入、拖拽排序</sub></p>
 </div>
 
 <div align="center">
@@ -63,8 +63,10 @@ Claude Code / Cursor / Windsurf  →  AgnesCodeProxy  →  AgnesCode API
 - **Tool Use 完整翻译** — Claude Code 的工具调用（读写文件、执行命令等）完整映射，不影响正常使用
 - **SSE 流式输出** — 实时流式返回，打字机效果
 - **多模型可选** — JoyAI-Code、GLM-5.1、GLM-5、GLM-4.7、Kimi-K2.6、Kimi-K2.5、MiniMax-M2.7、Doubao-Seed-2.0-pro
-- **多账号管理** — Dashboard 上扫码添加多个 JD 账号，每个账号有独立的 API Key
+- **多账号管理** — Dashboard 上通过 OAuth 授权登录或一键导入添加账号，每个账号有独立的 API Key
+- **OAuth 授权登录** — 支持从 Dashboard 直接跳转 AgnesCode 登录页完成授权，服务端自动兑换 token（支持 CSRF 防护）
 - **智能上下文截断** — 对话过长时自动截断早期消息，不会卡死，`/compact` 正常工作
+- **会话保活** — 自动检测并刷新过期凭证，保证服务持续可用
 - **单文件部署** — 前端打包进 Go 二进制，丢一个文件就能跑，也支持 Docker
 
 ## 怎么跑起来
@@ -119,30 +121,36 @@ claude
 
 ### 多账号
 
-打开 `http://localhost:34891`，用 JD App 扫码添加账号。每个账号会生成一个独立的 API Key：
+打开 `http://localhost:34891`，通过 Dashboard 的「OAuth授权登录」或「一键导入」添加账号。每个账号会生成一个独立的 API Key：
 
 ```bash
 export ANTHROPIC_API_KEY=sk-joy-xxxx
 claude
 ```
 
-### Docker / 远程部署登录
+### 登录方式
 
-非 macOS（尤其是 Docker）环境拿不到本地 AgnesCode 客户端凭据，登录方式如下：
+#### OAuth 授权登录（推荐）
 
-1. **OAuth 授权（推荐）**：在 Dashboard 点「OAuth授权登录」，在打开的 AgnesCode 页面完成授权。
-   - 本地直接部署时，回调会自动检测并添加账号。
-   - **Docker / 远程部署时，浏览器会跳转到一个无法访问的 `localhost` 页面，这是正常现象**。把该页面地址栏里的完整 URL（形如 `http://127.0.0.1:34891/?jwt_token=xxx&...`）复制下来，粘贴进弹窗的输入框，点「提交授权」即可。弹窗里的粘贴框现在一打开就可见，不用再等。
-2. **手动添加**：若你已经有 `jwt_token`，可在「手动添加」里直接填。
-   - `jwt_token`：来自上面 OAuth 回调 URL 的 `jwt_token` 参数，或本地 AgnesCode IDE 的 `state.vscdb`。
-   - `user_id`：AgnesCode 客户端 → 设置 → 个人信息。
-3. **挂载本地凭据**：如果宿主机装了 AgnesCode IDE，可把其状态库挂进容器，让「一键导入」可用：
-   ```bash
-   docker run -p 34891:34891 \
-     -e AGNESCODE_STATE_DB=/data/state.vscdb \
-     -v /path/to/AgnesCode/state.vscdb:/data/state.vscdb:ro \
-     agnescode-proxy
-   ```
+在 Dashboard 点击「OAuth授权登录」，浏览器会打开 AgnesCode 的 deep link 登录页面。完成授权后：
+
+- **本地部署**：自动检测回调并添加账号
+- **Docker / 远程部署**：浏览器会跳转到 `http://127.0.0.1:34891/auth/callback`（这是正常的，因为回调地址指向本机），把地址栏中的完整 URL 复制粘贴到弹窗的输入框，点击「提交授权」即可
+
+#### 一键导入本地账号
+
+如果本机已安装 AgnesCode IDE 并登录，Dashboard 上的「一键导入」会自动读取本地凭据并导入。Docker 部署时需挂载状态文件：
+
+```bash
+docker run -p 34891:34891 \
+  -e AGNESCODE_STATE_DB=/data/state.vscdb \
+  -v /path/to/AgnesCode/state.vscdb:/data/state.vscdb:ro \
+  agnescode-proxy
+```
+
+#### 手动添加
+
+如果你已经从其他途径获取了 `jwt_token` 和 `user_id`，可以在 Dashboard 的「手动添加」弹窗中直接填写。
 
 ## API 端点
 
@@ -162,11 +170,14 @@ claude
 cmd/AgnesCodeProxy/    入口，HTTP 服务器
 pkg/anthropic/       Anthropic 协议翻译（请求、响应、SSE 流式）
 pkg/openai/          OpenAI 协议翻译
-pkg/agnescode/         AgnesCode API 客户端
-pkg/auth/            凭据读取、JD 扫码登录
+pkg/agnes/           AgnesCode API 客户端
+pkg/auth/            凭据读取、JWT 认证、中间件
 pkg/store/           SQLite 存储（账号、设置、请求日志）
-pkg/dashboard/       Dashboard API
-web/                 前端（React + Ant Design）
+pkg/dashboard/       Dashboard API + 静态文件服务
+pkg/keepalive/       会话保活、凭证自动刷新
+pkg/logrot/          日志轮转
+pkg/proxy/           会话管理
+web/                 前端（React 19 + Ant Design + Recharts）
 ```
 
 ## 使用限制
