@@ -1,6 +1,6 @@
 # AgnesCodeProxy
 
-## 文档列表
+## 文档
 
 - [Claude Code Protocol Optimization Plan](/superpowers/plans/2026-04-27-claude-code-protocol-optimization)
 - [CLI UI Enhancement Plan](/superpowers/plans/2026-04-27-cli-ui-enhancement)
@@ -12,8 +12,6 @@
 - [Web Dashboard Implementation Plan](/superpowers/plans/2026-04-28-web-dashboard)
 - [Go CLI 命令补全 Implementation Plan](/superpowers/plans/2026-04-29-cli-completion)
 - [CLI UX 精细化 Implementation Plan](/superpowers/plans/2026-04-29-cli-ux-polish)
-- [JD Account Login Integration Plan](/superpowers/plans/2026-04-29-jd-login-integration)
-- [Backend Unification QA & Cleanup Plan](/superpowers/plans/2026-04-30-backend-unification-qa)
 - [Cross-Platform Service & Daemon Mode Implementation Plan](/superpowers/plans/2026-04-30-cross-platform-daemon-service)
 - [Error Detection and Logging Enhancement Plan](/superpowers/plans/2026-04-30-error-detection-logging-v2)
 - [Structured Error Logging Implementation Plan](/superpowers/plans/2026-04-30-structured-error-logging)
@@ -22,10 +20,8 @@
 - [代理层自动上下文截断 — 解决上下文超限死循环](/superpowers/plans/2026-05-02-auto-context-truncation)
 - [修复: 上下文超限导致客户端无限重试](/superpowers/plans/2026-05-02-context-window-exceeded-fix)
 - [Dashboard 数据准确性优化 Implementation Plan](/superpowers/plans/2026-05-02-dashboard-data-accuracy)
-- [Dashboard QR 码扫码登录实现 Plan](/superpowers/plans/2026-05-02-dashboard-qr-login)
 - [Dashboard 大屏重设计 + 路由独立化 Implementation Plan](/superpowers/plans/2026-05-02-dashboard-redesign)
 - [Bug Fix: 错误日志详情 + 日志增强](/superpowers/plans/2026-05-02-error-detail-and-log-improvements)
-- [Fix QR Login Polling — 扫码确认后前端无响应](/superpowers/plans/2026-05-02-qr-login-polling-fix)
 - [Settings Page Audit & Green Theme Fix](/superpowers/plans/2026-05-02-settings-audit-and-theme)
 - [Settings Page: Wire All "规划中" Settings Implementation Plan](/superpowers/plans/2026-05-02-settings-implementation)
 - [Sidebar Green Theme & Remove Broken QR Login](/superpowers/plans/2026-05-02-sidebar-green-theme-and-remove-broken-qr)
@@ -34,10 +30,6 @@
 - [Account Keep-Alive (账号凭证保活机制) Implementation Plan](/superpowers/plans/2026-05-03-account-keepalive)
 - [Account Stats 24h Dimension Implementation Plan](/superpowers/plans/2026-05-03-account-stats-24h-dimension)
 - [Feature: AgnesCode 浏览器 OAuth 回调登录 — 构建多账号池](/superpowers/plans/2026-05-03-agnescode-browser-oauth-login)
-- [Bug Fix: jwt_token cookie not found after QR validation](/superpowers/plans/2026-05-03-jwt-token-cookie-not-found-fix)
-- [Bug Fix: QR login jwt_token extraction — JD 不再通过 Set-Cookie 返回 jwt_token](/superpowers/plans/2026-05-03-qr-login-jwttoken-extraction-v2)
-- [Bug Fix: QR 登录 jwt_token 提取失败 — 改为一键登录优先策略](/superpowers/plans/2026-05-03-qr-login-redirect-to-auto-login)
-- [UserID Masking & Active Session Counting Plan](/superpowers/plans/2026-05-03-userid-mask-active-sessions)
 - [Log Rotation & Enhanced Logging Implementation Plan](/superpowers/plans/2026-05-13-log-rotation)
 - [Log Safety Hardening & Enhanced Communication Logging](/superpowers/plans/2026-05-13-log-safety-hardening)
 - [Bug Fix: 流式超时丢 tool 参数 + content_filter 未处理 + 截断破坏 tool 消息对](/superpowers/plans/2026-05-13-stream-error-tool-drop-fix)
