@@ -1,4 +1,4 @@
-# AgnesCodeProxy
+# AgnesCode2Api
 
 [![Go](https://img.shields.io/badge/Go-1.22+-00ADD8?style=flat&logo=go)](https://go.dev/)
 [![React](https://img.shields.io/badge/React-19-61DAFB?style=flat&logo=react)](https://react.dev/)
@@ -10,7 +10,30 @@
 
 你有一个支持多种模型的 API 服务（AgnesCode）。你有一个想用的工具（Claude Code、Cursor）。它们之间的协议不兼容，接不上。
 
-AgnesCodeProxy 解决这个问题：它在中间把 AgnesCode 的 API 协议翻译成 Anthropic Messages API 和 OpenAI Chat Completions API 格式。改两个环境变量就能用。
+AgnesCode2Api 解决这个问题：它在中间把 AgnesCode 的 API 协议翻译成 Anthropic Messages API 和 OpenAI Chat Completions API 格式。改两个环境变量就能用。
+
+---
+
+## 功能
+
+**协议翻译**
+- Anthropic Messages API ↔ AgnesCode API
+- OpenAI Chat Completions API ↔ AgnesCode API
+- Tool Use 完整映射
+- SSE 流式输出
+
+**账号管理**
+- OAuth 授权登录（支持 CSRF 防护）
+- 一键导入本地 AgnesCode IDE 凭据
+- 多账号，每个账号独立 API Key
+- 拖拽排序，默认账号路由
+
+**运维**
+- 会话保活，自动刷新过期凭证
+- 智能上下文截断
+- 日志轮转
+- 内置 Dashboard（React 19 + Ant Design）
+- 单文件部署（前端嵌入 Go 二进制）
 
 ---
 
