@@ -15,7 +15,27 @@
 
 ## 30 秒上手
 
-**想让你的 AI agent 帮你搭？** 把 [docs/guides/INSTALL.md](docs/guides/INSTALL.md) 的链接或内容发给它，它会根据你的系统环境自动选择 Docker / 下载二进制 / 源码编译三种方式之一来完成安装。
+**想让你的 AI agent 帮你搭？** 把下面这段提示词复制发给 Claude Code：
+
+<details>
+<summary>📋 复制这段提示词，粘贴给你的 Claude Code</summary>
+
+```text
+我需要你帮我启动一个 AgnesCode2Api 代理服务，让 Claude Code 可以通过它调用 AgnesCode 的 AI 模型。
+
+请按照以下步骤操作：
+
+1. 如果本机没有安装这个服务，先访问 https://github.com/vibe-coding-labs/AgnesCode2Api/releases 下载最新版的 Linux 二进制文件，保存到 ~/AgnesCodeProxy/ 目录下
+2. 赋予执行权限：chmod +x ~/AgnesCodeProxy/AgnesCodeProxy-linux-amd64
+3. 启动服务：~/AgnesCodeProxy/AgnesCodeProxy-linux-amd64 serve --tls=false --skip-validation
+4. 等待服务启动完成，确认 http://localhost:34891/health 返回 200
+5. 给我设置环境变量 ANTHROPIC_BASE_URL=http://localhost:34891 和 ANTHROPIC_API_KEY=agnescode
+6. 确认代理正常工作后告知我
+
+注意：如果 ~/AgnesCodeProxy/ 目录下已经有二进制文件，直接从第 2 步开始。
+```
+
+</details>
 
 **不需要 Anthropic 付费账号，不需要 OpenAI 订阅。有 AgnesCode 权限就能跑 Claude Code。**
 
@@ -90,7 +110,9 @@ chmod +x AgnesCodeProxy-linux-amd64
 docker run -p 34891:34891 ghcr.io/vibe-coding-labs/agnescode-proxy
 ```
 
-### 或者自行构建
+### 或者让 AI 自动安装
+
+把 [docs/guides/INSTALL.md](docs/guides/INSTALL.md) 的链接发给 Claude Code，它会根据你的系统环境自动选择安装方式。
 
 ```bash
 cd web && npm install && npm run build && cd ..
