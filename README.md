@@ -15,7 +15,7 @@
 
 ## 30 秒上手
 
-**想让你的 AI agent 帮你搭？** 把 [docs/guides/AGENTS.md](docs/guides/AGENTS.md) 的链接或内容发给它，它会根据你的系统环境自动选择 Docker / 下载二进制 / 源码编译三种方式之一来完成安装。
+**想让你的 AI agent 帮你搭？** 把 [docs/guides/INSTALL.md](docs/guides/INSTALL.md) 的链接或内容发给它，它会根据你的系统环境自动选择 Docker / 下载二进制 / 源码编译三种方式之一来完成安装。
 
 **不需要 Anthropic 付费账号，不需要 OpenAI 订阅。有 AgnesCode 权限就能跑 Claude Code。**
 

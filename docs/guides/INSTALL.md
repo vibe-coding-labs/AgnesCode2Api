@@ -1,6 +1,6 @@
-# AgnesCode2Api — AI Agent 安装引导
+# AgnesCode2Api — 安装引导
 
-> 本文档专为 AI 编程助手（Claude Code、Cursor 等）编写，描述如何自动完成 AgnesCode2Api 的安装和配置。
+> 本文档描述如何自动完成 AgnesCode2Api 的安装和配置。适用于手动安装，也可以将链接发给 AI 编程助手让它帮你搭。
 
 ## 任务概述
 
