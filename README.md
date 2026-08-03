@@ -15,14 +15,31 @@
 
 ## 30 秒上手
 
-```bash
-# 下载、启动、连接，三步搞定
-export ANTHROPIC_BASE_URL=http://localhost:34891
-export ANTHROPIC_API_KEY=agnescode
-claude
+### 把这段提示词粘给你的 Claude Code（推荐）
+
+复制下面的提示词，直接粘到你的 Claude Code 对话框里，它自己会搞定一切：
+
+<details>
+<summary>📋 点击复制提示词（共 6 步）</summary>
+
+```text
+我需要你帮我启动一个 AgnesCode2Api 代理服务，让 Claude Code 可以通过它调用 AgnesCode 的 AI 模型。
+
+请按照以下步骤操作：
+
+1. 如果本机没有安装这个服务，先访问 https://github.com/vibe-coding-labs/AgnesCode2Api/releases 下载最新版的 Linux 二进制文件，保存到 ~/AgnesCodeProxy/ 目录下
+2. 赋予执行权限：chmod +x ~/AgnesCodeProxy/AgnesCodeProxy-linux-amd64
+3. 启动服务：~/AgnesCodeProxy/AgnesCodeProxy-linux-amd64 serve --tls=false --skip-validation
+4. 等待服务启动完成，确认 http://localhost:34891/health 返回 200
+5. 给我设置环境变量 ANTHROPIC_BASE_URL=http://localhost:34891 和 ANTHROPIC_API_KEY=agnescode
+6. 确认代理正常工作后告知我
+
+注意：如果 ~/AgnesCodeProxy/ 目录下已经有二进制文件，直接从第 2 步开始。
 ```
 
-**不需要 Anthropic 账号，不需要 OpenAI 的付费订阅，用你已有的 AgnesCode 权限就能跑 Claude Code。**
+</details>
+
+**不需要 Anthropic 付费账号，不需要 OpenAI 订阅。有 AgnesCode 权限就能跑 Claude Code。**
 
 ---
 
@@ -75,18 +92,24 @@ AgnesCode2Api 是一个**协议翻译代理**。它把 AgnesCode 的 API 协议�
 
 ## 快速开始
 
-### 下载
+### 下载安装
 
 从 [Releases](https://github.com/vibe-coding-labs/AgnesCode2Api/releases) 下载对应平台的二进制文件：
 
 ```bash
-# macOS (Apple Silicon)
+# macOS
 chmod +x AgnesCodeProxy-darwin-arm64
 ./AgnesCodeProxy-darwin-arm64 serve
 
-# Linux (x86_64)
+# Linux
 chmod +x AgnesCodeProxy-linux-amd64
 ./AgnesCodeProxy-linux-amd64 serve
+```
+
+### Docker
+
+```bash
+docker run -p 34891:34891 ghcr.io/vibe-coding-labs/agnescode-proxy
 ```
 
 ### 或者自行构建
