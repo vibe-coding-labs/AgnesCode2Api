@@ -6,57 +6,53 @@
 
 ---
 
-## 这就是个问题
+## 为什么有这个项目
 
-你有一个支持多种模型的 API 服务（AgnesCode）。你有一个想用的工具（Claude Code、Cursor）。它们之间的协议不兼容，接不上。
+**Claude Code、Cursor、Windsurf 这些 AI 编程工具只认 Anthropic 和 OpenAI 的 API 协议。** 如果拿到了其他平台的 API 权限（比如 AgnesCode），想用这些工具调用，协议不兼容，接不上。
 
-AgnesCode2Api 解决这个问题：它在中间把 AgnesCode 的 API 协议翻译成 Anthropic Messages API 和 OpenAI Chat Completions API 格式。改两个环境变量就能用。
+**AgnesCode2Api 就是做这个的：一个协议翻译层。**
+
+它在中间把 AgnesCode 的 API 协议实时翻译成 Anthropic Messages API 和 OpenAI Chat Completions API 格式。你不需要改工具，不需要写适配代码，改两个环境变量就能用。
+
+```
+你用的工具 (Claude Code / Cursor)
+       ↓  Anthropic / OpenAI 协议
+AgnesCode2Api (协议翻译层)
+       ↓  AgnesCode 协议
+AgnesCode API (模型服务)
+```
 
 ---
 
-## 功能
+## 适合谁用
+
+- 有 AgnesCode 账号，想用 Claude Code 编程的人
+- 有多账号，需要统一管理 API Key 和用量的人
+- 在 macOS 上已安装 AgnesCode IDE，想一键导入凭据的人
+- 在 Docker 或远程服务器上部署，需要通过 OAuth 授权登录的人
+
+---
+
+## 核心功能
 
 **协议翻译**
 - Anthropic Messages API ↔ AgnesCode API
 - OpenAI Chat Completions API ↔ AgnesCode API
-- Tool Use 完整映射
-- SSE 流式输出
+- Tool Use 完整映射，不影响 Claude Code 正常使用
+- SSE 流式输出，打字机效果
 
 **账号管理**
-- OAuth 授权登录（支持 CSRF 防护）
-- 一键导入本地 AgnesCode IDE 凭据
-- 多账号，每个账号独立 API Key
-- 拖拽排序，默认账号路由
+- OAuth 授权登录，服务端自动兑换 token（CSRF 防护）
+- 一键导入已登录的 AgnesCode IDE 凭据
+- 支持多账号，每个账号独立 API Key，拖拽排序
+- 默认账号自动路由，请求无需指定密钥
 
-**运维**
-- 会话保活，自动刷新过期凭证
-- 智能上下文截断
-- 日志轮转
-- 内置 Dashboard（React 19 + Ant Design）
-- 单文件部署（前端嵌入 Go 二进制）
-
----
-
-## 功能
-
-**协议翻译**
-- Anthropic Messages API ↔ AgnesCode API
-- OpenAI Chat Completions API ↔ AgnesCode API
-- Tool Use 完整映射
-- SSE 流式输出
-
-**账号管理**
-- OAuth 授权登录（支持 CSRF 防护）
-- 一键导入本地 AgnesCode IDE 凭据
-- 多账号，每个账号独立 API Key
-- 拖拽排序，默认账号路由
-
-**运维**
-- 会话保活，自动刷新过期凭证
-- 智能上下文截断
-- 日志轮转
-- 内置 Dashboard（React 19 + Ant Design）
-- 单文件部署（前端嵌入 Go 二进制）
+**运维能力**
+- 会话保活：自动检测并刷新过期凭证，不用手动重新登录
+- 智能上下文截断：对话过长时自动截断早期消息，不会卡死
+- 日志轮转，防止磁盘写满
+- 内置 Dashboard（React 19 + Ant Design + Recharts），数据可视化
+- 单文件部署，前端嵌入 Go 二进制
 
 ---
 
