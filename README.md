@@ -15,10 +15,7 @@
 
 ## 30 秒上手
 
-**想让你的 AI agent 帮你搭？** 把下面这段提示词复制发给 Claude Code：
-
-<details>
-<summary>📋 复制这段提示词，粘贴给你的 Claude Code</summary>
+复制下面这段提示词，粘贴给你的 Claude Code，它会自己搭好一切：
 
 ```text
 我需要你帮我启动一个 AgnesCode2Api 代理服务，让 Claude Code 可以通过它调用 AgnesCode 的 AI 模型。
@@ -34,8 +31,6 @@
 
 注意：如果 ~/AgnesCodeProxy/ 目录下已经有二进制文件，直接从第 2 步开始。
 ```
-
-</details>
 
 **不需要 Anthropic 付费账号，不需要 OpenAI 订阅。有 AgnesCode 权限就能跑 Claude Code。**
 
