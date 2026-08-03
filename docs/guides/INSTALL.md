@@ -36,11 +36,17 @@ which go 2>/dev/null && go version || echo "NO_GO"
 **前提：** 系统有 Docker。
 
 ```bash
+# 克隆仓库并构建镜像
+git clone https://github.com/vibe-coding-labs/AgnesCode2Api.git
+cd AgnesCode2Api
+docker build -t agnescode-proxy .
+
+# 启动容器
 docker run -d \
   --name agnescode-proxy \
   --restart unless-stopped \
   -p 34891:34891 \
-  ghcr.io/vibe-coding-labs/agnescode-proxy:latest
+  agnescode-proxy
 
 # 等待启动
 echo "Waiting for service..."

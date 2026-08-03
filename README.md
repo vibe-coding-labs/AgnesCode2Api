@@ -20,16 +20,15 @@
 ```text
 我需要你帮我启动一个 AgnesCode2Api 代理服务，让 Claude Code 可以通过它调用 AgnesCode 的 AI 模型。
 
-请按照以下步骤操作：
+请按以下步骤操作：
 
-1. 如果本机没有安装这个服务，先访问 https://github.com/vibe-coding-labs/AgnesCode2Api/releases 下载最新版的 Linux 二进制文件，保存到 ~/AgnesCodeProxy/ 目录下
-2. 赋予执行权限：chmod +x ~/AgnesCodeProxy/AgnesCodeProxy-linux-amd64
-3. 启动服务：~/AgnesCodeProxy/AgnesCodeProxy-linux-amd64 serve --tls=false --skip-validation
+1. 先检测我的操作系统：运行 uname -s 和 uname -m，根据结果选择正确的安装方式
+2. 如果有 Docker，用 Docker 安装最省事：先 git clone https://github.com/vibe-coding-labs/AgnesCode2Api.git，然后 cd AgnesCode2Api && docker build -t agnescode-proxy . && docker run -d --name agnescode-proxy -p 34891:34891 --restart unless-stopped agnescode-proxy
+3. 如果没有 Docker，去 https://github.com/vibe-coding-labs/AgnesCode2Api/releases 下载对应平台的最新版二进制文件，赋予执行权限后启动
 4. 等待服务启动完成，确认 http://localhost:34891/health 返回 200
 5. 给我设置环境变量 ANTHROPIC_BASE_URL=http://localhost:34891 和 ANTHROPIC_API_KEY=agnescode
-6. 确认代理正常工作后告知我
-
-注意：如果 ~/AgnesCodeProxy/ 目录下已经有二进制文件，直接从第 2 步开始。
+6. 如果 34891 端口被占用，先杀掉旧进程再重试
+7. 确认代理正常工作后告知我
 ```
 
 **不需要 Anthropic 付费账号，不需要 OpenAI 订阅。有 AgnesCode 权限就能跑 Claude Code。**
@@ -102,7 +101,8 @@ chmod +x AgnesCodeProxy-linux-amd64
 ### Docker
 
 ```bash
-docker run -p 34891:34891 ghcr.io/vibe-coding-labs/agnescode-proxy
+docker build -t agnescode-proxy .
+docker run -p 34891:34891 agnescode-proxy
 ```
 
 ### 或者让 AI 自动安装
